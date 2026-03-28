@@ -4,11 +4,11 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
-}
+} 
 
 enum TourStatus {
   ACTIVO
-  NO_ACTIVO
+  NO_ACTIVO 
   BORRADOR
 }
 

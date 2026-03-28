@@ -553,6 +553,52 @@ function parseFaqsCsv(text: string): FaqItem[] {
   return sanitizeFaqs(parsed);
 }
 
+function parseToursCsv(text: string): Partial<TourAdminView>[] {
+  const lines = text
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  if (lines.length < 2) return [];
+
+  const headers = parseCsvRow(lines[0]).map((h) => h.trim().toLowerCase());
+  const dataLines = lines.slice(1);
+
+  return dataLines.map((line) => {
+    const row = parseCsvRow(line);
+    const get = (key: string) => (row[headers.indexOf(key)] ?? "").trim();
+
+    const safeJson = (val: string, fallback: unknown = []) => {
+      try { return JSON.parse(val); } catch { return fallback; }
+    };
+
+    return {
+      title: get("title"),
+      description: get("description"),
+      price: Number(get("price")) || 0,
+      minPeople: Number(get("minpeople")) || 1,
+      status: (get("status") as TourStatus) || "BORRADOR",
+      featured: get("featured") === "true",
+      country: get("country"),
+      zone: get("zone"),
+      durationDays: Number(get("durationdays")) || undefined,
+      activityType: get("activitytype"),
+      difficulty: get("difficulty"),
+      guideType: get("guidetype"),
+      transport: get("transport"),
+      groups: get("groups"),
+      story: safeJson(get("story"), []),
+      includedItems: safeJson(get("includeditems"), []),
+      recommendations: safeJson(get("recommendations"), []),
+      faqs: safeJson(get("faqs"), []),
+      tourPackages: safeJson(get("tourpackages"), []),
+      images: safeJson(get("images"), []),
+      categoryId: Number(get("categoryid")) || undefined,
+      category: { id: Number(get("categoryid")) || 0, name: get("categoryname") ?? "" },
+    };
+  }).filter((t) => t.title);
+}
+
 function parseFaqsFromPipeText(text: string): FaqItem[] {
   const items = text
     .split(/\r?\n/)
@@ -659,6 +705,7 @@ function AdminPageContent() {
   const [isFaqBulkOpen, setIsFaqBulkOpen] = useState(false);
   const [faqBulkText, setFaqBulkText] = useState("");
   const faqCsvInputRef = useRef<HTMLInputElement | null>(null);
+  const importToursCsvRef = useRef<HTMLInputElement | null>(null);
   const [status, setStatus] = useState<TourStatus>("BORRADOR");
   const [featured, setFeatured] = useState(false);
 
@@ -1114,6 +1161,67 @@ function AdminPageContent() {
       }
       return prev.filter((id) => !currentIds.includes(id));
     });
+  };
+
+  const handleImportToursCsv = async (files: FileList | null) => {
+    const file = files?.[0];
+    if (!file) return;
+
+    const text = await file.text();
+    const parsed = parseToursCsv(text);
+
+    if (!parsed.length) {
+      setFeedback({ type: "error", message: "No se encontraron tours validos en el CSV." });
+      return;
+    }
+
+    const confirm = window.confirm(`Se importaran ${parsed.length} tours. Los tours se crearan como nuevos (sin reemplazar los existentes). Continuar?`);
+    if (!confirm) return;
+
+    setFeedback({ type: "success", message: `Importando ${parsed.length} tours...` });
+
+    let ok = 0;
+    let fail = 0;
+
+    for (const tour of parsed) {
+      try {
+        const res = await fetch("/api/admin/tour", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            title: tour.title,
+            description: tour.description,
+            price: tour.price,
+            minPeople: tour.minPeople ?? 1,
+            status: tour.status ?? "BORRADOR",
+            featured: tour.featured ?? false,
+            country: tour.country,
+            zone: tour.zone,
+            durationDays: tour.durationDays,
+            activityType: tour.activityType,
+            difficulty: tour.difficulty,
+            guideType: tour.guideType,
+            transport: tour.transport,
+            groups: tour.groups,
+            story: tour.story ?? [],
+            includedItems: tour.includedItems ?? [],
+            recommendations: tour.recommendations ?? [],
+            faqs: tour.faqs ?? [],
+            tourPackages: tour.tourPackages ?? [],
+            images: tour.images ?? [],
+            categoryId: tour.category?.id,
+          }),
+        });
+        if (res.ok) ok++; else fail++;
+      } catch { fail++; }
+    }
+
+    await loadData();
+    setFeedback({
+      type: ok > 0 ? "success" : "error",
+      message: `Importacion completada: ${ok} creados${fail > 0 ? `, ${fail} fallaron` : ""}.`,
+    });
+    if (importToursCsvRef.current) importToursCsvRef.current.value = "";
   };
 
   const handleExportToursCsv = (mode: "all" | "selected") => {
@@ -1916,6 +2024,16 @@ function AdminPageContent() {
               placeholder="Buscar por nombre, pais o actividad"
               className="w-full rounded-xl border border-slate-300 px-3 py-2 md:w-80"
             />
+            <input
+              ref={importToursCsvRef}
+              type="file"
+              accept=".csv"
+              className="hidden"
+              onChange={(e) => handleImportToursCsv(e.target.files)}
+            />
+            <button type="button" onClick={() => importToursCsvRef.current?.click()} className="rounded-xl border border-violet-300 px-4 py-2 text-sm font-bold text-violet-700 hover:bg-violet-50">
+              Importar CSV
+            </button>
             <button type="button" onClick={() => handleExportToursCsv("all")} className="rounded-xl border border-emerald-300 px-4 py-2 text-sm font-bold text-emerald-700 hover:bg-emerald-50">
               Exportar todos CSV
             </button>
