@@ -47,7 +47,7 @@ model Tour {
   isDeleted   Boolean @default(false)
   deletedAt   DateTime?
   categoryId  Int
-  category    Category @relation(fields: [categoryId], references: [id])
+  category    Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
   availability Availability[]
   reservations Reservation[]
 }
@@ -57,13 +57,13 @@ model Availability {
   date    DateTime
   maxPeople Int
   tourId  Int
-  tour    Tour     @relation(fields: [tourId], references: [id])
+  tour    Tour     @relation(fields: [tourId], references: [id], onDelete: Cascade)
 }
 
 model Reservation {
   id        Int      @id @default(autoincrement())
   tourId    Int
-  tour      Tour     @relation(fields: [tourId], references: [id])
+  tour      Tour     @relation(fields: [tourId], references: [id], onDelete: Cascade)
   people    Int
   adults    Int?
   kids      Int?
