@@ -410,7 +410,7 @@ function sanitizeFaqs(items?: FaqItem[]): FaqItem[] {
 }
 
 function toCsvCell(value: string): string {
-  const safe = value.replace(/"/g, '""');
+  const safe = value.replace(/\r\n/g, "\n").replace(/\r/g, "\n").replace(/"/g, '""');
   return `"${safe}"`;
 }
 
@@ -482,7 +482,13 @@ function buildToursCsv(tours: TourAdminView[]): string {
       JSON.stringify(Array.isArray(tour.faqs) ? tour.faqs : []),
       JSON.stringify(Array.isArray(tour.availability) ? tour.availability : []),
       JSON.stringify(Array.isArray(tour.tourPackages) ? tour.tourPackages : []),
-      JSON.stringify(Array.isArray(tour.images) ? tour.images : []),
+      JSON.stringify(
+        Array.isArray(tour.images)
+          ? tour.images
+              .map((item) => String(item ?? "").trim())
+              .filter((item) => item.length > 0 && !item.startsWith("data:"))
+          : [],
+      ),
     ];
 
     return values.map((value) => toCsvCell(String(value))).join(",");
@@ -492,7 +498,7 @@ function buildToursCsv(tours: TourAdminView[]): string {
 }
 
 function downloadCsv(content: string, filename: string): void {
-  const blob = new Blob([content], { type: "text/csv;charset=utf-8;" });
+  const blob = new Blob(["\uFEFF", content], { type: "text/csv;charset=utf-8;" });
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
@@ -532,19 +538,57 @@ function parseCsvRow(line: string): string[] {
   return values;
 }
 
+function parseCsvTable(text: string): string[][] {
+  const rows: string[][] = [];
+  let currentRow: string[] = [];
+  let currentCell = "";
+  let inQuotes = false;
+
+  for (let i = 0; i < text.length; i += 1) {
+    const char = text[i];
+    const next = text[i + 1];
+
+    if (char === '"') {
+      if (inQuotes && next === '"') {
+        currentCell += '"';
+        i += 1;
+      } else {
+        inQuotes = !inQuotes;
+      }
+      continue;
+    }
+
+    if (char === "," && !inQuotes) {
+      currentRow.push(currentCell.trim());
+      currentCell = "";
+      continue;
+    }
+
+    if ((char === "\n" || char === "\r") && !inQuotes) {
+      if (char === "\r" && next === "\n") i += 1;
+      currentRow.push(currentCell.trim());
+      if (currentRow.some((cell) => cell.length > 0)) rows.push(currentRow);
+      currentRow = [];
+      currentCell = "";
+      continue;
+    }
+
+    currentCell += char;
+  }
+
+  currentRow.push(currentCell.trim());
+  if (currentRow.some((cell) => cell.length > 0)) rows.push(currentRow);
+  return rows;
+}
+
 function parseFaqsCsv(text: string): FaqItem[] {
-  const lines = text
-    .split(/\r?\n/)
-    .map((line) => line.trim())
-    .filter(Boolean);
+  const rows = parseCsvTable(text);
+  if (!rows.length) return [];
 
-  if (!lines.length) return [];
+  const firstLower = rows[0].join(",").toLowerCase();
+  const dataRows = firstLower.includes("pregunta") && firstLower.includes("respuesta") ? rows.slice(1) : rows;
 
-  const firstLower = lines[0].toLowerCase();
-  const dataLines = firstLower.includes("pregunta") && firstLower.includes("respuesta") ? lines.slice(1) : lines;
-
-  const parsed = dataLines.map((line) => {
-    const row = parseCsvRow(line);
+  const parsed = dataRows.map((row) => {
     const question = (row[0] ?? "").trim();
     const answer = (row[1] ?? "").trim();
     return { question, answer };
@@ -554,18 +598,13 @@ function parseFaqsCsv(text: string): FaqItem[] {
 }
 
 function parseToursCsv(text: string): Partial<TourAdminView>[] {
-  const lines = text
-    .split(/\r?\n/)
-    .map((line) => line.trim())
-    .filter(Boolean);
+  const rows = parseCsvTable(text);
+  if (rows.length < 2) return [];
 
-  if (lines.length < 2) return [];
+  const headers = rows[0].map((h) => h.trim().toLowerCase());
+  const dataRows = rows.slice(1);
 
-  const headers = parseCsvRow(lines[0]).map((h) => h.trim().toLowerCase());
-  const dataLines = lines.slice(1);
-
-  return dataLines.map((line) => {
-    const row = parseCsvRow(line);
+  return dataRows.map((row) => {
     const get = (key: string) => (row[headers.indexOf(key)] ?? "").trim();
 
     const safeJson = (val: string, fallback: unknown = []) => {
@@ -591,9 +630,9 @@ function parseToursCsv(text: string): Partial<TourAdminView>[] {
       includedItems: safeJson(get("includeditems"), []),
       recommendations: safeJson(get("recommendations"), []),
       faqs: safeJson(get("faqs"), []),
+      priceOptions: safeJson(get("priceoptions"), []),
       tourPackages: safeJson(get("tourpackages"), []),
       images: safeJson(get("images"), []),
-      categoryId: Number(get("categoryid")) || undefined,
       category: { id: Number(get("categoryid")) || 0, name: get("categoryname") ?? "" },
     };
   }).filter((t) => t.title);
@@ -1182,9 +1221,16 @@ function AdminPageContent() {
 
     let ok = 0;
     let fail = 0;
+    const failureDetails: string[] = [];
 
     for (const tour of parsed) {
       try {
+        const normalizedPackages = buildEditorTourPackages(
+          tour.tourPackages,
+          (tour as { priceOptions?: unknown }).priceOptions,
+          Number(tour.price),
+        );
+
         const res = await fetch("/api/admin/tour", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -1207,19 +1253,37 @@ function AdminPageContent() {
             includedItems: tour.includedItems ?? [],
             recommendations: tour.recommendations ?? [],
             faqs: tour.faqs ?? [],
-            tourPackages: tour.tourPackages ?? [],
+            tourPackages: normalizedPackages,
             images: tour.images ?? [],
             categoryId: tour.category?.id,
           }),
         });
-        if (res.ok) ok++; else fail++;
-      } catch { fail++; }
+        if (res.ok) {
+          ok++;
+        } else {
+          fail++;
+          if (failureDetails.length < 3) {
+            const errorPayload = await res.json().catch(() => null);
+            const detail =
+              (errorPayload && typeof errorPayload.error === "string" && errorPayload.error) ||
+              (errorPayload && typeof errorPayload.detail === "string" && errorPayload.detail) ||
+              `HTTP ${res.status}`;
+            failureDetails.push(`${tour.title ?? "Tour sin titulo"}: ${detail}`);
+          }
+        }
+      } catch {
+        fail++;
+        if (failureDetails.length < 3) {
+          failureDetails.push(`${tour.title ?? "Tour sin titulo"}: Error de red o servidor.`);
+        }
+      }
     }
 
     await loadData();
+    const detailText = failureDetails.length ? ` Detalle: ${failureDetails.join(" | ")}` : "";
     setFeedback({
       type: ok > 0 ? "success" : "error",
-      message: `Importacion completada: ${ok} creados${fail > 0 ? `, ${fail} fallaron` : ""}.`,
+      message: `Importacion completada: ${ok} creados${fail > 0 ? `, ${fail} fallaron` : ""}.${detailText}`,
     });
     if (importToursCsvRef.current) importToursCsvRef.current.value = "";
   };
