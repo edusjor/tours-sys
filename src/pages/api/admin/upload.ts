@@ -1,0 +1,95 @@
+import fs from 'fs/promises';
+import path from 'path';
+import type { NextApiRequest, NextApiResponse } from 'next';
+import formidable, { type File as FormidableFile } from 'formidable';
+import { requireAdminSession } from '../../../lib/adminAuth';
+
+export const config = {
+  api: {
+    bodyParser: false,
+  },
+};
+
+function toArray(value: FormidableFile | FormidableFile[] | undefined): FormidableFile[] {
+  if (!value) return [];
+  return Array.isArray(value) ? value : [value];
+}
+
+async function parseForm(req: NextApiRequest): Promise<formidable.Files> {
+  const form = formidable({
+    multiples: true,
+    maxFiles: 30,
+    maxFileSize: 10 * 1024 * 1024,
+    filter: ({ mimetype }) => typeof mimetype === 'string' && mimetype.startsWith('image/'),
+  });
+
+  return new Promise((resolve, reject) => {
+    form.parse(req, (error, _fields, files) => {
+      if (error) {
+        reject(error);
+        return;
+      }
+      resolve(files);
+    });
+  });
+}
+
+function getSafeExtension(file: FormidableFile): string {
+  const fromName = path.extname(file.originalFilename || '').toLowerCase();
+  if (fromName && /^\.[a-z0-9]+$/i.test(fromName)) return fromName;
+
+  const mime = String(file.mimetype || '').toLowerCase();
+  if (mime.includes('png')) return '.png';
+  if (mime.includes('webp')) return '.webp';
+  if (mime.includes('gif')) return '.gif';
+  if (mime.includes('jpeg') || mime.includes('jpg')) return '.jpg';
+  return '.jpg';
+}
+
+async function moveFileWithFallback(sourcePath: string, destinationPath: string): Promise<void> {
+  try {
+    await fs.rename(sourcePath, destinationPath);
+  } catch {
+    await fs.copyFile(sourcePath, destinationPath);
+    await fs.unlink(sourcePath).catch(() => undefined);
+  }
+}
+
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Metodo no permitido' });
+  }
+
+  if (!requireAdminSession(req, res)) return;
+
+  try {
+    const files = await parseForm(req);
+    const uploadDir = path.join(process.cwd(), 'uploads', 'tours');
+    await fs.mkdir(uploadDir, { recursive: true });
+
+    const candidates = [
+      ...toArray(files.images as FormidableFile | FormidableFile[] | undefined),
+      ...toArray(files.file as FormidableFile | FormidableFile[] | undefined),
+      ...toArray(files.files as FormidableFile | FormidableFile[] | undefined),
+    ];
+
+    if (!candidates.length) {
+      return res.status(400).json({ error: 'No se recibieron imagenes validas.' });
+    }
+
+    const urls: string[] = [];
+    for (const file of candidates) {
+      if (!file?.filepath) continue;
+      const ext = getSafeExtension(file);
+      const name = `tour-${Date.now()}-${Math.round(Math.random() * 1e9)}${ext}`;
+      const destination = path.join(uploadDir, name);
+      await moveFileWithFallback(file.filepath, destination);
+      urls.push(`/uploads/tours/${name}`);
+    }
+
+    return res.status(200).json({ urls });
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : 'Error desconocido';
+    return res.status(500).json({ error: 'No se pudieron subir las imagenes.', detail });
+  }
+}
