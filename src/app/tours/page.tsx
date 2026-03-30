@@ -191,6 +191,12 @@ function getTourLocationLabel(tour: Tour): string {
   return location.join(", ");
 }
 
+function getTourRouteParam(tour: Tour): string {
+  const slug = String(tour.slug ?? "").trim();
+  if (slug) return slug;
+  return String(tour.id);
+}
+
 export default function ToursPage() {
   const [tours, setTours] = useState<Tour[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -560,7 +566,7 @@ export default function ToursPage() {
                   <div className="mt-auto flex items-center justify-between gap-3 pt-4">
                     <span className="text-3xl font-black text-emerald-600">{getTourPriceLabel(tour)}</span>
                     <Link
-                      href={`/tours/${tour.slug}`}
+                      href={`/tours/${encodeURIComponent(getTourRouteParam(tour))}`}
                       className="rounded-lg bg-amber-400 px-4 py-2 text-sm font-extrabold text-slate-900 transition hover:bg-amber-300"
                     >
                       Ver detalles

@@ -221,6 +221,22 @@ function getLocalTourBySlug(slug: string): Tour | null {
   return normalizeTour(match);
 }
 
+function getLocalTourByRouteParam(routeParam: string): Tour | null {
+  const localTours = safeParse<Partial<Tour>[]>(localStorage.getItem(LOCAL_TOURS_KEY), []);
+  const match = localTours.find((tour) => {
+    const candidateSlug = typeof tour.slug === "string" && tour.slug.trim() ? tour.slug : slugifyTourValue(String(tour.title ?? ""));
+    const candidateId = typeof tour.id === "number" ? String(tour.id) : "";
+    return candidateSlug === routeParam || candidateId === routeParam;
+  });
+  return normalizeTour(match);
+}
+
+function buildTourRouteParam(tour: Pick<Tour, "id" | "slug">): string {
+  const slug = String(tour.slug ?? "").trim();
+  if (slug) return slug;
+  return String(tour.id);
+}
+
 export default function TourDetailPage() {
   const params = useParams();
   const tourSlug = typeof params?.slug === "string" ? params.slug : "";
@@ -239,8 +255,16 @@ export default function TourDetailPage() {
       return;
     }
 
-    fetch(`/api/tour?slug=${encodeURIComponent(tourSlug)}`)
-      .then((res) => res.json())
+    const isNumericRoute = /^\d+$/.test(tourSlug);
+    const remoteUrl = isNumericRoute
+      ? `/api/tour?id=${encodeURIComponent(tourSlug)}`
+      : `/api/tour?slug=${encodeURIComponent(tourSlug)}`;
+
+    fetch(remoteUrl)
+      .then((res) => {
+        if (!res.ok) return null;
+        return res.json();
+      })
       .then((data) => {
         const normalizedRemote = normalizeTour(data);
         if (normalizedRemote) {
@@ -248,7 +272,7 @@ export default function TourDetailPage() {
           return;
         }
 
-        const localTour = getLocalTourBySlug(tourSlug);
+        const localTour = getLocalTourByRouteParam(tourSlug);
         if (localTour) {
           setTour(localTour);
           return;
@@ -257,7 +281,7 @@ export default function TourDetailPage() {
         setTour(null);
       })
       .catch(() => {
-        const localTour = getLocalTourBySlug(tourSlug);
+        const localTour = getLocalTourByRouteParam(tourSlug);
         if (localTour) {
           setTour(localTour);
           return;
@@ -432,7 +456,8 @@ export default function TourDetailPage() {
   const sideTopIndex = slideNext(galleryMainIndex);
   const sideBottomIndex = slideNext(sideTopIndex);
 
-  const reserveHref = `/tours/${tour.slug}/reservar${selectedPackage ? `?package=${encodeURIComponent(selectedPackage.id)}${selectedAvailabilityDate ? `&date=${encodeURIComponent(selectedAvailabilityDate)}` : ""}` : selectedAvailabilityDate ? `?date=${encodeURIComponent(selectedAvailabilityDate)}` : ""}`;
+  const routeParam = buildTourRouteParam(tour);
+  const reserveHref = `/tours/${encodeURIComponent(routeParam)}/reservar${selectedPackage ? `?package=${encodeURIComponent(selectedPackage.id)}${selectedAvailabilityDate ? `&date=${encodeURIComponent(selectedAvailabilityDate)}` : ""}` : selectedAvailabilityDate ? `?date=${encodeURIComponent(selectedAvailabilityDate)}` : ""}`;
 
   return (
     <section className="relative overflow-hidden bg-[radial-gradient(circle_at_15%_10%,rgba(16,185,129,0.11),transparent_42%),radial-gradient(circle_at_90%_85%,rgba(245,158,11,0.12),transparent_38%),linear-gradient(180deg,#f8fbfa_0%,#ecf3f1_100%)]">
@@ -579,40 +604,46 @@ export default function TourDetailPage() {
             )}
           </article>
 
-          {Boolean(tour.tourPackages?.length) && (
+          {(Boolean(tour.tourPackages?.length) || Boolean(activePriceOptions.length)) && (
             <article className="mt-7 rounded-2xl border border-white/70 bg-white/95 p-5 shadow-[0_8px_30px_rgba(15,23,42,0.07)] backdrop-blur-sm">
-              <h3 className="text-xl font-extrabold text-slate-900">Paquetes disponibles</h3>
-              <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                {tour.tourPackages?.map((pkg) => (
-                  <button
-                    key={pkg.id}
-                    type="button"
-                    onClick={() => setSelectedPackageId(pkg.id)}
-                    className={`rounded-xl border px-3 py-3 text-left transition ${selectedPackage?.id === pkg.id ? "border-emerald-400 bg-emerald-50" : "border-slate-200 bg-white hover:border-emerald-300"}`}
-                  >
-                    <p className="text-sm font-extrabold text-slate-900">{pkg.title}</p>
-                    {pkg.description && <p className="mt-1 text-xs text-slate-600">{pkg.description}</p>}
-                  </button>
-                ))}
-              </div>
-            </article>
-          )}
+              <h3 className="text-xl font-extrabold text-slate-900">Paquetes y precios</h3>
 
-          {Boolean(activePriceOptions.length) && (
-            <article className="mt-7 rounded-2xl border border-white/70 bg-white/95 p-5 shadow-[0_8px_30px_rgba(15,23,42,0.07)] backdrop-blur-sm">
-              <h3 className="text-xl font-extrabold text-slate-900">
-                Tipos de precio {selectedPackage ? `- ${selectedPackage.title}` : "- Paquete principal"}
-              </h3>
-              <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                {activePriceOptions.map((option) => (
-                  <div key={option.id} className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
-                    <span className="text-sm font-semibold text-slate-700">{option.name}</span>
-                    <span className={`text-sm font-extrabold ${option.isFree || option.price === 0 ? "text-emerald-700" : "text-slate-900"}`}>
-                      {formatPriceLabel(option)}
-                    </span>
+              {Boolean(tour.tourPackages?.length) && (
+                <>
+                  <p className="mt-1 text-sm text-slate-600">Selecciona un paquete para ver sus precios.</p>
+                  <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                    {tour.tourPackages?.map((pkg) => (
+                      <button
+                        key={pkg.id}
+                        type="button"
+                        onClick={() => setSelectedPackageId(pkg.id)}
+                        className={`rounded-xl border px-3 py-3 text-left transition ${selectedPackage?.id === pkg.id ? "border-emerald-500 bg-emerald-50 shadow-sm" : "border-slate-200 bg-white hover:border-emerald-300"}`}
+                      >
+                        <p className="text-sm font-extrabold text-slate-900">{pkg.title}</p>
+                        {pkg.description && <p className="mt-1 text-xs text-slate-600">{pkg.description}</p>}
+                      </button>
+                    ))}
                   </div>
-                ))}
-              </div>
+                </>
+              )}
+
+              {Boolean(activePriceOptions.length) && (
+                <div className="mt-4 border-t border-slate-200 pt-4">
+                  <h4 className="text-xs font-extrabold uppercase tracking-[0.14em] text-slate-500">
+                    Precios {selectedPackage ? `- ${selectedPackage.title}` : "- Paquete principal"}
+                  </h4>
+                  <div className="mt-2 space-y-1">
+                    {activePriceOptions.map((option) => (
+                      <div key={option.id} className="flex items-center justify-between rounded-lg px-2 py-1.5">
+                        <span className="text-sm font-semibold text-slate-600">{option.name}</span>
+                        <span className={`text-sm font-extrabold ${option.isFree || option.price === 0 ? "text-emerald-700" : "text-slate-900"}`}>
+                          {formatPriceLabel(option)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </article>
           )}
 
@@ -657,7 +688,7 @@ export default function TourDetailPage() {
           )}
         </div>
 
-        <aside className="rounded-2xl border border-white/70 bg-white/95 p-5 shadow-[0_10px_35px_rgba(15,23,42,0.09)] backdrop-blur-sm lg:sticky lg:top-6 lg:h-fit">
+        <aside className="self-start rounded-2xl border border-white/70 bg-white/95 p-5 shadow-[0_10px_35px_rgba(15,23,42,0.09)] backdrop-blur-sm lg:sticky lg:top-20 lg:max-h-[calc(100vh-6rem)] lg:overflow-y-auto">
           <p className="text-4xl font-black text-emerald-800">{detailPricePreview.label}</p>
           <p className="mt-1 text-xs uppercase tracking-wide text-slate-500">Precio segun tipo seleccionado</p>
 

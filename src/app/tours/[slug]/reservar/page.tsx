@@ -400,7 +400,6 @@ function ReservarPageContent({ tourSlug, packageFromQuery }: { tourSlug: string;
   const [visibleMonth, setVisibleMonth] = useState<Date | null>(() => initialLocalData.visibleMonth);
   const [selectedTime, setSelectedTime] = useState("");
   const [priceQuantities, setPriceQuantities] = useState<Record<string, number>>({});
-  const [showPassengerPanel, setShowPassengerPanel] = useState(false);
   const [step, setStep] = useState<"contacto" | "pago">("contacto");
 
   const [name, setName] = useState("");
@@ -793,62 +792,58 @@ function ReservarPageContent({ tourSlug, packageFromQuery }: { tourSlug: string;
 
               <div>
                 <label className="mb-2 block text-xs font-bold uppercase tracking-wide text-slate-600">Personas</label>
-                <button
-                  type="button"
-                  onClick={() => setShowPassengerPanel((prev) => !prev)}
-                  className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-left font-semibold text-slate-800"
-                >
+                <div className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-left font-semibold text-slate-800">
                   {totalPeople} pers.
-                </button>
+                </div>
                 {!meetsMinimumPeople && (
                   <p className="mt-2 text-xs font-bold text-rose-700">Reserva minima: {minimumPeople} personas.</p>
                 )}
               </div>
             </div>
 
-            {showPassengerPanel && (
-              <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 p-4">
-                <div className="space-y-3">
-                  {visiblePriceOptions.map((option) => (
-                    <div key={option.id} className="flex items-center justify-between">
-                      <div>
-                        <p className="font-bold text-slate-900">{option.name}</p>
-                        <p className={`text-sm ${option.isFree || option.price === 0 ? "font-bold text-emerald-700" : "text-slate-600"}`}>
-                          {formatOptionPrice(option)} por pers.
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <button
-                          type="button"
-                          className="rounded border border-slate-300 px-2 py-1 font-bold"
-                          onClick={() =>
-                            setPriceQuantities((prev) => ({
-                              ...prev,
-                              [option.id]: Math.max(0, (normalizedPriceQuantities[option.id] ?? 0) - 1),
-                            }))
-                          }
-                        >
-                          -
-                        </button>
-                        <span className="w-8 text-center font-bold">{normalizedPriceQuantities[option.id] ?? 0}</span>
-                        <button
-                          type="button"
-                          className="rounded border border-slate-300 px-2 py-1 font-bold"
-                          onClick={() =>
-                            setPriceQuantities((prev) => ({
-                              ...prev,
-                              [option.id]: (normalizedPriceQuantities[option.id] ?? 0) + 1,
-                            }))
-                          }
-                        >
-                          +
-                        </button>
-                      </div>
+            <div className="mt-4 rounded-xl border border-slate-200 bg-slate-900 p-4">
+              <p className="text-lg font-extrabold text-white">Precios</p>
+              <p className="mt-1 text-xs text-slate-300">Puedes ajustar paquete y cantidades directamente en checkout.</p>
+              <div className="mt-3 space-y-3">
+                {visiblePriceOptions.map((option) => (
+                  <div key={option.id} className="flex items-center justify-between rounded-lg border border-white/15 bg-white/10 px-3 py-2">
+                    <div>
+                      <p className="font-bold text-slate-100">{option.name}</p>
+                      <p className={`text-sm ${option.isFree || option.price === 0 ? "font-bold text-emerald-300" : "text-amber-300"}`}>
+                        {formatOptionPrice(option)} por pers.
+                      </p>
                     </div>
-                  ))}
-                </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        className="rounded border border-white/25 px-2 py-1 font-bold text-white"
+                        onClick={() =>
+                          setPriceQuantities((prev) => ({
+                            ...prev,
+                            [option.id]: Math.max(0, (normalizedPriceQuantities[option.id] ?? 0) - 1),
+                          }))
+                        }
+                      >
+                        -
+                      </button>
+                      <span className="w-8 text-center font-bold text-white">{normalizedPriceQuantities[option.id] ?? 0}</span>
+                      <button
+                        type="button"
+                        className="rounded border border-white/25 px-2 py-1 font-bold text-white"
+                        onClick={() =>
+                          setPriceQuantities((prev) => ({
+                            ...prev,
+                            [option.id]: (normalizedPriceQuantities[option.id] ?? 0) + 1,
+                          }))
+                        }
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+                ))}
               </div>
-            )}
+            </div>
 
             <div className="mt-4 border-t border-slate-200 pt-4">
               <p className="text-sm text-slate-600">Total:</p>
