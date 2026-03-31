@@ -69,7 +69,7 @@ export default function FeaturedToursSlice({ tours }: Props) {
             </div>
             <div className="flex flex-1 flex-col p-5">
               <p className="text-xs font-extrabold uppercase tracking-wide text-emerald-700">{item.categoryName || "Tour"}</p>
-              <h3 className="mt-1 line-clamp-3 min-h-[6.25rem] text-2xl font-extrabold leading-tight text-slate-900">{item.title}</h3>
+              <h3 className="mt-1 text-base font-bold leading-snug text-slate-900">{item.title}</h3>
               <p className="mt-2 line-clamp-3 whitespace-pre-line text-slate-600">{item.description}</p>
 
               <div className="mt-3 min-h-10">

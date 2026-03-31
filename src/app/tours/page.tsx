@@ -552,7 +552,7 @@ export default function ToursPage() {
                 </div>
                 <div className="flex flex-1 flex-col p-5">
                   <p className="text-xs font-extrabold uppercase tracking-wide text-emerald-700">{tour.category?.name ?? "Tour"}</p>
-                  <h3 className="mt-1 line-clamp-3 min-h-[6.25rem] text-2xl font-extrabold leading-tight text-slate-900">{tour.title}</h3>
+                  <h3 className="mt-1 text-base font-bold leading-snug text-slate-900">{tour.title}</h3>
                   <p className="mt-2 line-clamp-3 whitespace-pre-line text-slate-600">{tour.description}</p>
 
                   <div className="mt-3 min-h-10">

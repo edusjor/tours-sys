@@ -3,6 +3,60 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 
+type OnvoPayConfig = {
+  onError?: (data: unknown) => void;
+  onSuccess?: (data: unknown) => void;
+  publicKey: string;
+  paymentIntentId: string;
+  paymentType: "one_time";
+  locale?: "es" | "en";
+};
+
+type OnvoInstance = {
+  render: (selector: string) => void;
+};
+
+type OnvoClient = {
+  pay: (config: OnvoPayConfig) => OnvoInstance;
+};
+
+declare global {
+  interface Window {
+    onvo?: OnvoClient;
+  }
+}
+
+const ONVO_SDK_URL = "https://sdk.onvopay.com/sdk.js";
+let onvoScriptPromise: Promise<void> | null = null;
+
+function loadOnvoScript(): Promise<void> {
+  if (typeof window === "undefined") return Promise.reject(new Error("ONVO SDK solo esta disponible en el navegador."));
+  if (window.onvo?.pay) return Promise.resolve();
+  if (onvoScriptPromise) return onvoScriptPromise;
+
+  onvoScriptPromise = new Promise<void>((resolve, reject) => {
+    const existingScript = document.querySelector(`script[src=\"${ONVO_SDK_URL}\"]`) as HTMLScriptElement | null;
+    if (existingScript) {
+      if (window.onvo?.pay) {
+        resolve();
+        return;
+      }
+      existingScript.addEventListener("load", () => resolve(), { once: true });
+      existingScript.addEventListener("error", () => reject(new Error("No se pudo cargar el SDK de ONVO.")), { once: true });
+      return;
+    }
+
+    const script = document.createElement("script");
+    script.src = ONVO_SDK_URL;
+    script.async = true;
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error("No se pudo cargar el SDK de ONVO."));
+    document.head.appendChild(script);
+  });
+
+  return onvoScriptPromise;
+}
+
 interface Availability {
   id: number;
   date: string;
@@ -385,19 +439,16 @@ export default function ReservarPage() {
 }
 
 function ReservarPageContent({ tourSlug, packageFromQuery }: { tourSlug: string; packageFromQuery: string | null }) {
-  const initialLocalData = useMemo(() => getLocalReservationSeed(tourSlug), [tourSlug]);
+  const [hydrated, setHydrated] = useState(false);
 
-  const [tour, setTour] = useState<TourLite | null>(() => initialLocalData.tour);
+  const [tour, setTour] = useState<TourLite | null>(null);
   const [selectedPackageId, setSelectedPackageId] = useState<string | null>(null);
   const [loadError, setLoadError] = useState("");
 
-  const [availability, setAvailability] = useState<Availability[]>(() => initialLocalData.availability);
-  const [availabilityConfig, setAvailabilityConfig] = useState<AvailabilityConfig>(() => initialLocalData.availabilityConfig);
-  const [selectedDateKey, setSelectedDateKey] = useState<string | null>(() => {
-    if (initialLocalData.availability[0]) return String(initialLocalData.availability[0].date).slice(0, 10);
-    return initialLocalData.availabilityConfig.mode === "OPEN" ? toDateKey(new Date()) : null;
-  });
-  const [visibleMonth, setVisibleMonth] = useState<Date | null>(() => initialLocalData.visibleMonth);
+  const [availability, setAvailability] = useState<Availability[]>([]);
+  const [availabilityConfig, setAvailabilityConfig] = useState<AvailabilityConfig>(defaultAvailabilityConfig);
+  const [selectedDateKey, setSelectedDateKey] = useState<string | null>(null);
+  const [visibleMonth, setVisibleMonth] = useState<Date | null>(null);
   const [selectedTime, setSelectedTime] = useState("");
   const [priceQuantities, setPriceQuantities] = useState<Record<string, number>>({});
   const [step, setStep] = useState<"contacto" | "pago">("contacto");
@@ -408,13 +459,31 @@ function ReservarPageContent({ tourSlug, packageFromQuery }: { tourSlug: string;
   const [emailConfirm, setEmailConfirm] = useState("");
   const [phone, setPhone] = useState("");
   const [hotel, setHotel] = useState("");
-  const [payMethod, setPayMethod] = useState("Tarjeta de Credito o Debito");
+  const [payMethod, setPayMethod] = useState("Tarjeta de Credito o Debito (ONVO)");
+  const [sinpeReceiptFile, setSinpeReceiptFile] = useState<File | null>(null);
+  const [sinpeReceiptUrl, setSinpeReceiptUrl] = useState("");
+  const [isUploadingSinpeReceipt, setIsUploadingSinpeReceipt] = useState(false);
+  const [isCreatingPayment, setIsCreatingPayment] = useState(false);
+  const [isReservationConfirmed, setIsReservationConfirmed] = useState(false);
+  const [confirmedReservationId, setConfirmedReservationId] = useState<number | null>(null);
 
   const [status, setStatus] = useState("");
   const [remainingSeconds, setRemainingSeconds] = useState(15 * 60);
 
   useEffect(() => {
+    setHydrated(true);
     if (!tourSlug) return;
+
+    // Pre-populate desde localStorage mientras carga el API
+    const localData = getLocalReservationSeed(tourSlug);
+    if (localData.tour) {
+      setTour(localData.tour);
+      setAvailability(localData.availability);
+      setAvailabilityConfig(localData.availabilityConfig);
+      const firstDateKey = localData.availability[0] ? String(localData.availability[0].date).slice(0, 10) : null;
+      setSelectedDateKey(firstDateKey ?? (localData.availabilityConfig.mode === "OPEN" ? toDateKey(new Date()) : null));
+      setVisibleMonth(localData.visibleMonth);
+    }
 
     fetch(`/api/tour?slug=${encodeURIComponent(tourSlug)}`)
       .then((res) => res.json())
@@ -444,35 +513,40 @@ function ReservarPageContent({ tourSlug, packageFromQuery }: { tourSlug: string;
           setLoadError("");
           return;
         }
-        setTour(initialLocalData.tour);
-        setAvailability(initialLocalData.availability);
-        setAvailabilityConfig(initialLocalData.availabilityConfig);
         setLoadError("No se encontro informacion del tour solicitado en el servidor.");
       })
       .catch(() => {
-        setTour(initialLocalData.tour);
-        setAvailability(initialLocalData.availability);
-        setAvailabilityConfig(initialLocalData.availabilityConfig);
         setLoadError("No se pudo cargar la informacion del tour desde el servidor.");
       });
-  }, [initialLocalData.availability, initialLocalData.availabilityConfig, initialLocalData.tour, tourSlug]);
+  }, [tourSlug]);
 
   useEffect(() => {
+    if (!hydrated) return;
     const id = setInterval(() => {
       setRemainingSeconds((prev) => (prev > 0 ? prev - 1 : 0));
     }, 1000);
     return () => clearInterval(id);
-  }, []);
+  }, [hydrated]);
+
+  useEffect(() => {
+    if (!tour?.tourPackages?.length) return;
+    if (selectedPackageId) return;
+
+    if (packageFromQuery) {
+      const packageFromUrl = tour.tourPackages.find((pkg) => pkg.id === packageFromQuery);
+      if (packageFromUrl) {
+        setSelectedPackageId(packageFromUrl.id);
+        return;
+      }
+    }
+
+    setSelectedPackageId(tour.tourPackages[0].id);
+  }, [packageFromQuery, selectedPackageId, tour]);
 
   const selectedPackage = useMemo(() => {
     if (!tour?.tourPackages?.length) return null;
-    if (packageFromQuery) {
-      const packageFromUrl = tour.tourPackages.find((pkg) => pkg.id === packageFromQuery);
-      if (packageFromUrl) return packageFromUrl;
-    }
-
     return tour.tourPackages.find((pkg) => pkg.id === selectedPackageId) || tour.tourPackages[0] || null;
-  }, [packageFromQuery, selectedPackageId, tour]);
+  }, [selectedPackageId, tour]);
 
   const visiblePriceOptions = useMemo(() => {
     if (!tour) return [];
@@ -587,9 +661,53 @@ function ReservarPageContent({ tourSlug, packageFromQuery }: { tourSlug: string;
   }, [remainingSeconds]);
 
   const canContinueToPay =
-    name.trim() && lastName.trim() && email.trim() && emailConfirm.trim() && email === emailConfirm && phone.trim() && hotel.trim();
+    name.trim() && lastName.trim() && email.trim() && emailConfirm.trim() && email === emailConfirm && phone.trim();
   const minimumPeople = Math.max(1, tour?.minPeople ?? 1);
   const meetsMinimumPeople = totalPeople >= minimumPeople;
+  const isSinpeMobileMethod = payMethod === "SINPE Movil";
+
+  const confirmPaymentWithRetry = async (reservationId: number, paymentIntentId: string): Promise<{ ok: boolean; message: string }> => {
+    const maxAttempts = 8;
+    const delayMs = 2500;
+
+    for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+      const confirmRes = await fetch("/api/reservar-confirmar-pago", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          reservationId,
+          paymentIntentId,
+        }),
+      });
+
+      const confirmPayload = await confirmRes.json().catch(() => null);
+
+      if (confirmRes.ok) {
+        return {
+          ok: true,
+          message: String(confirmPayload?.message || "Pago aprobado y reserva confirmada."),
+        };
+      }
+
+      if (confirmRes.status === 202) {
+        setStatus("Pago recibido. Esperando confirmacion final...");
+        await new Promise((resolve) => setTimeout(resolve, delayMs));
+        continue;
+      }
+
+      return {
+        ok: false,
+        message: confirmPayload?.error
+          ? `Pago recibido, pero no se pudo confirmar la reserva: ${confirmPayload.error}`
+          : "Pago recibido, pero no se pudo confirmar la reserva.",
+      };
+    }
+
+    return {
+      ok: false,
+      message: "Pago recibido, pero la confirmacion esta tardando mas de lo esperado. Te avisaremos por correo al confirmarse.",
+    };
+  };
 
   const handleReserve = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -608,14 +726,53 @@ function ReservarPageContent({ tourSlug, packageFromQuery }: { tourSlug: string;
     const selectedPrices = visiblePriceOptions
       .map((option) => ({
         id: option.id,
-        name: option.name,
-        unitPrice: option.price,
-        isFree: option.isFree,
         quantity: normalizedPriceQuantities[option.id] ?? 0,
       }))
       .filter((item) => item.quantity > 0);
 
+    let uploadedSinpeReceiptUrl = sinpeReceiptUrl;
+
+    if (isSinpeMobileMethod) {
+      if (!sinpeReceiptFile && !uploadedSinpeReceiptUrl) {
+        setStatus("Para SINPE Movil debes subir el comprobante antes de completar la reserva.");
+        return;
+      }
+
+      if (!uploadedSinpeReceiptUrl && sinpeReceiptFile) {
+        try {
+          setIsUploadingSinpeReceipt(true);
+          setStatus("Subiendo comprobante SINPE...");
+
+          const formData = new FormData();
+          formData.append("receipt", sinpeReceiptFile);
+          const uploadRes = await fetch("/api/upload-receipt", {
+            method: "POST",
+            body: formData,
+          });
+          const uploadPayload = await uploadRes.json().catch(() => null);
+
+          if (!uploadRes.ok) {
+            setStatus(uploadPayload?.error ? `No se pudo subir el comprobante: ${uploadPayload.error}` : "No se pudo subir el comprobante SINPE.");
+            return;
+          }
+
+          uploadedSinpeReceiptUrl = String(uploadPayload?.url ?? "").trim();
+          if (!uploadedSinpeReceiptUrl) {
+            setStatus("No se recibio URL valida del comprobante SINPE.");
+            return;
+          }
+
+          setSinpeReceiptUrl(uploadedSinpeReceiptUrl);
+        } finally {
+          setIsUploadingSinpeReceipt(false);
+        }
+      }
+    }
+
     try {
+      setIsCreatingPayment(true);
+      setStatus(isSinpeMobileMethod ? "Validando reserva SINPE..." : "Preparando tu reserva y creando la sesion de pago...");
+
       const res = await fetch("/api/reservar", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -632,28 +789,112 @@ function ReservarPageContent({ tourSlug, packageFromQuery }: { tourSlug: string;
           phone,
           hotel,
           paymentMethod: payMethod,
+          sinpeReceiptUrl: uploadedSinpeReceiptUrl,
           scheduleTime: effectiveSelectedTime,
           packageId: selectedPackage?.id,
           packageTitle: selectedPackage?.title,
         }),
       });
 
-      if (res.ok) {
-        setStatus("Reserva confirmada. Te enviamos el detalle por correo.");
+      const payload = await res.json().catch(() => null);
+
+      if (!res.ok) {
+        setStatus(payload?.error ? `No se pudo confirmar la reserva: ${payload.error}` : "No se pudo confirmar la reserva.");
         return;
       }
 
-      const errorData = await res.json().catch(() => null);
-      setStatus(errorData?.error ? `No se pudo confirmar la reserva: ${errorData.error}` : "No se pudo confirmar la reserva.");
+      if (!payload?.requiresPayment) {
+        const reservationId = Number(payload?.reservationId);
+        if (Number.isFinite(reservationId) && reservationId > 0) {
+          setConfirmedReservationId(reservationId);
+        }
+        setIsReservationConfirmed(true);
+        setStatus(payload?.message || "Reserva confirmada. Te enviamos el detalle por correo.");
+        return;
+      }
+
+      const paymentIntentId = String(payload?.paymentIntentId ?? "").trim();
+      const publicKey = String(payload?.publicKey ?? "").trim();
+      const reservationId = Number(payload?.reservationId);
+
+      if (!paymentIntentId || !publicKey || !Number.isFinite(reservationId) || reservationId <= 0) {
+        setStatus("No se pudo iniciar el checkout. Intenta nuevamente.");
+        return;
+      }
+
+      await loadOnvoScript();
+      if (!window.onvo?.pay) {
+        setStatus("No se pudo inicializar ONVO. Recarga la pagina e intenta nuevamente.");
+        return;
+      }
+
+      const mountNode = document.getElementById("onvo-checkout-container");
+      if (!mountNode) {
+        setStatus("No se encontro el contenedor de pago. Intenta nuevamente.");
+        return;
+      }
+      mountNode.innerHTML = "";
+
+      const onvoCheckout = window.onvo.pay({
+        publicKey,
+        paymentIntentId,
+        paymentType: "one_time",
+        locale: "es",
+        onError: (onvoError) => {
+          const errorMessage =
+            typeof onvoError === "object" && onvoError && "message" in onvoError
+              ? String((onvoError as { message?: string }).message || "")
+              : "";
+          setStatus(errorMessage ? `Error en el pago: ${errorMessage}` : "El pago no pudo procesarse. Revisa los datos e intenta nuevamente.");
+        },
+        onSuccess: async () => {
+          try {
+            setStatus("Pago recibido. Confirmando reserva...");
+            const confirmation = await confirmPaymentWithRetry(reservationId, paymentIntentId);
+            if (!confirmation.ok) {
+              setStatus(confirmation.message);
+              return;
+            }
+
+            setStatus(confirmation.message);
+            setConfirmedReservationId(reservationId);
+            setIsReservationConfirmed(true);
+          } catch {
+            setStatus("Pago recibido, pero no se pudo validar la reserva por un error de conexion.");
+          }
+        },
+      });
+
+      onvoCheckout.render("#onvo-checkout-container");
+      setStatus("Completa tu pago en el formulario seguro de ONVO para finalizar la reserva.");
     } catch {
       setStatus("No se pudo confirmar la reserva por un error de conexion.");
+    } finally {
+      setIsCreatingPayment(false);
     }
   };
 
+  if (!hydrated) {
+    return (
+      <section className="mx-auto max-w-6xl px-4 py-8">
+        <div className="h-10 w-56 animate-pulse rounded-lg bg-slate-200" />
+        <div className="mt-3 h-7 w-64 animate-pulse rounded-full bg-slate-200" />
+        <div className="mt-6 grid gap-6 lg:grid-cols-[1.7fr_1fr]">
+          <div className="space-y-6">
+            <div className="h-96 animate-pulse rounded-2xl bg-slate-200" />
+            <div className="h-48 animate-pulse rounded-2xl bg-slate-200" />
+            <div className="h-40 animate-pulse rounded-2xl bg-slate-200" />
+          </div>
+          <div className="h-72 animate-pulse rounded-2xl bg-slate-200 lg:sticky lg:top-6" />
+        </div>
+      </section>
+    );
+  }
+
   if (!tour) {
     return (
-      <section className="mx-auto max-w-4xl px-4 py-8">
-        <h1 className="text-3xl font-extrabold text-slate-900">Reserva tu tour</h1>
+      <section className="mx-auto max-w-6xl px-4 py-8">
+        <h1 className="text-4xl font-extrabold tracking-tight text-slate-900">Reserva tu tour</h1>
         <p className="mt-4 rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm font-semibold text-rose-700">
           {loadError || "No se pudo cargar la reserva porque el tour no esta disponible."}
         </p>
@@ -801,22 +1042,33 @@ function ReservarPageContent({ tourSlug, packageFromQuery }: { tourSlug: string;
               </div>
             </div>
 
-            <div className="mt-4 rounded-xl border border-slate-200 bg-slate-900 p-4">
-              <p className="text-lg font-extrabold text-white">Precios</p>
-              <p className="mt-1 text-xs text-slate-300">Puedes ajustar paquete y cantidades directamente en checkout.</p>
+            <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50/40 p-4">
+              <p className="text-lg font-extrabold text-slate-900">Precios</p>
+              <p className="mt-1 text-xs text-slate-600">Puedes ajustar paquete y cantidades directamente en checkout.</p>
               <div className="mt-3 space-y-3">
-                {visiblePriceOptions.map((option) => (
-                  <div key={option.id} className="flex items-center justify-between rounded-lg border border-white/15 bg-white/10 px-3 py-2">
+                {visiblePriceOptions.map((option) => {
+                  const quantity = normalizedPriceQuantities[option.id] ?? 0;
+                  const isSelected = quantity > 0;
+
+                  return (
+                  <div
+                    key={option.id}
+                    className={`flex items-center justify-between rounded-lg border px-3 py-2 transition ${
+                      isSelected
+                        ? "border-emerald-300 bg-emerald-50"
+                        : "border-slate-200 bg-white"
+                    }`}
+                  >
                     <div>
-                      <p className="font-bold text-slate-100">{option.name}</p>
-                      <p className={`text-sm ${option.isFree || option.price === 0 ? "font-bold text-emerald-300" : "text-amber-300"}`}>
+                      <p className="font-bold text-slate-900">{option.name}</p>
+                      <p className={`text-sm ${option.isFree || option.price === 0 ? "font-bold text-emerald-700" : "font-semibold text-amber-700"}`}>
                         {formatOptionPrice(option)} por pers.
                       </p>
                     </div>
                     <div className="flex items-center gap-2">
                       <button
                         type="button"
-                        className="rounded border border-white/25 px-2 py-1 font-bold text-white"
+                        className="rounded border border-slate-300 bg-white px-2 py-1 font-bold text-slate-700 hover:border-emerald-300"
                         onClick={() =>
                           setPriceQuantities((prev) => ({
                             ...prev,
@@ -826,10 +1078,10 @@ function ReservarPageContent({ tourSlug, packageFromQuery }: { tourSlug: string;
                       >
                         -
                       </button>
-                      <span className="w-8 text-center font-bold text-white">{normalizedPriceQuantities[option.id] ?? 0}</span>
+                      <span className={`w-8 text-center font-extrabold ${isSelected ? "text-emerald-800" : "text-slate-700"}`}>{quantity}</span>
                       <button
                         type="button"
-                        className="rounded border border-white/25 px-2 py-1 font-bold text-white"
+                        className="rounded border border-slate-300 bg-white px-2 py-1 font-bold text-slate-700 hover:border-emerald-300"
                         onClick={() =>
                           setPriceQuantities((prev) => ({
                             ...prev,
@@ -841,7 +1093,7 @@ function ReservarPageContent({ tourSlug, packageFromQuery }: { tourSlug: string;
                       </button>
                     </div>
                   </div>
-                ))}
+                );})}
               </div>
             </div>
 
@@ -930,11 +1182,37 @@ function ReservarPageContent({ tourSlug, packageFromQuery }: { tourSlug: string;
 
             {step === "pago" && (
               <form onSubmit={handleReserve} className="mt-4 space-y-3">
-                {["Tarjeta de Credito o Debito", "3 y 6 Meses sin Intereses", "PayPal"].map((method) => (
+                {isReservationConfirmed ? (
+                  <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4">
+                    <h3 className="text-lg font-extrabold text-emerald-900">Reserva confirmada</h3>
+                    <p className="mt-2 text-sm font-semibold text-emerald-800">
+                      Tu pago fue procesado correctamente y tu espacio ya quedo asegurado.
+                    </p>
+                    {confirmedReservationId ? (
+                      <p className="mt-2 text-sm text-emerald-900">
+                        Numero de reserva: <span className="font-extrabold">#{confirmedReservationId}</span>
+                      </p>
+                    ) : null}
+                    <p className="mt-2 text-sm text-emerald-900">
+                      Siguiente paso: recibirás el correo de confirmacion con los detalles de tu tour.
+                    </p>
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      <a
+                        href="/tours"
+                        className="rounded-lg bg-emerald-700 px-4 py-2 text-sm font-extrabold text-white transition hover:bg-emerald-600"
+                      >
+                        Ver mas tours
+                      </a>
+                    </div>
+                  </div>
+                ) : null}
+
+                {["Tarjeta de Credito o Debito (ONVO)", "Wallets disponibles en ONVO", "SINPE Movil"].map((method) => (
                   <button
                     type="button"
                     key={method}
                     onClick={() => setPayMethod(method)}
+                    disabled={isReservationConfirmed}
                     className={`w-full rounded-lg border px-4 py-3 text-left font-semibold transition ${
                       payMethod === method
                         ? "border-emerald-700 bg-emerald-50 text-emerald-900"
@@ -945,13 +1223,61 @@ function ReservarPageContent({ tourSlug, packageFromQuery }: { tourSlug: string;
                   </button>
                 ))}
 
+                {isSinpeMobileMethod ? (
+                  <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
+                    <p className="text-sm font-extrabold text-amber-900">Pago por SINPE Movil</p>
+                    <p className="mt-1 text-sm text-amber-900">
+                      Envia el total de la orden a <span className="font-extrabold">8888-9999</span> y sube el comprobante para completar la reserva.
+                    </p>
+                    <p className="mt-1 text-sm font-semibold text-slate-800">
+                      Total a transferir: <span className="font-extrabold text-emerald-800">{formatCurrencyUSD(total)}</span>
+                    </p>
+                    <div className="mt-3">
+                      <label className="mb-1 block text-xs font-bold uppercase tracking-wide text-slate-600">Subir comprobante</label>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => {
+                          const nextFile = e.target.files?.[0] ?? null;
+                          setSinpeReceiptFile(nextFile);
+                          setSinpeReceiptUrl("");
+                        }}
+                        className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm"
+                        required
+                      />
+                      {sinpeReceiptFile ? (
+                        <p className="mt-2 text-xs font-semibold text-emerald-700">Comprobante listo: {sinpeReceiptFile.name}</p>
+                      ) : null}
+                    </div>
+                  </div>
+                ) : null}
+
                 <button
                   type="submit"
-                  disabled={totalPeople <= 0 || !meetsMinimumPeople}
+                  disabled={
+                    totalPeople <= 0 ||
+                    !meetsMinimumPeople ||
+                    isCreatingPayment ||
+                    isUploadingSinpeReceipt ||
+                    isReservationConfirmed ||
+                    (isSinpeMobileMethod && !sinpeReceiptFile && !sinpeReceiptUrl)
+                  }
                   className="mt-3 w-full rounded-lg bg-amber-400 px-4 py-3 text-base font-extrabold text-slate-900 transition hover:bg-amber-300 disabled:cursor-not-allowed disabled:bg-slate-300"
                 >
-                  Confirmar reserva y pagar
+                  {isReservationConfirmed
+                    ? "Reserva finalizada"
+                    : isUploadingSinpeReceipt
+                      ? "Subiendo comprobante..."
+                      : isCreatingPayment
+                        ? "Preparando pago..."
+                        : isSinpeMobileMethod
+                          ? "Enviar reserva con comprobante SINPE"
+                          : "Confirmar reserva y pagar"}
                 </button>
+
+                {!isReservationConfirmed && !isSinpeMobileMethod ? (
+                  <div id="onvo-checkout-container" className="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-3" />
+                ) : null}
               </form>
             )}
 

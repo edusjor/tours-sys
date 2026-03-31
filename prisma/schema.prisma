@@ -78,7 +78,10 @@ model Reservation {
   phone     String?
   hotel     String?
   paymentMethod String?
+  sinpeReceiptUrl String?
   promoCode String?
   scheduleTime String?
   paid      Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }

@@ -1,5 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { prisma } from '../../lib/prisma';
+import { createOnvoPaymentIntent, getOnvoPublishableKey } from '../../lib/onvo';
 
 type AvailabilityConfig = {
   mode: 'SPECIFIC' | 'OPEN';
@@ -12,6 +13,26 @@ type AvailabilityConfig = {
     customTimesText: string;
   };
   dateSchedules: Record<string, string[]>;
+};
+
+type TourPriceOption = {
+  id: string;
+  name: string;
+  price: number;
+  isFree: boolean;
+  isBase?: boolean;
+};
+
+type TourPackage = {
+  id: string;
+  title: string;
+  description?: string;
+  priceOptions: TourPriceOption[];
+};
+
+type SelectedPriceInput = {
+  id?: unknown;
+  quantity?: unknown;
 };
 
 function normalizeTime24(value: unknown): string | null {
@@ -130,6 +151,93 @@ function normalizeDateKeyInput(value: unknown): string | null {
   return toDateKey(parsed);
 }
 
+function normalizePriceOptions(items: unknown): TourPriceOption[] {
+  if (!Array.isArray(items)) return [];
+
+  return items
+    .map((item, index) => {
+      const source = item as { id?: unknown; name?: unknown; price?: unknown; isFree?: unknown; isBase?: unknown };
+      const id = String(source?.id ?? `price-${index}`).trim();
+      const name = String(source?.name ?? '').trim();
+      const isFree = Boolean(source?.isFree);
+      const isBase = Boolean(source?.isBase);
+      const parsedPrice = Number(source?.price);
+      const price = isFree ? 0 : parsedPrice;
+
+      return { id, name, price, isFree, isBase };
+    })
+    .filter((item) => item.id && item.name && (item.isFree || (Number.isFinite(item.price) && item.price >= 0)));
+}
+
+function normalizeTourPackages(items: unknown): TourPackage[] {
+  if (!Array.isArray(items)) return [];
+
+  return items
+    .map((item, index) => {
+      const source = item as { id?: unknown; title?: unknown; description?: unknown; priceOptions?: unknown };
+      const id = String(source?.id ?? `package-${index}`).trim() || `package-${index}`;
+      const title = String(source?.title ?? '').trim();
+      const description = String(source?.description ?? '').trim();
+      const priceOptions = normalizePriceOptions(source?.priceOptions);
+      return { id, title, description, priceOptions };
+    })
+    .filter((pkg) => pkg.title && pkg.priceOptions.length > 0);
+}
+
+function buildNormalizedPackages(tour: { tourPackages?: unknown; priceOptions?: unknown; price?: number }): TourPackage[] {
+  const normalizedPackages = normalizeTourPackages(tour.tourPackages);
+  if (normalizedPackages.length > 0) return normalizedPackages;
+
+  const legacyOptions = normalizePriceOptions(tour.priceOptions);
+  if (legacyOptions.length > 0) {
+    return [
+      {
+        id: 'package-main',
+        title: 'Paquete principal',
+        description: '',
+        priceOptions: legacyOptions,
+      },
+    ];
+  }
+
+  const fallbackPrice = typeof tour.price === 'number' && Number.isFinite(tour.price) ? tour.price : 0;
+  return [
+    {
+      id: 'package-main',
+      title: 'Paquete principal',
+      description: '',
+      priceOptions: [
+        {
+          id: 'general',
+          name: 'General',
+          price: fallbackPrice,
+          isFree: fallbackPrice === 0,
+          isBase: true,
+        },
+      ],
+    },
+  ];
+}
+
+function normalizeSelectedPrices(items: unknown): Map<string, number> {
+  const selected = new Map<string, number>();
+  if (!Array.isArray(items)) return selected;
+
+  items.forEach((item) => {
+    const source = item as SelectedPriceInput;
+    const id = String(source.id ?? '').trim();
+    const quantity = Math.floor(Number(source.quantity));
+    if (!id || !Number.isFinite(quantity) || quantity <= 0) return;
+    selected.set(id, quantity);
+  });
+
+  return selected;
+}
+
+function roundUsd(value: number): number {
+  return Math.round(value * 100) / 100;
+}
+
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') return res.status(405).end();
   const {
@@ -146,8 +254,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     phone,
     hotel,
     paymentMethod,
+    sinpeReceiptUrl,
     promoCode,
     scheduleTime,
+    selectedPrices,
+    packageId,
+    packageTitle,
   } = req.body;
 
   const parsedTourId = Number(tourId);
@@ -169,7 +281,70 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(400).json({ error: 'El correo y su confirmacion no coinciden' });
   }
 
+  const normalizedPaymentMethod = String(paymentMethod ?? '').trim();
+  const normalizedSinpeReceiptUrl = String(sinpeReceiptUrl ?? '').trim();
+  const isSinpeMobile = normalizedPaymentMethod.toLowerCase() === 'sinpe movil';
+
+  if (isSinpeMobile && !normalizedSinpeReceiptUrl.startsWith('/uploads/receipts/')) {
+    return res.status(400).json({ error: 'Debes subir el comprobante SINPE para completar la reserva.' });
+  }
+
+  const selectedPriceMap = normalizeSelectedPrices(selectedPrices);
+
   try {
+    const tourForPricing = await prisma.tour.findUnique({
+      where: { id: parsedTourId },
+      select: {
+        id: true,
+        title: true,
+        price: true,
+        tourPackages: true,
+        priceOptions: true,
+      },
+    });
+
+    if (!tourForPricing) {
+      return res.status(404).json({ error: 'Tour no encontrado' });
+    }
+
+    const packages = buildNormalizedPackages(tourForPricing);
+    const selectedPackage =
+      packages.find((pkg) => pkg.id === String(packageId ?? '').trim()) ||
+      packages.find((pkg) => pkg.title === String(packageTitle ?? '').trim()) ||
+      packages[0];
+
+    if (!selectedPackage) {
+      return res.status(400).json({ error: 'No se encontraron opciones de precio para este tour' });
+    }
+
+    if (selectedPriceMap.size === 0) {
+      const defaultOption = selectedPackage.priceOptions.find((option) => option.isBase) || selectedPackage.priceOptions[0];
+      if (defaultOption) {
+        selectedPriceMap.set(defaultOption.id, 1);
+      }
+    }
+
+    const selectedOptionRows = selectedPackage.priceOptions
+      .filter((option) => selectedPriceMap.has(option.id))
+      .map((option) => ({
+        option,
+        quantity: selectedPriceMap.get(option.id) ?? 0,
+      }));
+
+    if (selectedOptionRows.length === 0) {
+      return res.status(400).json({ error: 'Debes seleccionar al menos una opcion de precio' });
+    }
+
+    const peopleFromPrices = selectedOptionRows.reduce((acc, row) => acc + row.quantity, 0);
+    if (peopleFromPrices !== parsedPeople) {
+      return res.status(400).json({ error: 'La cantidad de personas no coincide con la seleccion de precios' });
+    }
+
+    const subtotal = roundUsd(selectedOptionRows.reduce((acc, row) => acc + row.option.price * row.quantity, 0));
+    const serviceFee = roundUsd(subtotal * 0.06);
+    const total = roundUsd(subtotal + serviceFee);
+    const amountInCents = Math.round(total * 100);
+
     const result = await prisma.$transaction(
       async (tx) => {
         const tour = await tx.tour.findUnique({
@@ -256,6 +431,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           where: {
             tourId: parsedTourId,
             date: targetDate,
+            paid: true,
           },
           _sum: { people: true },
         });
@@ -270,7 +446,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           };
         }
 
-        await tx.reservation.create({
+        const reservation = await tx.reservation.create({
           data: {
             tourId: parsedTourId,
             people: parsedPeople,
@@ -283,14 +459,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             emailConfirm,
             phone,
             hotel,
-            paymentMethod,
+            paymentMethod: normalizedPaymentMethod || paymentMethod,
+            sinpeReceiptUrl: isSinpeMobile ? normalizedSinpeReceiptUrl : null,
             promoCode,
             scheduleTime: scheduleTimeNormalized || scheduleTime,
-            paid: true,
+            paid: isSinpeMobile ? false : amountInCents <= 0,
           },
         });
 
-        return { ok: true as const };
+        return { ok: true as const, reservationId: reservation.id };
       },
       {
         isolationLevel: 'Serializable',
@@ -301,7 +478,48 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(400).json({ error: result.error });
     }
 
-    return res.status(200).json({ ok: true });
+    if (isSinpeMobile) {
+      return res.status(200).json({
+        ok: true,
+        requiresPayment: false,
+        reservationId: result.reservationId,
+        message: 'Reserva recibida con comprobante SINPE. Queda pendiente de validacion por administracion.',
+      });
+    }
+
+    if (amountInCents <= 0) {
+      return res.status(200).json({
+        ok: true,
+        requiresPayment: false,
+        reservationId: result.reservationId,
+        message: 'Reserva confirmada. No se requiere pago para esta seleccion.',
+      });
+    }
+
+    try {
+      const paymentIntent = await createOnvoPaymentIntent({
+        amount: amountInCents,
+        currency: 'USD',
+        description: `Reserva tour ${tourForPricing.title}`,
+        metadata: {
+          reservationId: String(result.reservationId),
+          tourId: String(parsedTourId),
+          email: String(email),
+        },
+      });
+
+      const publicKey = getOnvoPublishableKey();
+      return res.status(200).json({
+        ok: true,
+        requiresPayment: true,
+        reservationId: result.reservationId,
+        paymentIntentId: paymentIntent.id,
+        publicKey,
+      });
+    } catch {
+      await prisma.reservation.delete({ where: { id: result.reservationId } }).catch(() => null);
+      return res.status(502).json({ error: 'No se pudo iniciar el pago en ONVO' });
+    }
   } catch {
     return res.status(500).json({ error: 'No se pudo completar la reserva' });
   }
