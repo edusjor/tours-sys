@@ -23,8 +23,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const email = normalize(body.email);
   const mensaje = normalize(body.mensaje);
 
-  if (!nombre || !email || !mensaje || !asunto) {
-    return res.status(400).json({ error: 'Nombre, email, asunto y mensaje son obligatorios.' });
+  if (!nombre || !email || !telefono || !mensaje || !asunto) {
+    return res.status(400).json({ error: 'Nombre, email, telefono y mensaje son obligatorios.' });
   }
 
   const smtpHost = process.env.SMTP_HOST;
@@ -59,7 +59,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       text: [
         `Nombre: ${nombre}`,
         `Email: ${email}`,
-        `Telefono: ${telefono || 'No indicado'}`,
+        `Telefono: ${telefono}`,
         `Asunto: ${asunto}`,
         '',
         'Mensaje:',
@@ -69,7 +69,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         <h2>Nuevo mensaje de contacto</h2>
         <p><strong>Nombre:</strong> ${nombre}</p>
         <p><strong>Email:</strong> ${email}</p>
-        <p><strong>Telefono:</strong> ${telefono || 'No indicado'}</p>
+        <p><strong>Telefono:</strong> ${telefono}</p>
         <p><strong>Asunto:</strong> ${asunto}</p>
         <p><strong>Mensaje:</strong></p>
         <p>${mensaje.replace(/\n/g, '<br/>')}</p>

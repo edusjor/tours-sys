@@ -5,22 +5,21 @@ import React from "react";
 type PhoneCountryOption = {
   code: string;
   dialCode: string;
-  flag: string;
   name: string;
 };
 
 const phoneCountryOptions: PhoneCountryOption[] = [
-  { code: "CR", dialCode: "+506", flag: "🇨🇷", name: "Costa Rica" },
-  { code: "PA", dialCode: "+507", flag: "🇵🇦", name: "Panama" },
-  { code: "NI", dialCode: "+505", flag: "🇳🇮", name: "Nicaragua" },
-  { code: "HN", dialCode: "+504", flag: "🇭🇳", name: "Honduras" },
-  { code: "SV", dialCode: "+503", flag: "🇸🇻", name: "El Salvador" },
-  { code: "GT", dialCode: "+502", flag: "🇬🇹", name: "Guatemala" },
-  { code: "MX", dialCode: "+52", flag: "🇲🇽", name: "Mexico" },
-  { code: "CO", dialCode: "+57", flag: "🇨🇴", name: "Colombia" },
-  { code: "US", dialCode: "+1", flag: "🇺🇸", name: "Estados Unidos" },
-  { code: "CA", dialCode: "+1", flag: "🇨🇦", name: "Canada" },
-  { code: "ES", dialCode: "+34", flag: "🇪🇸", name: "Espana" },
+  { code: "CR", dialCode: "+506", name: "Costa Rica" },
+  { code: "PA", dialCode: "+507", name: "Panama" },
+  { code: "NI", dialCode: "+505", name: "Nicaragua" },
+  { code: "HN", dialCode: "+504", name: "Honduras" },
+  { code: "SV", dialCode: "+503", name: "El Salvador" },
+  { code: "GT", dialCode: "+502", name: "Guatemala" },
+  { code: "MX", dialCode: "+52", name: "Mexico" },
+  { code: "CO", dialCode: "+57", name: "Colombia" },
+  { code: "US", dialCode: "+1", name: "Estados Unidos" },
+  { code: "CA", dialCode: "+1", name: "Canada" },
+  { code: "ES", dialCode: "+34", name: "Espana" },
 ];
 
 export default function ContactUnifiedForm({
@@ -31,7 +30,6 @@ export default function ContactUnifiedForm({
   const [nombre, setNombre] = React.useState("");
   const [phoneCountryDialCode, setPhoneCountryDialCode] = React.useState("");
   const [telefono, setTelefono] = React.useState("");
-  const [asunto, setAsunto] = React.useState("Consulta general");
   const [email, setEmail] = React.useState("");
   const [mensaje, setMensaje] = React.useState("");
   const [status, setStatus] = React.useState("");
@@ -39,13 +37,8 @@ export default function ContactUnifiedForm({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!nombre.trim() || !email.trim() || !mensaje.trim() || !asunto.trim()) {
+    if (!nombre.trim() || !email.trim() || !phoneCountryDialCode || !telefono.trim() || !mensaje.trim()) {
       setStatus("Por favor completa todos los campos obligatorios.");
-      return;
-    }
-
-    if (telefono.trim() && !phoneCountryDialCode) {
-      setStatus("Selecciona un pais para el telefono.");
       return;
     }
 
@@ -61,7 +54,7 @@ export default function ContactUnifiedForm({
         body: JSON.stringify({
           nombre: nombre.trim(),
           telefono: fullPhone,
-          asunto: asunto.trim(),
+          asunto: "Consulta general",
           email: email.trim(),
           mensaje: mensaje.trim(),
         }),
@@ -77,7 +70,6 @@ export default function ContactUnifiedForm({
       setNombre("");
       setPhoneCountryDialCode("");
       setTelefono("");
-      setAsunto("Consulta general");
       setEmail("");
       setMensaje("");
     } catch {
@@ -90,7 +82,7 @@ export default function ContactUnifiedForm({
   return (
     <>
       <form className={className} onSubmit={handleSubmit}>
-        <label className="block">
+        <label className="block md:col-span-2">
           <span className="mb-1 block text-sm font-semibold text-slate-700">Nombre</span>
           <input
             type="text"
@@ -101,7 +93,7 @@ export default function ContactUnifiedForm({
           />
         </label>
 
-        <label className="block">
+        <label className="block md:col-span-2">
           <span className="mb-1 block text-sm font-semibold text-slate-700">Email</span>
           <input
             type="email"
@@ -112,46 +104,33 @@ export default function ContactUnifiedForm({
           />
         </label>
 
-        <label className="block">
-          <span className="mb-1 block text-sm font-semibold text-slate-700">Asunto</span>
-          <select
-            className="w-full rounded-lg border border-slate-300 px-3 py-2"
-            value={asunto}
-            onChange={(e) => setAsunto(e.target.value)}
-            required
-          >
-            <option>Consulta general</option>
-            <option>Cotizacion personalizada</option>
-            <option>Soporte de reserva</option>
-            <option>Grupos y eventos</option>
-          </select>
-        </label>
-
-        <div className="grid gap-2 sm:grid-cols-[1.2fr_1.8fr]">
+        <div className="grid gap-2 md:col-span-2 sm:grid-cols-[1fr_1.8fr]">
           <label className="block">
-            <span className="mb-1 block text-sm font-semibold text-slate-700">Pais y codigo</span>
+            <span className="mb-1 block text-sm font-semibold text-slate-700">Codigo de pais</span>
             <select
               className="w-full rounded-lg border border-slate-300 px-3 py-2"
               value={phoneCountryDialCode}
               onChange={(e) => setPhoneCountryDialCode(e.target.value)}
+              required
             >
-              <option value="">Selecciona un pais</option>
+              <option value="">Seleccion</option>
               {phoneCountryOptions.map((option) => (
                 <option key={`${option.code}-${option.dialCode}`} value={option.dialCode}>
-                  {option.flag} {option.name} ({option.dialCode})
+                  {option.name} ({option.dialCode})
                 </option>
               ))}
             </select>
           </label>
 
           <label className="block">
-            <span className="mb-1 block text-sm font-semibold text-slate-700">Telefono (opcional)</span>
+            <span className="mb-1 block text-sm font-semibold text-slate-700">Telefono</span>
             <input
               type="text"
               className="w-full rounded-lg border border-slate-300 px-3 py-2"
               placeholder="Numero"
               value={telefono}
               onChange={(e) => setTelefono(e.target.value)}
+              required
             />
           </label>
         </div>

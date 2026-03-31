@@ -672,20 +672,18 @@ function ReservarPageContent({
     selectedDateKey ?? (availability[0] ? String(availability[0].date).slice(0, 10) : availabilityConfig.mode === "OPEN" ? toDateKey(new Date()) : null);
 
   const availabilityByDateKey = useMemo(() => {
+    if (availabilityConfig.mode === "OPEN") return new Map<string, Availability>();
     const map = new Map<string, Availability>();
     availability.forEach((item) => {
       const key = toDateKey(new Date(item.date));
       if (!map.has(key)) map.set(key, item);
     });
     return map;
-  }, [availability]);
+  }, [availability, availabilityConfig.mode]);
 
   const selectedDate = useMemo(() => {
     const key = activeSelectedDateKey;
     if (!key) return availability[0] ?? null;
-
-    const explicit = availabilityByDateKey.get(key);
-    if (explicit) return explicit;
 
     if (availabilityConfig.mode === "OPEN") {
       return {
@@ -695,6 +693,9 @@ function ReservarPageContent({
         timeSlots: buildTimeSlotsFromSchedule(availabilityConfig.openSchedule),
       } satisfies Availability;
     }
+
+    const explicit = availabilityByDateKey.get(key);
+    if (explicit) return explicit;
 
     return null;
   }, [activeSelectedDateKey, availability, availabilityByDateKey, availabilityConfig]);
@@ -1324,54 +1325,69 @@ function ReservarPageContent({
 
             {step === "contacto" && (
               <div className="mt-4 grid gap-3 md:grid-cols-2">
-                <input
-                  className="rounded-lg border border-slate-300 px-3 py-2"
-                  placeholder="Nombre"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                />
-                <input
-                  className="rounded-lg border border-slate-300 px-3 py-2"
-                  placeholder="Apellido"
-                  value={lastName}
-                  onChange={(e) => setLastName(e.target.value)}
-                />
-                <input
-                  type="email"
-                  className="rounded-lg border border-slate-300 px-3 py-2"
-                  placeholder="Correo electronico"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                />
+                <div>
+                  <label className="mb-1 block text-sm font-semibold text-slate-700">Nombre</label>
+                  <input
+                    className="h-12 w-full rounded-lg border border-slate-300 px-3"
+                    placeholder="Nombre"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 block text-sm font-semibold text-slate-700">Apellido</label>
+                  <input
+                    className="h-12 w-full rounded-lg border border-slate-300 px-3"
+                    placeholder="Apellido"
+                    value={lastName}
+                    onChange={(e) => setLastName(e.target.value)}
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="mb-1 block text-sm font-semibold text-slate-700">Correo electronico</label>
+                  <input
+                    type="email"
+                    className="h-12 w-full rounded-lg border border-slate-300 px-3"
+                    placeholder="Correo electronico"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                  />
+                </div>
                 <div className="md:col-span-2 grid gap-2 sm:grid-cols-[1.2fr_1.8fr]">
-                  <div className="rounded-lg border border-slate-300 bg-white px-3 py-2">
-                    <label className="mb-1 block text-[11px] font-bold uppercase tracking-wide text-slate-500">Pais y codigo</label>
+                  <div>
+                    <label className="mb-1 block text-sm font-semibold text-slate-700">Codigo de pais</label>
                     <select
-                      className="w-full rounded-md border border-slate-300 bg-white px-2 py-2 text-sm"
+                      className="h-12 w-full rounded-lg border border-slate-300 bg-white px-3"
                       value={phoneCountryDialCode}
                       onChange={(e) => setPhoneCountryDialCode(e.target.value)}
                     >
                       <option value="">Selecciona un pais</option>
                       {phoneCountryOptions.map((option) => (
                         <option key={`${option.code}-${option.dialCode}`} value={option.dialCode}>
-                          {option.flag} {option.name} ({option.dialCode})
+                          {option.name} ({option.dialCode})
                         </option>
                       ))}
                     </select>
                   </div>
+                  <div>
+                    <label className="mb-1 block text-sm font-semibold text-slate-700">Telefono</label>
+                    <input
+                      className="h-12 w-full rounded-lg border border-slate-300 px-3"
+                      placeholder="Telefono"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                    />
+                  </div>
+                </div>
+                <div className="md:col-span-2">
+                  <label className="mb-1 block text-sm font-semibold text-slate-700">Hotel o lugar de hospedaje</label>
                   <input
-                    className="rounded-lg border border-slate-300 px-3 py-2"
-                    placeholder="Telefono"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
+                    className="h-12 w-full rounded-lg border border-slate-300 px-3"
+                    placeholder="Hotel o lugar de hospedaje"
+                    value={hotel}
+                    onChange={(e) => setHotel(e.target.value)}
                   />
                 </div>
-                <input
-                  className="rounded-lg border border-slate-300 px-3 py-2"
-                  placeholder="Hotel o lugar de hospedaje"
-                  value={hotel}
-                  onChange={(e) => setHotel(e.target.value)}
-                />
 
                 <button
                   type="button"

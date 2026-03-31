@@ -4,6 +4,17 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import formidable, { type File as FormidableFile } from 'formidable';
 import { requireAdminSession } from '../../../lib/adminAuth';
 
+const allowedImageExtensions = new Set([
+  '.png',
+  '.jpg',
+  '.jpeg',
+  '.gif',
+  '.webp',
+  '.bmp',
+  '.svg',
+  '.avif',
+]);
+
 export const config = {
   api: {
     bodyParser: false,
@@ -19,8 +30,13 @@ async function parseForm(req: NextApiRequest): Promise<formidable.Files> {
   const form = formidable({
     multiples: true,
     maxFiles: 30,
-    maxFileSize: 10 * 1024 * 1024,
-    filter: ({ mimetype }) => typeof mimetype === 'string' && mimetype.startsWith('image/'),
+    maxFileSize: 1024 * 1024 * 1024,
+    maxTotalFileSize: 1024 * 1024 * 1024,
+    filter: ({ mimetype, originalFilename }) => {
+      if (typeof mimetype === 'string' && mimetype.startsWith('image/')) return true;
+      const ext = path.extname(originalFilename || '').toLowerCase();
+      return allowedImageExtensions.has(ext);
+    },
   });
 
   return new Promise((resolve, reject) => {
@@ -36,7 +52,7 @@ async function parseForm(req: NextApiRequest): Promise<formidable.Files> {
 
 function getSafeExtension(file: FormidableFile): string {
   const fromName = path.extname(file.originalFilename || '').toLowerCase();
-  if (fromName && /^\.[a-z0-9]+$/i.test(fromName)) return fromName;
+  if (fromName && allowedImageExtensions.has(fromName)) return fromName;
 
   const mime = String(file.mimetype || '').toLowerCase();
   if (mime.includes('png')) return '.png';

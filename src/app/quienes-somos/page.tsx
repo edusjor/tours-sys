@@ -1,17 +1,17 @@
 const NOSOTROS_IMAGES = {
-  // Reemplaza estos links por tus archivos en /uploads, por ejemplo: "/uploads/nosotros-hero.png"
-  hero: "https://images.unsplash.com/photo-1563911302283-d2bc129e7570?auto=format&fit=crop&w=1600&q=80",
-  principal: "https://images.unsplash.com/photo-1501555088652-021faa106b9b?auto=format&fit=crop&w=1200&q=80",
+  // Imagenes de destinos de Costa Rica (Wikimedia Commons).
+  hero: "https://images.unsplash.com/photo-1519177827-eaba5b224092", 
+  principal: "https://commons.wikimedia.org/wiki/Special:FilePath/Manuel_Antonio_CRI_07_2016_7495.jpg",
   galeria: [
-    "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=900&q=80",
-    "https://images.unsplash.com/photo-1552728089-57bdde30beb3?auto=format&fit=crop&w=900&q=80",
-    "https://images.unsplash.com/photo-1528127269322-539801943592?auto=format&fit=crop&w=900&q=80",
-    "https://images.unsplash.com/photo-1563911302283-d2bc129e7570?auto=format&fit=crop&w=900&q=80",
-    "https://images.unsplash.com/photo-1473116763249-2faaef81ccda?auto=format&fit=crop&w=900&q=80",
-    "https://images.unsplash.com/photo-1502602898657-3e91760cbb34?auto=format&fit=crop&w=900&q=80",
-    "https://images.unsplash.com/photo-1472396961693-142e6e269027?auto=format&fit=crop&w=900&q=80",
-    "https://images.unsplash.com/photo-1512453979798-5ea266f8880c?auto=format&fit=crop&w=900&q=80",
-    "https://images.unsplash.com/photo-1515238152791-8216bfdf89a7?auto=format&fit=crop&w=900&q=80",
+    "https://commons.wikimedia.org/wiki/Special:FilePath/CostaRica_Arenal_Volcano_(pixinn.net).jpg",
+    "https://commons.wikimedia.org/wiki/Special:FilePath/Parque_Nacional_Manuel_Antonio_02.jpg",
+    "https://commons.wikimedia.org/wiki/Special:FilePath/IMGbeachmanuelantonio.jpg",
+    "https://commons.wikimedia.org/wiki/Special:FilePath/Tortuguero_boat_trip.JPG",
+    "https://commons.wikimedia.org/wiki/Special:FilePath/TortugueroBeach.jpg",
+    "https://commons.wikimedia.org/wiki/Special:FilePath/Tortuguero_Palm_Forests.JPG",
+    "https://commons.wikimedia.org/wiki/Special:FilePath/TortugueroPark.jpg",
+    "https://commons.wikimedia.org/wiki/Special:FilePath/Costa_rica_santa_elena_skywalk.jpg",
+    "https://commons.wikimedia.org/wiki/Special:FilePath/Panorama4_Poas_volcano_crater.jpg",
   ],
 };
 

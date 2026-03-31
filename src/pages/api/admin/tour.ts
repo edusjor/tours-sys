@@ -106,6 +106,22 @@ type NormalizedAvailabilityConfig = {
   dateSchedules: Record<string, string[]>;
 };
 
+function parseLooseDecimal(value: unknown): number | null {
+  if (value === null || value === undefined) return null;
+  const raw = String(value).trim();
+  if (!raw) return null;
+
+  const normalized = raw.replace(/\s+/g, '').replace(/,/g, '.');
+  if (!/^\d+(?:\.\d+)?$/.test(normalized)) return null;
+
+  const parsed = Number(normalized);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function roundPriceToTwo(value: number): number {
+  return Math.round((value + Number.EPSILON) * 100) / 100;
+}
+
 function normalizeTime24(value: unknown): string | null {
   const trimmed = String(value ?? '').trim();
   const match = /^(\d{1,2}):(\d{2})$/.exec(trimmed);
@@ -172,7 +188,7 @@ function normalizePriceOptionsInput(items: unknown): NormalizedPriceOption[] {
       const name = String(source?.name ?? '').trim();
       const isFree = Boolean(source?.isFree);
       const isBase = Boolean(source?.isBase);
-      const parsedPrice = Number(source?.price);
+      const parsedPrice = parseLooseDecimal(source?.price);
       const price = isFree ? 0 : parsedPrice;
 
       return {
@@ -192,6 +208,7 @@ function normalizePriceOptionsInput(items: unknown): NormalizedPriceOption[] {
 
   return normalized.map((item, index) => ({
     ...item,
+    price: item.isFree ? 0 : roundPriceToTwo(item.price),
     isBase: index === normalizedBaseIndex,
   }));
 }
@@ -315,9 +332,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(400).json({ error: 'Cada tour debe tener al menos un paquete con titulo y precios.' });
   }
 
-  const parsedFallbackPrice = Number(price);
-  const fallbackPrice = Number.isFinite(parsedFallbackPrice) && parsedFallbackPrice >= 0 ? parsedFallbackPrice : 0;
-  const effectiveTourPrice = getPrimaryTourPriceFromPackages(tourPackages, fallbackPrice);
+  const parsedFallbackPrice = parseLooseDecimal(price);
+  const fallbackPrice = parsedFallbackPrice !== null && parsedFallbackPrice >= 0 ? roundPriceToTwo(parsedFallbackPrice) : 0;
+  const effectiveTourPrice = roundPriceToTwo(getPrimaryTourPriceFromPackages(tourPackages, fallbackPrice));
   const requestedSlug = typeof req.body?.slug === 'string' ? req.body.slug.trim() : '';
   const featured = Boolean(req.body?.featured);
   const isDeleted = Boolean(req.body?.isDeleted);
@@ -428,13 +445,43 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         if (action === 'draft') nextStatus = 'BORRADOR';
       }
 
-      if (!nextStatus) {
-        return res.status(400).json({ error: 'PATCH requiere un status valido o una accion (publish, unpublish, draft).' });
+      const hasIsDeletedField = Object.prototype.hasOwnProperty.call(req.body ?? {}, 'isDeleted');
+      const hasDeletedAtField = Object.prototype.hasOwnProperty.call(req.body ?? {}, 'deletedAt');
+
+      if (!nextStatus && !hasIsDeletedField && !hasDeletedAtField) {
+        return res.status(400).json({ error: 'PATCH requiere status, accion, isDeleted o deletedAt.' });
+      }
+
+      const patchData: { status?: ValidStatus; isDeleted?: boolean; deletedAt?: Date | null } = {};
+
+      if (nextStatus) {
+        patchData.status = nextStatus;
+      }
+
+      if (hasIsDeletedField) {
+        patchData.isDeleted = Boolean(req.body?.isDeleted);
+      }
+
+      if (hasDeletedAtField) {
+        const deletedAtRaw = req.body?.deletedAt;
+        if (typeof deletedAtRaw === 'string' && deletedAtRaw.trim()) {
+          const parsedDeletedAt = new Date(deletedAtRaw);
+          if (Number.isNaN(parsedDeletedAt.getTime())) {
+            return res.status(400).json({ error: 'deletedAt invalido.' });
+          }
+          patchData.deletedAt = parsedDeletedAt;
+        } else {
+          patchData.deletedAt = null;
+        }
+      } else if (patchData.isDeleted === true) {
+        patchData.deletedAt = new Date();
+      } else if (patchData.isDeleted === false) {
+        patchData.deletedAt = null;
       }
 
       const updatedTour = await prisma.tour.update({
         where: { id },
-        data: { status: nextStatus },
+        data: patchData,
         include: { availability: true, category: true },
       });
 

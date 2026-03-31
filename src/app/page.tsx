@@ -14,7 +14,131 @@ type FeaturedTourView = {
   featured: boolean;
 };
 
+type GoogleReview = {
+  authorName: string;
+  rating: number;
+  text: string;
+  relativeDate: string;
+};
+
+type GooglePlaceReviewsData = {
+  placeName: string;
+  rating: number;
+  totalRatings: number;
+  mapsUrl: string;
+  reviews: GoogleReview[];
+};
+
 const TOUR_PLACEHOLDER_IMAGE = "/tour-placeholder.svg";
+const GOOGLE_REVIEWS_URL = "https://maps.app.goo.gl/tqrezf2o6pirX9qx6";
+const GOOGLE_PLACE_DEFAULT_QUERY = "LINEA TOURS - Agencia de Viajes, Guapiles, Costa Rica";
+const HERO_SLIDES = [
+  {
+    src: "https://images.unsplash.com/photo-1580259679654-9276b39fd2d5?auto=format&fit=crop&w=2200&q=80",
+    alt: "Montanas y bosque tropical",
+  },
+  {
+    src: "https://images.unsplash.com/photo-1552727131-5fc6af16796d?auto=format&fit=crop&w=2200&q=80",
+    alt: "Ave tropical sobre una rama",
+  },
+  {
+    src: "https://images.unsplash.com/photo-1627615646894-ccfa494592be?auto=format&fit=crop&w=2200&q=80",
+    alt: "Viajeros en la playa",
+  },
+  {
+    src: "https://images.unsplash.com/photo-1536709017021-ce8f99c17e38?auto=format&fit=crop&w=2200&q=80",
+    alt: "Costa con mar azul y vegetacion",
+  },
+  {
+    src: "https://images.unsplash.com/photo-1616890069499-f05321ca20fa?auto=format&fit=crop&w=2200&q=80",
+    alt: "Perezoso en un arbol",
+  },
+  {
+    src: "https://images.unsplash.com/photo-1602190629358-31a50de315e4?auto=format&fit=crop&w=2200&q=80",
+    alt: "Atardecer en cuerpo de agua",
+  },
+] as const;
+
+function ratingAsText(rating: number): string {
+  const safe = Number.isFinite(rating) ? Math.max(0, Math.min(5, rating)) : 0;
+  return safe.toFixed(1);
+}
+
+function formatRelativeDate(value?: string): string {
+  if (!value) return "";
+  const raw = String(value).trim();
+  if (!raw) return "";
+  return raw;
+}
+
+async function getGooglePlaceReviews(): Promise<GooglePlaceReviewsData | null> {
+  const apiKey = String(process.env.GOOGLE_PLACES_API_KEY ?? "").trim();
+  if (!apiKey) return null;
+
+  const query = String(process.env.GOOGLE_PLACE_QUERY ?? GOOGLE_PLACE_DEFAULT_QUERY).trim() || GOOGLE_PLACE_DEFAULT_QUERY;
+
+  try {
+    const response = await fetch("https://places.googleapis.com/v1/places:searchText", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Goog-Api-Key": apiKey,
+        "X-Goog-FieldMask": "places.displayName,places.rating,places.userRatingCount,places.googleMapsUri,places.reviews",
+      },
+      body: JSON.stringify({
+        textQuery: query,
+        languageCode: "es",
+      }),
+      next: {
+        revalidate: 21600,
+      },
+    });
+
+    if (!response.ok) return null;
+
+    const payload = (await response.json()) as {
+      places?: Array<{
+        displayName?: { text?: string };
+        rating?: number;
+        userRatingCount?: number;
+        googleMapsUri?: string;
+        reviews?: Array<{
+          rating?: number;
+          relativePublishTimeDescription?: string;
+          text?: { text?: string };
+          authorAttribution?: { displayName?: string };
+        }>;
+      }>;
+    };
+
+    const place = Array.isArray(payload?.places) ? payload.places[0] : undefined;
+    if (!place) return null;
+
+    const reviews = Array.isArray(place.reviews)
+      ? place.reviews
+          .slice(0, 6)
+          .map((review) => ({
+            authorName: String(review.authorAttribution?.displayName ?? "Usuario de Google").trim() || "Usuario de Google",
+            rating: Number.isFinite(review.rating) ? Number(review.rating) : 0,
+            text: String(review.text?.text ?? "").trim(),
+            relativeDate: formatRelativeDate(review.relativePublishTimeDescription),
+          }))
+          .filter((review) => review.text.length > 0)
+      : [];
+
+    if (!reviews.length) return null;
+
+    return {
+      placeName: String(place.displayName?.text ?? "Google Maps").trim() || "Google Maps",
+      rating: Number.isFinite(place.rating) ? Number(place.rating) : 0,
+      totalRatings: Number.isFinite(place.userRatingCount) ? Number(place.userRatingCount) : 0,
+      mapsUrl: String(place.googleMapsUri ?? GOOGLE_REVIEWS_URL).trim() || GOOGLE_REVIEWS_URL,
+      reviews,
+    };
+  } catch {
+    return null;
+  }
+}
 
 function buildFeaturedLocation(zone?: string | null, country?: string | null): string {
   const parts = [zone, country].map((item) => String(item ?? "").trim()).filter(Boolean);
@@ -98,6 +222,7 @@ function SparkIcon() {
 
 export default async function Home() {
   let featuredTours: FeaturedTourView[] = [];
+  const googlePlaceReviews = await getGooglePlaceReviews();
 
   try {
     const featuredRaw = await prisma.tour.findMany({
@@ -136,8 +261,21 @@ export default async function Home() {
 
   return (
     <div>
-      <section className="hero-wrap">
-        <div className="mx-auto max-w-6xl px-4 py-24 text-white md:py-32">
+      <section className="hero-wrap relative overflow-hidden">
+        <div className="hero-slideshow" aria-hidden="true">
+          {HERO_SLIDES.map((slide, index) => (
+            <div
+              key={slide.src}
+              className="hero-slide"
+              style={{
+                backgroundImage: `url(${slide.src})`,
+                animationDelay: `${index * 6}s`,
+              }}
+            />
+          ))}
+          <div className="hero-overlay" />
+        </div>
+        <div className="relative z-10 mx-auto max-w-6xl px-4 py-24 text-white md:py-32">
           <p className="mb-3 inline-block rounded-full border border-white/40 bg-white/10 px-4 py-1 text-sm font-semibold uppercase tracking-wide">
             Guapiles Linea Tours
           </p>
@@ -230,6 +368,58 @@ export default async function Home() {
         </div>
       </section>
 
+      <section className="section-band py-12">
+        <div className="mx-auto max-w-6xl px-4">
+          <div className="rounded-2xl border border-emerald-100 bg-white p-6 shadow-sm">
+            <div>
+              <p className="text-sm font-extrabold uppercase tracking-wide text-emerald-700">Opiniones de Google</p>
+              <h2 className="mt-2 text-3xl font-extrabold text-emerald-900">Conoce lo que dicen nuestros viajeros</h2>
+              {googlePlaceReviews ? (
+                <>
+                  <p className="mt-3 text-slate-700">
+                    Calificacion promedio {ratingAsText(googlePlaceReviews.rating)}/5 basada en {googlePlaceReviews.totalRatings} opiniones para {googlePlaceReviews.placeName}.
+                  </p>
+                  <div className="mt-6 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                    {googlePlaceReviews.reviews.map((review, index) => (
+                      <article key={`${review.authorName}-${index}`} className="rounded-xl border border-slate-200 bg-slate-50 p-4 shadow-sm">
+                        <p className="text-sm font-extrabold text-emerald-900">{review.authorName}</p>
+                        <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-amber-700">{ratingAsText(review.rating)}/5</p>
+                        <p className="mt-3 line-clamp-5 text-sm leading-relaxed text-slate-700">{review.text}</p>
+                        {review.relativeDate ? <p className="mt-3 text-xs font-semibold text-slate-500">{review.relativeDate}</p> : null}
+                      </article>
+                    ))}
+                  </div>
+                  <div className="mt-6">
+                    <Link
+                      href={googlePlaceReviews.mapsUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-block rounded-lg bg-emerald-600 px-5 py-3 text-sm font-extrabold text-white transition hover:bg-emerald-500"
+                    >
+                      Ver mas opiniones en Google
+                    </Link>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <p className="mt-3 text-slate-700">
+                    Para mostrar resenas automaticas en esta pagina, agrega GOOGLE_PLACES_API_KEY en el entorno del servidor.
+                  </p>
+                  <Link
+                    href={GOOGLE_REVIEWS_URL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-5 inline-block rounded-lg border border-emerald-300 bg-white px-5 py-3 text-sm font-extrabold text-emerald-700 transition hover:bg-emerald-50"
+                  >
+                    Ver opiniones directamente en Google Maps
+                  </Link>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      </section>
+
       <section className="jungle-band py-12 text-white">
         <div className="mx-auto max-w-6xl px-4">
           <h2 className="text-center text-4xl font-extrabold">Contactanos directamente</h2>
@@ -265,7 +455,7 @@ export default async function Home() {
           <h2 className="text-center text-3xl font-extrabold text-emerald-900">Listo para planear tu aventura</h2>
           <div className="mt-6 grid gap-6 lg:grid-cols-[1.35fr_0.85fr]">
             <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5 shadow-sm">
-              <ContactUnifiedForm className="grid gap-3 md:grid-cols-3" />
+              <ContactUnifiedForm className="grid gap-4 md:grid-cols-2" />
             </div>
 
             <aside className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">

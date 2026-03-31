@@ -65,7 +65,7 @@ interface AvailabilityItem {
 interface PriceOptionEditor {
   id: string;
   name: string;
-  price: number | "";
+  price: number | string | "";
   isFree: boolean;
   isBase: boolean;
 }
@@ -126,6 +126,18 @@ interface TourAdminView {
   featured?: boolean;
 }
 
+interface AdminMediaItem {
+  id: string;
+  status: "active" | "trash";
+  name: string;
+  url: string;
+  isImage: boolean;
+}
+
+interface AdminMediaApiResponse {
+  items?: AdminMediaItem[];
+}
+
 interface FilterConfig {
   country: boolean;
   zone: boolean;
@@ -178,6 +190,16 @@ const defaultPriceOptionNames = [
   "Niños nacionales",
   "Niños extranjeros",
 ];
+
+const intervalMinuteOptions = [15, 30, 45, 60, 120, 180, 240];
+
+function formatIntervalOptionLabel(value: number): string {
+  if (value < 60) return `${value} min`;
+  return `${Math.round(value / 60)}h`;
+}
+
+const hourOptions = Array.from({ length: 24 }, (_, hour) => String(hour).padStart(2, "0"));
+const minuteOptions = Array.from({ length: 60 }, (_, minute) => String(minute).padStart(2, "0"));
 
 function normalizeTime24(value: string): string | null {
   const trimmed = String(value ?? "").trim();
@@ -248,7 +270,7 @@ function buildIntervalTimeSlots(startTime: string, endTime: string, intervalMinu
 }
 
 const defaultOpenSchedule: OpenScheduleConfig = {
-  maxPeople: 10,
+  maxPeople: 8,
   startTime: "08:00",
   endTime: "17:00",
   intervalMinutes: 30,
@@ -365,8 +387,8 @@ function sanitizePriceOptions(items: unknown): PriceOptionEditor[] {
       const id = idRaw || `custom-${index}-${Date.now()}`;
       const isFree = Boolean(source?.isFree);
       const isBase = Boolean(source?.isBase);
-      const parsedPrice = Number(source?.price);
-      const normalizedPrice: number | "" = isFree ? 0 : Number.isFinite(parsedPrice) ? parsedPrice : "";
+      const parsedPrice = parseLooseDecimal(source?.price);
+      const normalizedPrice: number | "" = isFree ? 0 : parsedPrice === null ? "" : roundPriceToTwo(parsedPrice);
 
       return {
         id,
@@ -379,13 +401,29 @@ function sanitizePriceOptions(items: unknown): PriceOptionEditor[] {
     .filter((item) => item.name.length > 0);
 }
 
-function parseEditorPriceInput(value: string): number | "" {
-  if (value === "") return "";
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : "";
+function parseLooseDecimal(value: unknown): number | null {
+  if (value === null || value === undefined) return null;
+  const raw = String(value).trim();
+  if (!raw) return null;
+
+  // Accept both decimal separators: comma and dot.
+  const normalized = raw.replace(/\s+/g, "").replace(/,/g, ".");
+  if (!/^\d+(?:\.\d+)?$/.test(normalized)) return null;
+
+  const parsed = Number(normalized);
+  return Number.isFinite(parsed) ? parsed : null;
 }
 
-function normalizeUnfreePrice(value: number | ""): number | "" {
+function roundPriceToTwo(value: number): number {
+  return Math.round((value + Number.EPSILON) * 100) / 100;
+}
+
+function parseEditorPriceInput(value: string): string {
+  // Keep the raw input while typing so "80," or "80." is not cleared.
+  return value.replace(/\s+/g, "");
+}
+
+function normalizeUnfreePrice(value: number | string | ""): number | string | "" {
   return value === 0 ? "" : value;
 }
 
@@ -495,9 +533,13 @@ function preparePriceOptionsForPayload(items: PriceOptionEditor[]): Array<{ id: 
       name: item.name.trim(),
       isFree: item.isFree,
       isBase: item.isBase,
-      price: item.isFree ? 0 : Number(item.price),
+      price: item.isFree ? 0 : parseLooseDecimal(item.price),
     }))
-    .filter((item) => item.id && item.name && (item.isFree || (Number.isFinite(item.price) && item.price > 0)));
+    .filter((item) => item.id && item.name && (item.isFree || (item.price !== null && item.price > 0)))
+    .map((item) => ({
+      ...item,
+      price: item.isFree ? 0 : roundPriceToTwo(item.price as number),
+    }));
 
   const firstBaseIndex = preparedRaw.findIndex((item) => item.isBase);
   const normalizedBaseIndex = firstBaseIndex === -1 && preparedRaw.length > 0 ? 0 : firstBaseIndex;
@@ -798,12 +840,7 @@ function parseFaqsFromPipeText(text: string): FaqItem[] {
   return sanitizeFaqs(items);
 }
 
-const defaultAvailabilityItems: AvailabilityItem[] = [
-  { id: 5001, date: "2026-03-20T09:00:00.000Z", maxPeople: 10 },
-  { id: 5002, date: "2026-03-21T09:00:00.000Z", maxPeople: 8 },
-  { id: 5003, date: "2026-03-24T09:00:00.000Z", maxPeople: 12 },
-  { id: 5004, date: "2026-03-27T09:00:00.000Z", maxPeople: 8 },
-];
+const defaultAvailabilityItems: AvailabilityItem[] = [];
 
 function sanitizeAvailabilityItems(items: unknown): AvailabilityItem[] {
   if (!Array.isArray(items)) return [];
@@ -828,7 +865,7 @@ function sanitizeAvailabilityItems(items: unknown): AvailabilityItem[] {
 
 function getEffectiveAvailability(tour: TourAdminView): AvailabilityItem[] {
   const sanitized = sanitizeAvailabilityItems(tour.availability);
-  return sanitized.length ? sanitized : defaultAvailabilityItems;
+  return sanitized;
 }
 
 function getEffectiveAvailabilityConfig(tour: TourAdminView, availabilityItems: AvailabilityItem[]): AvailabilityConfig {
@@ -909,15 +946,25 @@ function AdminPageContent() {
   const [availabilityMode, setAvailabilityMode] = useState<AvailabilityMode>("SPECIFIC");
   const [openSchedule, setOpenSchedule] = useState<OpenScheduleConfig>(defaultOpenSchedule);
   const [availabilityDateInput, setAvailabilityDateInput] = useState("");
-  const [availabilityMaxPeopleInput, setAvailabilityMaxPeopleInput] = useState<number | "">(10);
+  const [availabilityMaxPeopleInput, setAvailabilityMaxPeopleInput] = useState<number | "">(8);
   const [availabilityUseCustomTimesInput, setAvailabilityUseCustomTimesInput] = useState(false);
   const [availabilityCustomTimesInput, setAvailabilityCustomTimesInput] = useState("");
   const [availabilityStartTimeInput, setAvailabilityStartTimeInput] = useState("08:00");
   const [availabilityEndTimeInput, setAvailabilityEndTimeInput] = useState("17:00");
-  const [availabilityIntervalInput, setAvailabilityIntervalInput] = useState<number | "">(30);
+  const [availabilityIntervalInput, setAvailabilityIntervalInput] = useState<number | "">("");
+  const [openManualHourInput, setOpenManualHourInput] = useState("08");
+  const [openManualMinuteInput, setOpenManualMinuteInput] = useState("00");
+  const [specificManualHourInput, setSpecificManualHourInput] = useState("08");
+  const [specificManualMinuteInput, setSpecificManualMinuteInput] = useState("00");
   const [isFaqBulkOpen, setIsFaqBulkOpen] = useState(false);
   const [faqBulkText, setFaqBulkText] = useState("");
   const [isGalleryDragActive, setIsGalleryDragActive] = useState(false);
+  const [isGalleryUploading, setIsGalleryUploading] = useState(false);
+  const [isMediaPickerOpen, setIsMediaPickerOpen] = useState(false);
+  const [isMediaPickerLoading, setIsMediaPickerLoading] = useState(false);
+  const [mediaPickerSearch, setMediaPickerSearch] = useState("");
+  const [mediaLibraryItems, setMediaLibraryItems] = useState<AdminMediaItem[]>([]);
+  const [selectedMediaUrls, setSelectedMediaUrls] = useState<string[]>([]);
   const [featuredImageUrl, setFeaturedImageUrl] = useState<string | null>(null);
   const faqCsvInputRef = useRef<HTMLInputElement | null>(null);
   const importToursCsvRef = useRef<HTMLInputElement | null>(null);
@@ -936,6 +983,9 @@ function AdminPageContent() {
   const [filterConfig, setFilterConfig] = useState<FilterConfig>(() => getStoredFilterConfig());
   const [feedback, setFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
   const [selectedTourIds, setSelectedTourIds] = useState<number[]>([]);
+  const [isSavingTour, setIsSavingTour] = useState(false);
+  const [isSavingFilterConfig, setIsSavingFilterConfig] = useState(false);
+  const [isSavingCategoryEdit, setIsSavingCategoryEdit] = useState(false);
 
   const previewSpecificSlots = useMemo(() => {
     if (availabilityUseCustomTimesInput) return parseCustomTimeSlots(availabilityCustomTimesInput);
@@ -947,6 +997,21 @@ function AdminPageContent() {
   }, [availabilityCustomTimesInput, availabilityEndTimeInput, availabilityIntervalInput, availabilityStartTimeInput, availabilityUseCustomTimesInput]);
 
   const previewOpenSlots = useMemo(() => buildTimeSlotsFromSchedule(openSchedule), [openSchedule]);
+
+  const hasSpecificScheduleConfigured = useMemo(() => {
+    if (availabilityUseCustomTimesInput) {
+      return parseCustomTimeSlots(availabilityCustomTimesInput).length > 0;
+    }
+
+    return availabilityIntervalInput !== "" && previewSpecificSlots.length > 0;
+  }, [availabilityCustomTimesInput, availabilityIntervalInput, availabilityUseCustomTimesInput, previewSpecificSlots]);
+
+  const mediaPickerVisibleItems = useMemo(() => {
+    const query = mediaPickerSearch.trim().toLowerCase();
+    const activeImages = mediaLibraryItems.filter((item) => item.status === "active" && item.isImage && Boolean(item.url));
+    if (!query) return activeImages;
+    return activeImages.filter((item) => `${item.name} ${item.url}`.toLowerCase().includes(query));
+  }, [mediaLibraryItems, mediaPickerSearch]);
 
   useEffect(() => {
     if (status !== "BORRADOR") return;
@@ -1023,12 +1088,16 @@ function AdminPageContent() {
     setFaqQuestionInput("");
     setFaqAnswerInput("");
     setAvailabilityDateInput("");
-    setAvailabilityMaxPeopleInput(10);
+    setAvailabilityMaxPeopleInput(8);
     setAvailabilityUseCustomTimesInput(false);
     setAvailabilityCustomTimesInput("");
     setAvailabilityStartTimeInput("08:00");
     setAvailabilityEndTimeInput("17:00");
-    setAvailabilityIntervalInput(30);
+    setAvailabilityIntervalInput("");
+    setOpenManualHourInput("08");
+    setOpenManualMinuteInput("00");
+    setSpecificManualHourInput("08");
+    setSpecificManualMinuteInput("00");
     setStatus(state.status);
     setFeatured(state.featured);
   };
@@ -1198,10 +1267,56 @@ function AdminPageContent() {
     setLoginPass("");
   };
 
+  const addImageUrlsToTour = useCallback((urls: string[]) => {
+    const cleanUrls = urls.map((item) => String(item || "").trim()).filter(Boolean);
+    if (!cleanUrls.length) return;
+
+    setImageList((prev) => {
+      const next = Array.from(new Set([...prev, ...cleanUrls]));
+      setFeaturedImageUrl((currentFeatured) => (currentFeatured && next.includes(currentFeatured) ? currentFeatured : next[0] ?? null));
+      return next;
+    });
+  }, []);
+
+  const loadMediaLibraryItems = useCallback(async () => {
+    setIsMediaPickerLoading(true);
+    try {
+      const res = await fetch("/api/admin/media");
+      if (res.status === 401) {
+        setIsAuthenticated(false);
+        setFeedback({ type: "error", message: "Sesion expirada. Inicia sesion nuevamente." });
+        return;
+      }
+
+      if (!res.ok) {
+        setFeedback({ type: "error", message: "No se pudo cargar la biblioteca de medios." });
+        return;
+      }
+
+      const payload = (await res.json().catch(() => null)) as AdminMediaApiResponse | null;
+      const items = Array.isArray(payload?.items) ? payload.items : [];
+      setMediaLibraryItems(items);
+    } catch {
+      setFeedback({ type: "error", message: "Error de red al cargar la biblioteca de medios." });
+    } finally {
+      setIsMediaPickerLoading(false);
+    }
+  }, []);
+
+  const openMediaPicker = async () => {
+    setIsMediaPickerOpen(true);
+    setSelectedMediaUrls([]);
+    if (mediaLibraryItems.length === 0) {
+      await loadMediaLibraryItems();
+    }
+  };
+
   const handleUploadImages = async (files: FileList | null) => {
     if (!files || !files.length) return;
     const formData = new FormData();
     Array.from(files).forEach((file) => formData.append("images", file));
+
+    setIsGalleryUploading(true);
 
     try {
       const res = await fetch("/api/admin/upload", {
@@ -1217,7 +1332,8 @@ function AdminPageContent() {
 
       if (!res.ok) {
         const errorData = await res.json().catch(() => null);
-        setFeedback({ type: "error", message: errorData?.error || "No se pudieron subir las imagenes." });
+        const detail = typeof errorData?.detail === "string" ? ` (${errorData.detail})` : "";
+        setFeedback({ type: "error", message: `${errorData?.error || "No se pudieron subir las imagenes."}${detail}` });
         return;
       }
 
@@ -1231,14 +1347,12 @@ function AdminPageContent() {
         return;
       }
 
-      setImageList((prev) => {
-        const next = [...prev, ...urls];
-        setFeaturedImageUrl((currentFeatured) => (currentFeatured && next.includes(currentFeatured) ? currentFeatured : next[0] ?? null));
-        return next;
-      });
+      addImageUrlsToTour(urls);
       setFeedback({ type: "success", message: `Se subieron ${urls.length} imagenes a /uploads/tours.` });
     } catch {
       setFeedback({ type: "error", message: "Error de conexion al subir imagenes." });
+    } finally {
+      setIsGalleryUploading(false);
     }
   };
 
@@ -1266,6 +1380,28 @@ function AdminPageContent() {
     galleryInputRef.current?.click();
   };
 
+  const toggleMediaSelection = (url: string, checked: boolean) => {
+    const normalized = String(url || "").trim();
+    if (!normalized) return;
+
+    setSelectedMediaUrls((prev) => {
+      if (checked) return Array.from(new Set([...prev, normalized]));
+      return prev.filter((item) => item !== normalized);
+    });
+  };
+
+  const addSelectedMediaToTour = () => {
+    if (!selectedMediaUrls.length) {
+      setFeedback({ type: "error", message: "Selecciona al menos una imagen de la biblioteca." });
+      return;
+    }
+
+    addImageUrlsToTour(selectedMediaUrls);
+    setSelectedMediaUrls([]);
+    setIsMediaPickerOpen(false);
+    setFeedback({ type: "success", message: `${selectedMediaUrls.length} imagen(es) agregada(s) desde la biblioteca.` });
+  };
+
   const handleGalleryDragOver = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     if (!isGalleryDragActive) setIsGalleryDragActive(true);
@@ -1279,6 +1415,7 @@ function AdminPageContent() {
 
   const handleGalleryDrop = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
+    if (isGalleryUploading) return;
     setIsGalleryDragActive(false);
     void handleUploadImages(e.dataTransfer.files);
   };
@@ -1313,12 +1450,16 @@ function AdminPageContent() {
     setFaqQuestionInput("");
     setFaqAnswerInput("");
     setAvailabilityDateInput("");
-    setAvailabilityMaxPeopleInput(10);
+    setAvailabilityMaxPeopleInput(8);
     setAvailabilityUseCustomTimesInput(false);
     setAvailabilityCustomTimesInput("");
     setAvailabilityStartTimeInput("08:00");
     setAvailabilityEndTimeInput("17:00");
-    setAvailabilityIntervalInput(30);
+    setAvailabilityIntervalInput("");
+    setOpenManualHourInput("08");
+    setOpenManualMinuteInput("00");
+    setSpecificManualHourInput("08");
+    setSpecificManualMinuteInput("00");
     setStatus("BORRADOR");
     setFeatured(false);
     if (categories[0]) setCategoryId(categories[0].id);
@@ -1444,7 +1585,46 @@ function AdminPageContent() {
     setFaqsList((prev) => prev.filter((_, itemIndex) => itemIndex !== index));
   };
 
+  const handleAddOpenManualTime = () => {
+    const nextSlot = `${openManualHourInput}:${openManualMinuteInput}`;
+    const parsed = normalizeTime24(nextSlot);
+    if (!parsed) return;
+
+    const nextSlots = Array.from(new Set([...parseCustomTimeSlots(openSchedule.customTimesText), parsed])).sort();
+    setOpenSchedule((prev) => ({
+      ...prev,
+      customTimesText: nextSlots.join(", "),
+    }));
+  };
+
+  const handleRemoveOpenManualTime = (slotToRemove: string) => {
+    const nextSlots = parseCustomTimeSlots(openSchedule.customTimesText).filter((slot) => slot !== slotToRemove);
+    setOpenSchedule((prev) => ({
+      ...prev,
+      customTimesText: nextSlots.join(", "),
+    }));
+  };
+
+  const handleAddSpecificManualTime = () => {
+    const nextSlot = `${specificManualHourInput}:${specificManualMinuteInput}`;
+    const parsed = normalizeTime24(nextSlot);
+    if (!parsed) return;
+
+    const nextSlots = Array.from(new Set([...parseCustomTimeSlots(availabilityCustomTimesInput), parsed])).sort();
+    setAvailabilityCustomTimesInput(nextSlots.join(", "));
+  };
+
+  const handleRemoveSpecificManualTime = (slotToRemove: string) => {
+    const nextSlots = parseCustomTimeSlots(availabilityCustomTimesInput).filter((slot) => slot !== slotToRemove);
+    setAvailabilityCustomTimesInput(nextSlots.join(", "));
+  };
+
   const handleAddAvailability = () => {
+    if (!hasSpecificScheduleConfigured) {
+      setFeedback({ type: "error", message: "Define los horarios de la fecha antes de agregarla." });
+      return;
+    }
+
     if (!availabilityDateInput) {
       setFeedback({ type: "error", message: "Selecciona una fecha para disponibilidad." });
       return;
@@ -1466,9 +1646,12 @@ function AdminPageContent() {
         prev.map((item) => (item.id === existing.id ? { ...item, maxPeople, timeSlots: nextTimeSlots } : item)),
       );
       setAvailabilityDateInput("");
-      setAvailabilityMaxPeopleInput(10);
+      setAvailabilityMaxPeopleInput(8);
       setAvailabilityUseCustomTimesInput(false);
       setAvailabilityCustomTimesInput("");
+      setAvailabilityIntervalInput("");
+      setSpecificManualHourInput("08");
+      setSpecificManualMinuteInput("00");
       return;
     }
 
@@ -1477,9 +1660,12 @@ function AdminPageContent() {
       : 1;
     setAvailabilityList((prev) => [...prev, { id: nextId, date: isoDate, maxPeople, timeSlots: nextTimeSlots }]);
     setAvailabilityDateInput("");
-    setAvailabilityMaxPeopleInput(10);
+    setAvailabilityMaxPeopleInput(8);
     setAvailabilityUseCustomTimesInput(false);
     setAvailabilityCustomTimesInput("");
+    setAvailabilityIntervalInput("");
+    setSpecificManualHourInput("08");
+    setSpecificManualMinuteInput("00");
   };
 
   const handleRemoveAvailability = (itemId: number) => {
@@ -1761,6 +1947,8 @@ function AdminPageContent() {
   };
 
   const handleCreateOrUpdateTour = async () => {
+    if (isSavingTour) return false;
+
     const orderedImageList = orderImagesWithFeatured(imageList, featuredImageUrl);
 
     const category = categories.find((c) => c.id === categoryId);
@@ -1837,140 +2025,145 @@ function AdminPageContent() {
     };
 
     let updatedTours = [...allTours];
+    setIsSavingTour(true);
 
-    if (editingTourId) {
-      try {
-        const res = await fetch("/api/admin/tour", {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            id: editingTourId,
-            title,
-            slug: slugifyTourValue(slug || title),
-            description,
-            price: payload.price,
-            minPeople: payload.minPeople,
-            images: orderedImageList,
-            categoryId,
-            status,
-            country: payload.country,
-            zone: payload.zone,
-            departurePoint: payload.departurePoint,
-            durationDays: payload.durationDays,
-            activityType: payload.activityType,
-            difficulty: payload.difficulty,
-            guideType: payload.guideType,
-            transport: payload.transport,
-            groups: payload.groups,
-            story: payload.story,
-            tourPackages: payload.tourPackages,
-            includedItems: payload.includedItems,
-            recommendations: payload.recommendations,
-            faqs: payload.faqs,
-            featured: payload.featured,
-            isDeleted: payload.isDeleted,
-            deletedAt: payload.deletedAt,
-            availability: payload.availability,
-            availabilityConfig: payload.availabilityConfig,
-          }),
-        });
+    try {
+      if (editingTourId) {
+        try {
+          const res = await fetch("/api/admin/tour", {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              id: editingTourId,
+              title,
+              slug: slugifyTourValue(slug || title),
+              description,
+              price: payload.price,
+              minPeople: payload.minPeople,
+              images: orderedImageList,
+              categoryId,
+              status,
+              country: payload.country,
+              zone: payload.zone,
+              departurePoint: payload.departurePoint,
+              durationDays: payload.durationDays,
+              activityType: payload.activityType,
+              difficulty: payload.difficulty,
+              guideType: payload.guideType,
+              transport: payload.transport,
+              groups: payload.groups,
+              story: payload.story,
+              tourPackages: payload.tourPackages,
+              includedItems: payload.includedItems,
+              recommendations: payload.recommendations,
+              faqs: payload.faqs,
+              featured: payload.featured,
+              isDeleted: payload.isDeleted,
+              deletedAt: payload.deletedAt,
+              availability: payload.availability,
+              availabilityConfig: payload.availabilityConfig,
+            }),
+          });
 
-        if (res.status === 401) {
-          setIsAuthenticated(false);
-          setFeedback({ type: "error", message: "Sesion expirada. Inicia sesion nuevamente." });
-          return false;
-        }
-
-        if (!res.ok) {
-          if (res.status === 413) {
-            setFeedback({ type: "error", message: "Las imagenes del tour exceden el limite permitido. Reduce cantidad o tamano de imagenes." });
+          if (res.status === 401) {
+            setIsAuthenticated(false);
+            setFeedback({ type: "error", message: "Sesion expirada. Inicia sesion nuevamente." });
             return false;
           }
-          setFeedback({ type: "error", message: "No se pudo actualizar el tour en la base de datos." });
-          return false;
-        }
 
-        const savedTour = await res.json().catch(() => null);
-        updatedTours = updatedTours.map((tour) => (tour.id === editingTourId ? { ...tour, ...payload, ...(savedTour || {}) } : tour));
-      } catch {
-        setFeedback({ type: "error", message: "Error de conexion al actualizar el tour en la base de datos." });
-        return false;
-      }
-      setFeedback({ type: "success", message: "Tour actualizado correctamente." });
-    } else {
-      let createdId = nextId(updatedTours);
-      let createdTour: Partial<TourAdminView> | null = null;
-      try {
-        const res = await fetch("/api/admin/tour", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            title,
-            slug: slugifyTourValue(slug || title),
-            description,
-            price: payload.price,
-            minPeople: payload.minPeople,
-            images: orderedImageList,
-            categoryId,
-            status,
-            country: payload.country,
-            zone: payload.zone,
-            departurePoint: payload.departurePoint,
-            durationDays: payload.durationDays,
-            activityType: payload.activityType,
-            difficulty: payload.difficulty,
-            guideType: payload.guideType,
-            transport: payload.transport,
-            groups: payload.groups,
-            story: payload.story,
-            tourPackages: payload.tourPackages,
-            includedItems: payload.includedItems,
-            recommendations: payload.recommendations,
-            faqs: payload.faqs,
-            featured: payload.featured,
-            isDeleted: payload.isDeleted,
-            deletedAt: payload.deletedAt,
-            availability: payload.availability,
-            availabilityConfig: payload.availabilityConfig,
-          }),
-        });
-        if (res.status === 401) {
-          setIsAuthenticated(false);
-          setFeedback({ type: "error", message: "Sesion expirada. Inicia sesion nuevamente." });
-          return false;
-        }
-
-        if (res.ok) {
-          const created = await res.json();
-          if (created?.id) createdId = created.id;
-          createdTour = created;
-        } else {
-          if (res.status === 413) {
-            setFeedback({ type: "error", message: "Las imagenes del tour exceden el limite permitido. Reduce cantidad o tamano de imagenes." });
+          if (!res.ok) {
+            if (res.status === 413) {
+              setFeedback({ type: "error", message: "Las imagenes del tour exceden el limite permitido. Reduce cantidad o tamano de imagenes." });
+              return false;
+            }
+            setFeedback({ type: "error", message: "No se pudo actualizar el tour en la base de datos." });
             return false;
           }
-          setFeedback({ type: "error", message: "No se pudo crear el tour en la base de datos." });
+
+          const savedTour = await res.json().catch(() => null);
+          updatedTours = updatedTours.map((tour) => (tour.id === editingTourId ? { ...tour, ...payload, ...(savedTour || {}) } : tour));
+        } catch {
+          setFeedback({ type: "error", message: "Error de conexion al actualizar el tour en la base de datos." });
           return false;
         }
-      } catch {
-        setFeedback({ type: "error", message: "Error de conexion al crear el tour en la base de datos." });
-        return false;
+        setFeedback({ type: "success", message: "Tour actualizado correctamente." });
+      } else {
+        let createdId = nextId(updatedTours);
+        let createdTour: Partial<TourAdminView> | null = null;
+        try {
+          const res = await fetch("/api/admin/tour", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              title,
+              slug: slugifyTourValue(slug || title),
+              description,
+              price: payload.price,
+              minPeople: payload.minPeople,
+              images: orderedImageList,
+              categoryId,
+              status,
+              country: payload.country,
+              zone: payload.zone,
+              departurePoint: payload.departurePoint,
+              durationDays: payload.durationDays,
+              activityType: payload.activityType,
+              difficulty: payload.difficulty,
+              guideType: payload.guideType,
+              transport: payload.transport,
+              groups: payload.groups,
+              story: payload.story,
+              tourPackages: payload.tourPackages,
+              includedItems: payload.includedItems,
+              recommendations: payload.recommendations,
+              faqs: payload.faqs,
+              featured: payload.featured,
+              isDeleted: payload.isDeleted,
+              deletedAt: payload.deletedAt,
+              availability: payload.availability,
+              availabilityConfig: payload.availabilityConfig,
+            }),
+          });
+          if (res.status === 401) {
+            setIsAuthenticated(false);
+            setFeedback({ type: "error", message: "Sesion expirada. Inicia sesion nuevamente." });
+            return false;
+          }
+
+          if (res.ok) {
+            const created = await res.json();
+            if (created?.id) createdId = created.id;
+            createdTour = created;
+          } else {
+            if (res.status === 413) {
+              setFeedback({ type: "error", message: "Las imagenes del tour exceden el limite permitido. Reduce cantidad o tamano de imagenes." });
+              return false;
+            }
+            setFeedback({ type: "error", message: "No se pudo crear el tour en la base de datos." });
+            return false;
+          }
+        } catch {
+          setFeedback({ type: "error", message: "Error de conexion al crear el tour en la base de datos." });
+          return false;
+        }
+
+        updatedTours = [{ id: createdId, ...payload, ...(createdTour || {}) }, ...updatedTours];
+        setFeedback({ type: "success", message: "Tour creado correctamente." });
       }
 
-      updatedTours = [{ id: createdId, ...payload, ...(createdTour || {}) }, ...updatedTours];
-      setFeedback({ type: "success", message: "Tour creado correctamente." });
+      const saved = saveToursLocal(updatedTours);
+      if (!saved) return false;
+      resetTourForm();
+      setEditorInitial(null);
+      if (isEditorRoute) {
+        router.push("/admin");
+      } else {
+        setIsEditorOpen(false);
+      }
+      return true;
+    } finally {
+      setIsSavingTour(false);
     }
-
-    const saved = saveToursLocal(updatedTours);
-    if (!saved) return false;
-    resetTourForm();
-    setEditorInitial(null);
-    if (isEditorRoute) {
-      router.push("/admin");
-    } else {
-      setIsEditorOpen(false);
-    }
-    return true;
   };
 
   const handleEditTour = (tour: TourAdminView) => {
@@ -2011,12 +2204,16 @@ function AdminPageContent() {
     setFaqQuestionInput("");
     setFaqAnswerInput("");
     setAvailabilityDateInput("");
-    setAvailabilityMaxPeopleInput(10);
+    setAvailabilityMaxPeopleInput(8);
     setAvailabilityUseCustomTimesInput(false);
     setAvailabilityCustomTimesInput("");
     setAvailabilityStartTimeInput("08:00");
     setAvailabilityEndTimeInput("17:00");
-    setAvailabilityIntervalInput(30);
+    setAvailabilityIntervalInput("");
+    setOpenManualHourInput("08");
+    setOpenManualMinuteInput("00");
+    setSpecificManualHourInput("08");
+    setSpecificManualMinuteInput("00");
     setStatus(tour.status ?? "BORRADOR");
     setFeatured(Boolean(tour.featured));
     const nextEditor: TourEditorState = {
@@ -2101,52 +2298,111 @@ function AdminPageContent() {
     }
   };
 
-  const handleDeleteTour = (tourId: number) => {
+  const handleDeleteTour = async (tourId: number) => {
     const confirmDelete = window.confirm("Este tour se movera a la papelera. Deseas continuar?");
     if (!confirmDelete) return;
 
-    const nextTours = allTours.map((tour) =>
-      tour.id === tourId
-        ? { ...tour, isDeleted: true, deletedAt: new Date().toISOString(), status: "NO_ACTIVO" as TourStatus }
-        : tour,
-    );
-    const saved = saveToursLocal(nextTours);
-    if (!saved) return;
-    if (editingTourId === tourId) {
-      resetTourForm();
-      setIsEditorOpen(false);
-      setEditorInitial(null);
+    try {
+      const deletedAt = new Date().toISOString();
+      const res = await fetch("/api/admin/tour", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: tourId,
+          status: "NO_ACTIVO",
+          isDeleted: true,
+          deletedAt,
+        }),
+      });
+
+      if (res.status === 401) {
+        setIsAuthenticated(false);
+        setFeedback({ type: "error", message: "Sesion expirada. Inicia sesion nuevamente." });
+        return;
+      }
+
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => null);
+        setFeedback({ type: "error", message: errorData?.error || "No se pudo mover el tour a la papelera." });
+        return;
+      }
+
+      await loadData();
+      if (editingTourId === tourId) {
+        resetTourForm();
+        setIsEditorOpen(false);
+        setEditorInitial(null);
+      }
+      setFeedback({ type: "success", message: "Tour enviado a papelera." });
+    } catch {
+      setFeedback({ type: "error", message: "Error de conexion al mover el tour a papelera." });
     }
-    setFeedback({ type: "success", message: "Tour enviado a papelera." });
   };
 
-  const handleRestoreTour = (tourId: number) => {
+  const handleRestoreTour = async (tourId: number) => {
     const confirmRestore = window.confirm("Se reactivara este tour y volvera a estar visible. Deseas continuar?");
     if (!confirmRestore) return;
 
-    const nextTours = allTours.map((tour) =>
-      tour.id === tourId
-        ? { ...tour, isDeleted: false, deletedAt: null, status: "ACTIVO" as TourStatus }
-        : tour,
-    );
-    const saved = saveToursLocal(nextTours);
-    if (!saved) return;
-    setFeedback({ type: "success", message: "Tour reactivado correctamente." });
+    try {
+      const res = await fetch("/api/admin/tour", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: tourId,
+          status: "ACTIVO",
+          isDeleted: false,
+          deletedAt: null,
+        }),
+      });
+
+      if (res.status === 401) {
+        setIsAuthenticated(false);
+        setFeedback({ type: "error", message: "Sesion expirada. Inicia sesion nuevamente." });
+        return;
+      }
+
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => null);
+        setFeedback({ type: "error", message: errorData?.error || "No se pudo restaurar el tour." });
+        return;
+      }
+
+      await loadData();
+      setFeedback({ type: "success", message: "Tour reactivado correctamente." });
+    } catch {
+      setFeedback({ type: "error", message: "Error de conexion al restaurar el tour." });
+    }
   };
 
-  const handlePermanentDeleteTour = (tourId: number) => {
+  const handlePermanentDeleteTour = async (tourId: number) => {
     const confirmDelete = window.confirm("Esta accion eliminara el tour de forma permanente. Deseas continuar?");
     if (!confirmDelete) return;
 
-    const nextTours = allTours.filter((tour) => tour.id !== tourId);
-    const saved = saveToursLocal(nextTours);
-    if (!saved) return;
-    if (editingTourId === tourId) {
-      resetTourForm();
-      setIsEditorOpen(false);
-      setEditorInitial(null);
+    try {
+      const res = await fetch(`/api/admin/tour?id=${tourId}`, { method: "DELETE" });
+
+      if (res.status === 401) {
+        setIsAuthenticated(false);
+        setFeedback({ type: "error", message: "Sesion expirada. Inicia sesion nuevamente." });
+        return;
+      }
+
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => null);
+        setFeedback({ type: "error", message: errorData?.error || "No se pudo eliminar el tour permanentemente." });
+        return;
+      }
+
+      await loadData();
+      if (editingTourId === tourId) {
+        resetTourForm();
+        setIsEditorOpen(false);
+        setEditorInitial(null);
+      }
+      setFeedback({ type: "success", message: "Tour eliminado permanentemente." });
+    } catch {
+      setFeedback({ type: "error", message: "Error de conexion al eliminar el tour permanentemente." });
     }
-    setFeedback({ type: "success", message: "Tour eliminado permanentemente." });
   };
 
   const handleAddCategory = async () => {
@@ -2254,6 +2510,7 @@ function AdminPageContent() {
 
   const handleSaveCategoryEdit = async () => {
     if (!editingCategoryId) return;
+    if (isSavingCategoryEdit) return;
     if (!editingCategoryName.trim()) {
       setFeedback({ type: "error", message: "El nombre de categoria es obligatorio." });
       return;
@@ -2270,37 +2527,42 @@ function AdminPageContent() {
       return { ...tour, category: { id: editingCategoryId, name: editingCategoryName.trim() } };
     });
 
+    setIsSavingCategoryEdit(true);
     try {
-      const res = await fetch("/api/admin/category", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: editingCategoryId, name: editingCategoryName.trim() }),
-      });
+      try {
+        const res = await fetch("/api/admin/category", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: editingCategoryId, name: editingCategoryName.trim() }),
+        });
 
-      if (res.status === 401) {
-        setIsAuthenticated(false);
-        setFeedback({ type: "error", message: "Sesion expirada. Inicia sesion nuevamente." });
+        if (res.status === 401) {
+          setIsAuthenticated(false);
+          setFeedback({ type: "error", message: "Sesion expirada. Inicia sesion nuevamente." });
+          return;
+        }
+
+        if (!res.ok) {
+          const errorData = await res.json().catch(() => null);
+          setFeedback({ type: "error", message: errorData?.error || "No se pudo actualizar la categoria." });
+          return;
+        }
+
+        const categoriesSaved = saveCategoriesLocal(nextCategories);
+        const toursSaved = saveToursLocal(nextTours);
+        if (!categoriesSaved || !toursSaved) return;
+      } catch {
+        setFeedback({ type: "error", message: "Error de conexion al actualizar la categoria." });
         return;
       }
 
-      if (!res.ok) {
-        const errorData = await res.json().catch(() => null);
-        setFeedback({ type: "error", message: errorData?.error || "No se pudo actualizar la categoria." });
-        return;
-      }
-
-      const categoriesSaved = saveCategoriesLocal(nextCategories);
-      const toursSaved = saveToursLocal(nextTours);
-      if (!categoriesSaved || !toursSaved) return;
-    } catch {
-      setFeedback({ type: "error", message: "Error de conexion al actualizar la categoria." });
-      return;
+      setEditingCategoryId(null);
+      setEditingCategoryName("");
+      setEditingCategoryDescription("");
+      setFeedback({ type: "success", message: "Categoria actualizada." });
+    } finally {
+      setIsSavingCategoryEdit(false);
     }
-
-    setEditingCategoryId(null);
-    setEditingCategoryName("");
-    setEditingCategoryDescription("");
-    setFeedback({ type: "success", message: "Categoria actualizada." });
   };
 
   const handleDeleteCategory = async (categoryIdToDelete: number) => {
@@ -2336,9 +2598,16 @@ function AdminPageContent() {
     }
   };
 
-  const handleSaveFilterConfig = () => {
-    localStorage.setItem(FILTER_CONFIG_KEY, JSON.stringify(filterConfig));
-    setFeedback({ type: "success", message: "Configuracion de filtros guardada." });
+  const handleSaveFilterConfig = async () => {
+    if (isSavingFilterConfig) return;
+    setIsSavingFilterConfig(true);
+    try {
+      localStorage.setItem(FILTER_CONFIG_KEY, JSON.stringify(filterConfig));
+      await new Promise((resolve) => setTimeout(resolve, 500));
+      setFeedback({ type: "success", message: "Configuracion de filtros guardada." });
+    } finally {
+      setIsSavingFilterConfig(false);
+    }
   };
 
   const searchedTours = useMemo(() => {
@@ -2909,14 +3178,15 @@ function AdminPageContent() {
                                     <label className="text-xs font-semibold text-slate-600">
                                       Precio
                                       <input
-                                        type="number"
+                                        type="text"
+                                        inputMode="decimal"
                                         min={0}
                                         step="0.01"
                                         disabled={option.isFree}
                                         className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-800 disabled:bg-slate-100"
                                         value={option.price}
                                         onChange={(e) => handlePackagePriceOptionChange(pkg.id, option.id, "price", e.target.value)}
-                                        placeholder="0.00"
+                                        placeholder="Ej: 80.5"
                                       />
                                     </label>
 
@@ -2991,36 +3261,133 @@ function AdminPageContent() {
                   <div
                     role="button"
                     tabIndex={0}
-                    onClick={openGalleryPicker}
+                    onClick={() => {
+                      if (!isGalleryUploading) openGalleryPicker();
+                    }}
                     onKeyDown={(e) => {
                       if (e.key === "Enter" || e.key === " ") {
                         e.preventDefault();
-                        openGalleryPicker();
+                        if (!isGalleryUploading) openGalleryPicker();
                       }
                     }}
                     onDragOver={handleGalleryDragOver}
                     onDragLeave={handleGalleryDragLeave}
                     onDrop={handleGalleryDrop}
-                    className={`mt-2 rounded-xl border-2 border-dashed px-4 py-6 text-center transition ${isGalleryDragActive ? "border-emerald-400 bg-emerald-50" : "border-slate-300 bg-slate-50/70 hover:border-emerald-300"}`}
+                    className={`mt-2 rounded-xl border-2 border-dashed px-4 py-6 text-center transition ${isGalleryDragActive ? "border-emerald-400 bg-emerald-50" : "border-slate-300 bg-slate-50/70 hover:border-emerald-300"} ${isGalleryUploading ? "cursor-not-allowed opacity-70" : ""}`}
                   >
-                    <p className="text-sm font-semibold text-slate-700">Haz clic aqui para seleccionar imagenes</p>
+                    <p className="text-sm font-semibold text-slate-700">
+                      {isGalleryUploading ? "Subiendo imagenes..." : "Haz clic aqui para seleccionar imagenes"}
+                    </p>
                     <p className="mt-1 text-xs text-slate-500">Tambien puedes arrastrarlas y soltarlas en esta zona.</p>
+                    {isGalleryUploading && <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-emerald-100"><span className="block h-full w-full animate-pulse bg-emerald-500" /></div>}
                   </div>
 
                   <div className="mt-2 flex flex-wrap items-center gap-2">
-                    <button type="button" onClick={openGalleryPicker} className="rounded-lg border border-emerald-300 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700 hover:bg-emerald-100">
-                      Seleccionar imagenes
+                    <button
+                      type="button"
+                      onClick={openGalleryPicker}
+                      disabled={isGalleryUploading}
+                      className="rounded-lg border border-emerald-300 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700 hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      {isGalleryUploading ? "Subiendo..." : "Seleccionar imagenes"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        void openMediaPicker();
+                      }}
+                      className="rounded-lg border border-cyan-300 bg-cyan-50 px-3 py-1.5 text-xs font-semibold text-cyan-700 hover:bg-cyan-100"
+                    >
+                      Elegir desde biblioteca
                     </button>
                     <button
                       type="button"
                       onClick={clearAllImages}
-                      disabled={imageList.length === 0}
+                      disabled={imageList.length === 0 || isGalleryUploading}
                       className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       Dejar sin imagenes
                     </button>
                     <span className="text-xs text-slate-500">{imageList.length} imagen(es) cargada(s)</span>
                   </div>
+
+                  {isMediaPickerOpen && (
+                    <div className="mt-3 rounded-xl border border-cyan-200 bg-cyan-50/50 p-3">
+                      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                        <p className="text-sm font-bold text-cyan-900">Biblioteca de medios (imagenes activas)</p>
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              void loadMediaLibraryItems();
+                            }}
+                            disabled={isMediaPickerLoading}
+                            className="rounded-lg border border-cyan-300 bg-white px-3 py-1 text-xs font-semibold text-cyan-700 hover:bg-cyan-50 disabled:cursor-not-allowed disabled:opacity-60"
+                          >
+                            {isMediaPickerLoading ? "Cargando..." : "Recargar"}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setIsMediaPickerOpen(false);
+                              setSelectedMediaUrls([]);
+                            }}
+                            className="rounded-lg border border-slate-300 bg-white px-3 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                          >
+                            Cerrar
+                          </button>
+                        </div>
+                      </div>
+
+                      <input
+                        type="text"
+                        value={mediaPickerSearch}
+                        onChange={(e) => setMediaPickerSearch(e.target.value)}
+                        placeholder="Buscar imagen por nombre"
+                        className="mt-2 w-full rounded-lg border border-cyan-200 bg-white px-3 py-2 text-sm"
+                      />
+
+                      <div className="mt-2 max-h-72 overflow-y-auto rounded-lg border border-cyan-100 bg-white p-2">
+                        {isMediaPickerLoading ? (
+                          <p className="p-2 text-sm font-semibold text-slate-600">Cargando imagenes...</p>
+                        ) : mediaPickerVisibleItems.length === 0 ? (
+                          <p className="p-2 text-sm text-slate-500">No hay imagenes activas en la biblioteca.</p>
+                        ) : (
+                          <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
+                            {mediaPickerVisibleItems.map((item) => {
+                              const checked = selectedMediaUrls.includes(item.url);
+                              return (
+                                <label key={item.id} className={`overflow-hidden rounded-lg border ${checked ? "border-cyan-500 ring-2 ring-cyan-200" : "border-slate-200"}`}>
+                                  <div className="relative">
+                                    <img src={item.url} alt={item.name} className="aspect-square w-full object-cover" />
+                                    <input
+                                      type="checkbox"
+                                      checked={checked}
+                                      onChange={(e) => toggleMediaSelection(item.url, e.target.checked)}
+                                      className="absolute right-1 top-1 h-4 w-4"
+                                    />
+                                  </div>
+                                  <p className="truncate px-2 py-1 text-[11px] font-semibold text-slate-700" title={item.name}>{item.name}</p>
+                                </label>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="mt-2 flex items-center justify-between gap-2">
+                        <p className="text-xs text-slate-600">{selectedMediaUrls.length} seleccionada(s)</p>
+                        <button
+                          type="button"
+                          onClick={addSelectedMediaToTour}
+                          disabled={selectedMediaUrls.length === 0}
+                          className="rounded-lg bg-cyan-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-cyan-500 disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                          Agregar seleccionadas al tour
+                        </button>
+                      </div>
+                    </div>
+                  )}
 
                   {imageList.length > 0 && (
                     <div className="mt-3 grid grid-cols-2 gap-2 md:grid-cols-4">
@@ -3219,7 +3586,7 @@ function AdminPageContent() {
 
                     <div className="mt-2 grid gap-2 md:grid-cols-4">
                       <label className="block text-xs font-bold text-slate-700">
-                        Cupo por dia
+                        Cupo por tour
                         <input
                           type="number"
                           min={1}
@@ -3252,16 +3619,15 @@ function AdminPageContent() {
                         />
                       </label>
                       <label className="block text-xs font-bold text-slate-700">
-                        Cada (min)
+                        Cada
                         <select
                           className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2"
                           value={openSchedule.intervalMinutes}
                           onChange={(e) => setOpenSchedule((prev) => ({ ...prev, intervalMinutes: Number(e.target.value) || 30 }))}
                         >
-                          <option value={15}>15</option>
-                          <option value={30}>30</option>
-                          <option value={45}>45</option>
-                          <option value={60}>60</option>
+                          {intervalMinuteOptions.map((value) => (
+                            <option key={value} value={value}>{formatIntervalOptionLabel(value)}</option>
+                          ))}
                         </select>
                       </label>
                     </div>
@@ -3276,15 +3642,56 @@ function AdminPageContent() {
                     </label>
 
                     {openSchedule.useCustomTimes && (
-                      <label className="mt-2 block text-xs font-bold text-slate-700">
-                        Horarios manuales (HH:mm, separados por coma)
-                        <input
-                          className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2"
-                          placeholder="08:00, 08:30, 09:00"
-                          value={openSchedule.customTimesText}
-                          onChange={(e) => setOpenSchedule((prev) => ({ ...prev, customTimesText: e.target.value }))}
-                        />
-                      </label>
+                      <div className="mt-2 rounded-xl bg-white p-3 ring-1 ring-slate-200/70">
+                        <p className="text-xs font-bold text-slate-700">Horarios manuales</p>
+                        <div className="mt-2 grid gap-2 md:grid-cols-[1fr_1fr_auto]">
+                          <label className="text-xs font-bold text-slate-700">
+                            Hora
+                            <select
+                              className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2"
+                              value={openManualHourInput}
+                              onChange={(e) => setOpenManualHourInput(e.target.value)}
+                            >
+                              {hourOptions.map((hour) => (
+                                <option key={hour} value={hour}>{hour}</option>
+                              ))}
+                            </select>
+                          </label>
+                          <label className="text-xs font-bold text-slate-700">
+                            Minutos
+                            <select
+                              className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2"
+                              value={openManualMinuteInput}
+                              onChange={(e) => setOpenManualMinuteInput(e.target.value)}
+                            >
+                              {minuteOptions.map((minute) => (
+                                <option key={minute} value={minute}>{minute}</option>
+                              ))}
+                            </select>
+                          </label>
+                          <button
+                            type="button"
+                            onClick={handleAddOpenManualTime}
+                            className="rounded-xl border border-emerald-300 px-3 py-2 text-sm font-bold text-emerald-700 hover:bg-emerald-50"
+                          >
+                            Agregar hora
+                          </button>
+                        </div>
+
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          {parseCustomTimeSlots(openSchedule.customTimesText).map((slot) => (
+                            <span key={slot} className="inline-flex items-center gap-2 rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-800">
+                              {formatTimeLabel(slot)}
+                              <button type="button" onClick={() => handleRemoveOpenManualTime(slot)} className="font-extrabold text-emerald-900">
+                                x
+                              </button>
+                            </span>
+                          ))}
+                          {parseCustomTimeSlots(openSchedule.customTimesText).length === 0 && (
+                            <p className="text-xs text-slate-500">No hay horarios manuales definidos.</p>
+                          )}
+                        </div>
+                      </div>
                     )}
 
                     <p className="mt-2 text-xs text-slate-600">
@@ -3293,117 +3700,168 @@ function AdminPageContent() {
                   </div>
                 )}
 
-                <div className="mt-2 grid gap-2 md:grid-cols-[1fr_160px_auto]">
-                  <label className="block text-sm font-bold text-slate-700">
-                    Fecha
-                    <input
-                      type="date"
-                      className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2"
-                      value={availabilityDateInput}
-                      onChange={(e) => setAvailabilityDateInput(e.target.value)}
-                    />
-                  </label>
-                  <label className="block text-sm font-bold text-slate-700">
-                    Cupo
-                    <input
-                      type="number"
-                      min={1}
-                      className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2"
-                      value={availabilityMaxPeopleInput}
-                      onChange={(e) => setAvailabilityMaxPeopleInput(e.target.value === "" ? "" : Number(e.target.value))}
-                      placeholder="Cupo"
-                    />
-                  </label>
-                  <button type="button" onClick={handleAddAvailability} className="rounded-xl border border-emerald-300 px-3 py-2 text-sm font-bold text-emerald-700 hover:bg-emerald-50">
-                    Agregar fecha
-                  </button>
-                </div>
+                {availabilityMode === "SPECIFIC" && (
+                  <>
+                    <div className="mt-2 rounded-xl bg-slate-50/80 p-3 ring-1 ring-slate-200/70">
+                      <p className="text-xs font-bold text-slate-700">Paso 1: Define horarios para la fecha</p>
+                      <p className="text-xs text-slate-500">Primero configura los horarios y despues agrega la fecha.</p>
 
-                <div className="mt-2 rounded-xl bg-slate-50/80 p-3 ring-1 ring-slate-200/70">
-                  <p className="text-xs font-bold text-slate-700">Horarios para la fecha especifica (opcional)</p>
-                  <p className="text-xs text-slate-500">Si no defines horarios, esa fecha quedara sin horario fijo.</p>
-
-                  <label className="mt-2 flex items-center gap-2 text-xs font-semibold text-slate-700">
-                    <input
-                      type="checkbox"
-                      checked={availabilityUseCustomTimesInput}
-                      onChange={(e) => setAvailabilityUseCustomTimesInput(e.target.checked)}
-                    />
-                    Ingresar horarios manualmente
-                  </label>
-
-                  {availabilityUseCustomTimesInput ? (
-                    <label className="mt-2 block text-xs font-bold text-slate-700">
-                      Horarios manuales (HH:mm)
-                      <input
-                        className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2"
-                        placeholder="08:00, 08:45, 10:10"
-                        value={availabilityCustomTimesInput}
-                        onChange={(e) => setAvailabilityCustomTimesInput(e.target.value)}
-                      />
-                    </label>
-                  ) : (
-                    <div className="mt-2 grid gap-2 md:grid-cols-3">
-                      <label className="block text-xs font-bold text-slate-700">
-                        Desde
+                      <label className="mt-2 flex items-center gap-2 text-xs font-semibold text-slate-700">
                         <input
-                          type="time"
-                          className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2"
-                          value={availabilityStartTimeInput}
-                          onChange={(e) => setAvailabilityStartTimeInput(e.target.value)}
+                          type="checkbox"
+                          checked={availabilityUseCustomTimesInput}
+                          onChange={(e) => setAvailabilityUseCustomTimesInput(e.target.checked)}
                         />
+                        Ingresar horarios manualmente
                       </label>
-                      <label className="block text-xs font-bold text-slate-700">
-                        Hasta
-                        <input
-                          type="time"
-                          className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2"
-                          value={availabilityEndTimeInput}
-                          onChange={(e) => setAvailabilityEndTimeInput(e.target.value)}
-                        />
-                      </label>
-                      <label className="block text-xs font-bold text-slate-700">
-                        Cada (min)
-                        <select
-                          className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2"
-                          value={availabilityIntervalInput}
-                          onChange={(e) => setAvailabilityIntervalInput(e.target.value === "" ? "" : Number(e.target.value))}
-                        >
-                          <option value={15}>15</option>
-                          <option value={30}>30</option>
-                          <option value={45}>45</option>
-                          <option value={60}>60</option>
-                        </select>
-                      </label>
-                    </div>
-                  )}
 
-                  <p className="mt-2 text-xs text-slate-600">
-                    Vista previa: {previewSpecificSlots.length ? previewSpecificSlots.map((slot) => formatTimeLabel(slot)).join(", ") : "Sin horarios"}
-                  </p>
-                </div>
+                      {availabilityUseCustomTimesInput ? (
+                        <div className="mt-2 rounded-xl bg-white p-3 ring-1 ring-slate-200/70">
+                          <p className="text-xs font-bold text-slate-700">Horarios manuales</p>
+                          <div className="mt-2 grid gap-2 md:grid-cols-[1fr_1fr_auto]">
+                            <label className="text-xs font-bold text-slate-700">
+                              Hora
+                              <select
+                                className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2"
+                                value={specificManualHourInput}
+                                onChange={(e) => setSpecificManualHourInput(e.target.value)}
+                              >
+                                {hourOptions.map((hour) => (
+                                  <option key={hour} value={hour}>{hour}</option>
+                                ))}
+                              </select>
+                            </label>
+                            <label className="text-xs font-bold text-slate-700">
+                              Minutos
+                              <select
+                                className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2"
+                                value={specificManualMinuteInput}
+                                onChange={(e) => setSpecificManualMinuteInput(e.target.value)}
+                              >
+                                {minuteOptions.map((minute) => (
+                                  <option key={minute} value={minute}>{minute}</option>
+                                ))}
+                              </select>
+                            </label>
+                            <button
+                              type="button"
+                              onClick={handleAddSpecificManualTime}
+                              className="rounded-xl border border-emerald-300 px-3 py-2 text-sm font-bold text-emerald-700 hover:bg-emerald-50"
+                            >
+                              Agregar hora
+                            </button>
+                          </div>
 
-                <div className="mt-2 space-y-2">
-                  {availabilityList
-                    .slice()
-                    .sort((a, b) => a.date.localeCompare(b.date))
-                    .map((item) => (
-                      <div key={`${item.id}-${item.date}`} className="flex items-center justify-between rounded-xl bg-white px-3 py-2 ring-1 ring-slate-200/70">
-                        <div>
-                          <p className="text-sm text-slate-700">
-                            {new Date(item.date).toLocaleDateString("es-ES")} | Cupo: {item.maxPeople}
-                          </p>
-                          <p className="text-xs text-slate-500">
-                            Horarios: {normalizeTimeSlots(item.timeSlots).length ? normalizeTimeSlots(item.timeSlots).map((slot) => formatTimeLabel(slot)).join(", ") : "Sin horario fijo"}
-                          </p>
+                          <div className="mt-2 flex flex-wrap gap-2">
+                            {parseCustomTimeSlots(availabilityCustomTimesInput).map((slot) => (
+                              <span key={slot} className="inline-flex items-center gap-2 rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-800">
+                                {formatTimeLabel(slot)}
+                                <button type="button" onClick={() => handleRemoveSpecificManualTime(slot)} className="font-extrabold text-emerald-900">
+                                  x
+                                </button>
+                              </span>
+                            ))}
+                            {parseCustomTimeSlots(availabilityCustomTimesInput).length === 0 && (
+                              <p className="text-xs text-slate-500">No hay horarios manuales definidos.</p>
+                            )}
+                          </div>
                         </div>
-                        <button type="button" onClick={() => handleRemoveAvailability(item.id)} className="rounded-lg border border-rose-300 px-2 py-1 text-xs font-bold text-rose-600">
-                          Quitar
-                        </button>
-                      </div>
-                    ))}
-                  {availabilityList.length === 0 && <p className="text-xs text-slate-500">No hay fechas configuradas.</p>}
-                </div>
+                      ) : (
+                        <div className="mt-2 grid gap-2 md:grid-cols-3">
+                          <label className="block text-xs font-bold text-slate-700">
+                            Desde
+                            <input
+                              type="time"
+                              className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2"
+                              value={availabilityStartTimeInput}
+                              onChange={(e) => setAvailabilityStartTimeInput(e.target.value)}
+                            />
+                          </label>
+                          <label className="block text-xs font-bold text-slate-700">
+                            Hasta
+                            <input
+                              type="time"
+                              className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2"
+                              value={availabilityEndTimeInput}
+                              onChange={(e) => setAvailabilityEndTimeInput(e.target.value)}
+                            />
+                          </label>
+                          <label className="block text-xs font-bold text-slate-700">
+                            Cada
+                            <select
+                              className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2"
+                              value={availabilityIntervalInput}
+                              onChange={(e) => setAvailabilityIntervalInput(e.target.value === "" ? "" : Number(e.target.value))}
+                            >
+                              <option value="">Selecciona intervalo</option>
+                              {intervalMinuteOptions.map((value) => (
+                                <option key={value} value={value}>{formatIntervalOptionLabel(value)}</option>
+                              ))}
+                            </select>
+                          </label>
+                        </div>
+                      )}
+
+                      <p className="mt-2 text-xs text-slate-600">
+                        Vista previa: {previewSpecificSlots.length ? previewSpecificSlots.map((slot) => formatTimeLabel(slot)).join(", ") : "Sin horarios"}
+                      </p>
+                    </div>
+
+                    <div className="mt-2 grid gap-2 rounded-xl border border-emerald-200/70 bg-emerald-50/50 p-3 md:grid-cols-[1fr_160px_auto]">
+                      <p className="md:col-span-3 text-xs font-bold text-emerald-900">Paso 2: Agrega fecha usando esos horarios</p>
+                      <label className="block text-sm font-bold text-slate-700">
+                        Fecha
+                        <input
+                          type="date"
+                          className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2"
+                          value={availabilityDateInput}
+                          onChange={(e) => setAvailabilityDateInput(e.target.value)}
+                        />
+                      </label>
+                      <label className="block text-sm font-bold text-slate-700">
+                        Cupo por tour
+                        <input
+                          type="number"
+                          min={1}
+                          className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2"
+                          value={availabilityMaxPeopleInput}
+                          onChange={(e) => setAvailabilityMaxPeopleInput(e.target.value === "" ? "" : Number(e.target.value))}
+                          placeholder="Cupo por tour"
+                        />
+                      </label>
+                      <button
+                        type="button"
+                        onClick={handleAddAvailability}
+                        disabled={!hasSpecificScheduleConfigured || !availabilityDateInput}
+                        className="rounded-xl border border-emerald-300 px-3 py-2 text-sm font-bold text-emerald-700 hover:bg-emerald-50 disabled:cursor-not-allowed disabled:border-slate-300 disabled:text-slate-400 disabled:hover:bg-transparent"
+                      >
+                        Agregar fecha
+                      </button>
+                    </div>
+
+                    <div className="mt-2 space-y-2">
+                      {availabilityList
+                        .slice()
+                        .sort((a, b) => a.date.localeCompare(b.date))
+                        .map((item) => (
+                          <div key={`${item.id}-${item.date}`} className="flex items-center justify-between rounded-xl bg-white px-3 py-2 ring-1 ring-slate-200/70">
+                            <div>
+                              <p className="text-sm text-slate-700">
+                                {new Date(item.date).toLocaleDateString("es-ES")} | Cupo: {item.maxPeople}
+                              </p>
+                              <p className="text-xs text-slate-500">
+                                Horarios: {normalizeTimeSlots(item.timeSlots).length ? normalizeTimeSlots(item.timeSlots).map((slot) => formatTimeLabel(slot)).join(", ") : "Sin horario fijo"}
+                              </p>
+                            </div>
+                            <button type="button" onClick={() => handleRemoveAvailability(item.id)} className="rounded-lg border border-rose-300 px-2 py-1 text-xs font-bold text-rose-600">
+                              Quitar
+                            </button>
+                          </div>
+                        ))}
+                      {availabilityList.length === 0 && <p className="text-xs text-slate-500">No hay fechas configuradas.</p>}
+                    </div>
+                  </>
+                )}
                 </div>
               </details>
 
@@ -3411,10 +3869,26 @@ function AdminPageContent() {
                 <button type="button" onClick={handleCloseEditor} className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-bold text-slate-700">
                   Cancelar
                 </button>
-                <button type="submit" className="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-extrabold text-white hover:bg-emerald-500">
-                  Guardar
+                <button
+                  type="submit"
+                  disabled={isSavingTour}
+                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-sm font-extrabold text-white hover:bg-emerald-500 disabled:cursor-not-allowed disabled:bg-emerald-400"
+                >
+                  {isSavingTour ? (
+                    <>
+                      <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" aria-hidden="true" />
+                      Guardando...
+                    </>
+                  ) : (
+                    "Guardar"
+                  )}
                 </button>
               </div>
+              {isSavingTour && (
+                <div className="h-1.5 w-full overflow-hidden rounded-full bg-emerald-100" aria-hidden="true">
+                  <div className="h-full w-1/2 animate-pulse rounded-full bg-emerald-500" />
+                </div>
+              )}
             </form>
           </article>
 
@@ -3450,10 +3924,23 @@ function AdminPageContent() {
                 onClick={async () => {
                   await handleCreateOrUpdateTour();
                 }}
-                className="mt-3 w-full rounded-xl bg-emerald-600 px-4 py-2 text-sm font-extrabold text-white hover:bg-emerald-500"
+                disabled={isSavingTour}
+                className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-sm font-extrabold text-white hover:bg-emerald-500 disabled:cursor-not-allowed disabled:bg-emerald-400"
               >
-                Guardar
+                {isSavingTour ? (
+                  <>
+                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" aria-hidden="true" />
+                    Guardando...
+                  </>
+                ) : (
+                  "Guardar"
+                )}
               </button>
+              {isSavingTour && (
+                <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-emerald-100" aria-hidden="true">
+                  <div className="h-full w-1/2 animate-pulse rounded-full bg-emerald-500" />
+                </div>
+              )}
             </section>
 
             <section className="rounded-xl bg-slate-50/80 p-4 ring-1 ring-slate-200/70">
@@ -3572,15 +4059,28 @@ function AdminPageContent() {
               </button>
               <button
                 type="button"
-                onClick={() => {
-                  handleSaveFilterConfig();
+                disabled={isSavingFilterConfig}
+                onClick={async () => {
+                  await handleSaveFilterConfig();
                   setIsFilterConfigOpen(false);
                 }}
-                className="rounded-xl bg-emerald-700 px-4 py-2 text-sm font-bold text-white hover:bg-emerald-600"
+                className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-700 px-4 py-2 text-sm font-bold text-white hover:bg-emerald-600 disabled:cursor-not-allowed disabled:bg-emerald-500"
               >
-                Guardar
+                {isSavingFilterConfig ? (
+                  <>
+                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" aria-hidden="true" />
+                    Guardando...
+                  </>
+                ) : (
+                  "Guardar"
+                )}
               </button>
             </div>
+            {isSavingFilterConfig && (
+              <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-emerald-100" aria-hidden="true">
+                <div className="h-full w-1/2 animate-pulse rounded-full bg-emerald-500" />
+              </div>
+            )}
           </article>
         </div>
       )}
@@ -3640,9 +4140,17 @@ function AdminPageContent() {
                         <button
                           type="button"
                           onClick={handleSaveCategoryEdit}
-                          className="rounded-lg bg-emerald-700 px-3 py-1 text-xs font-bold text-white hover:bg-emerald-600"
+                          disabled={isSavingCategoryEdit}
+                          className="inline-flex items-center gap-1 rounded-lg bg-emerald-700 px-3 py-1 text-xs font-bold text-white hover:bg-emerald-600 disabled:cursor-not-allowed disabled:bg-emerald-500"
                         >
-                          Guardar
+                          {isSavingCategoryEdit ? (
+                            <>
+                              <span className="h-3 w-3 animate-spin rounded-full border-2 border-white/40 border-t-white" aria-hidden="true" />
+                              Guardando...
+                            </>
+                          ) : (
+                            "Guardar"
+                          )}
                         </button>
                       </div>
                     </div>

@@ -28,10 +28,68 @@ body {
 }
 
 .hero-wrap {
-  background-image: linear-gradient(to top, rgba(12, 67, 40, 0.78), rgba(15, 90, 52, 0.32)),
-    url("https://images.unsplash.com/photo-1469474968028-56623f02e42e?auto=format&fit=crop&w=1800&q=80");
+  background: #0f5a34;
+}
+
+.hero-slideshow {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+.hero-slide {
+  position: absolute;
+  inset: -5%;
   background-size: cover;
   background-position: center;
+  opacity: 0;
+  transform: scale(1.02);
+  animation: hero-slide-zoom 36s infinite ease-in-out;
+  will-change: transform, opacity;
+}
+
+.hero-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(12, 67, 40, 0.8), rgba(15, 90, 52, 0.34));
+}
+
+@keyframes hero-slide-zoom {
+  0% {
+    opacity: 0;
+    transform: scale(1.02);
+  }
+
+  3% {
+    opacity: 1;
+  }
+
+  15% {
+    opacity: 1;
+    transform: scale(1.1);
+  }
+
+  19% {
+    opacity: 0;
+    transform: scale(1.12);
+  }
+
+  100% {
+    opacity: 0;
+    transform: scale(1.12);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-slide {
+    animation: none;
+    opacity: 0;
+    transform: none;
+  }
+
+  .hero-slide:first-child {
+    opacity: 1;
+  }
 }
 
 .script-title {
