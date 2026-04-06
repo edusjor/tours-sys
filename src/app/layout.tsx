@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Nunito, Kaushan_Script } from "next/font/google";
+import SiteHeader from "./components/SiteHeader";
 import "./globals.css";
 
 const nunito = Nunito({
@@ -56,30 +57,7 @@ export default function RootLayout({
         <script dangerouslySetInnerHTML={{ __html: performancePolyfill }} />
       </head>
       <body className={`${nunito.variable} ${kaushan.variable} min-h-screen bg-slate-100 text-slate-900`}>
-        <header className="site-header">
-          <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-4 py-4">
-            <Link href="/" aria-label="Guapiles Linea Tours" className="inline-flex items-center">
-              <img
-                src="https://guapileslineatours.com/wp-content/uploads/2025/11/logo-lineatours.png"
-                alt="Guapiles Linea Tours"
-                className="h-12 w-auto max-w-[180px] object-contain md:h-14 md:max-w-[220px]"
-                loading="eager"
-              />
-            </Link>
-            <nav className="hidden gap-6 text-sm font-bold uppercase tracking-wide text-slate-100 md:flex">
-              <Link href="/">Inicio</Link>
-              <Link href="/tours">Tours</Link>
-              <Link href="/quienes-somos">Nosotros</Link>
-              <Link href="/contacto">Contacto</Link>
-            </nav>
-            <Link
-              href="/tours"
-              className="rounded-full bg-amber-400 px-4 py-2 text-sm font-bold text-slate-900 shadow-lg shadow-amber-900/20 transition hover:bg-amber-300"
-            >
-              Reserva ahora
-            </Link>
-          </div>
-        </header>
+        <SiteHeader />
         <main>{children}</main>
         <footer className="mt-12 bg-slate-900 py-10 text-slate-200">
           <div className="mx-auto grid w-full max-w-6xl gap-8 px-4 md:grid-cols-3 md:items-start">

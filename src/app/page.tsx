@@ -42,10 +42,6 @@ const HERO_SLIDES = [
     alt: "Ave tropical sobre una rama",
   },
   {
-    src: "https://images.unsplash.com/photo-1627615646894-ccfa494592be?auto=format&fit=crop&w=2200&q=80",
-    alt: "Viajeros en la playa",
-  },
-  {
     src: "https://images.unsplash.com/photo-1536709017021-ce8f99c17e38?auto=format&fit=crop&w=2200&q=80",
     alt: "Costa con mar azul y vegetacion",
   },

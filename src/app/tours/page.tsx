@@ -203,6 +203,7 @@ export default function ToursPage() {
   const [filterConfig, setFilterConfig] = useState<FilterConfig>(defaultFilterConfig);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
+  const [isMobileFiltersOpen, setIsMobileFiltersOpen] = useState(false);
 
   const [searchText, setSearchText] = useState("");
   const [selectedCountry, setSelectedCountry] = useState("Todos");
@@ -293,6 +294,24 @@ export default function ToursPage() {
     setDaysMin(numericRanges.minDays);
     setDaysMax(numericRanges.maxDays);
   }, [numericRanges]);
+
+  useEffect(() => {
+    if (!isMobileFiltersOpen) return;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setIsMobileFiltersOpen(false);
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [isMobileFiltersOpen]);
 
   const countries = useMemo(() => {
     const values = tours.map((tour) => tour.country).filter(Boolean) as string[];
@@ -397,6 +416,136 @@ export default function ToursPage() {
     daysMax,
   ]);
 
+  const clearFilters = () => {
+    setSearchText("");
+    setSelectedCountry("Todos");
+    setSelectedZone("Todos");
+    setSelectedActivity("Todos");
+    setSelectedCategory("Todos");
+    setSelectedDifficulty("Todos");
+    setOnlyFeatured(false);
+    setPriceMin(numericRanges.minPrice);
+    setPriceMax(numericRanges.maxPrice);
+    setDaysMin(numericRanges.minDays);
+    setDaysMax(numericRanges.maxDays);
+  };
+
+  const filtersControls = (
+    <div className="mt-4 space-y-4">
+      {filterConfig.country && (
+        <div className="border-b border-slate-200/80 pb-3 last:border-b-0">
+          <p className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-500">Pais</p>
+          <select
+            value={selectedCountry}
+            onChange={(e) => setSelectedCountry(e.target.value)}
+            className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition focus:border-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-100"
+          >
+            {countries.map((country) => (
+              <option key={country}>{country}</option>
+            ))}
+          </select>
+        </div>
+      )}
+
+      {filterConfig.zone && (
+        <div className="border-b border-slate-200/80 pb-3 last:border-b-0">
+          <p className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-500">Zona</p>
+          <select
+            value={selectedZone}
+            onChange={(e) => setSelectedZone(e.target.value)}
+            className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition focus:border-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-100"
+          >
+            {zones.map((zone) => (
+              <option key={zone}>{zone}</option>
+            ))}
+          </select>
+        </div>
+      )}
+
+      {filterConfig.category && (
+        <div className="border-b border-slate-200/80 pb-3 last:border-b-0">
+          <p className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-500">Categoria</p>
+          <select
+            value={selectedCategory}
+            onChange={(e) => setSelectedCategory(e.target.value)}
+            className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition focus:border-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-100"
+          >
+            {categoryOptions.map((option) => (
+              <option key={option}>{option}</option>
+            ))}
+          </select>
+        </div>
+      )}
+
+      {filterConfig.activityType && (
+        <div className="border-b border-slate-200/80 pb-3 last:border-b-0">
+          <p className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-500">Actividad</p>
+          <select
+            value={selectedActivity}
+            onChange={(e) => setSelectedActivity(e.target.value)}
+            className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition focus:border-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-100"
+          >
+            {activities.map((activity) => (
+              <option key={activity}>{activity}</option>
+            ))}
+          </select>
+        </div>
+      )}
+
+      {filterConfig.difficulty && (
+        <div className="border-b border-slate-200/80 pb-3 last:border-b-0">
+          <p className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-500">Dificultad</p>
+          <select
+            value={selectedDifficulty}
+            onChange={(e) => setSelectedDifficulty(e.target.value)}
+            className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition focus:border-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-100"
+          >
+            {difficulties.map((difficulty) => (
+              <option key={difficulty}>{difficulty}</option>
+            ))}
+          </select>
+        </div>
+      )}
+
+      {filterConfig.price && (
+        <div className="border-b border-slate-200/80 pb-3 last:border-b-0">
+          <p className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-500">Precio</p>
+          <RangeSlider
+            minLimit={numericRanges.minPrice}
+            maxLimit={numericRanges.maxPrice}
+            valueMin={priceMin}
+            valueMax={priceMax}
+            onMinChange={setPriceMin}
+            onMaxChange={setPriceMax}
+            formatLabel={formatUsd}
+          />
+        </div>
+      )}
+
+      {filterConfig.durationDays && (
+        <div className="border-b border-slate-200/80 pb-3 last:border-b-0">
+          <p className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-500">Duracion en dias</p>
+          <RangeSlider
+            minLimit={numericRanges.minDays}
+            maxLimit={numericRanges.maxDays}
+            valueMin={daysMin}
+            valueMax={daysMax}
+            onMinChange={setDaysMin}
+            onMaxChange={setDaysMax}
+            formatLabel={(value) => `${value} dia(s)`}
+          />
+        </div>
+      )}
+
+      {filterConfig.featured && (
+        <label className="flex items-center gap-2 pb-1 text-sm font-semibold text-slate-700">
+          <input type="checkbox" checked={onlyFeatured} onChange={(e) => setOnlyFeatured(e.target.checked)} className="h-4 w-4 rounded border-slate-300" />
+          Solo destacados
+        </label>
+      )}
+    </div>
+  );
+
   return (
     <section className="mx-auto w-full max-w-7xl px-4 py-10">
       <div className="rounded-3xl bg-gradient-to-r from-emerald-900 via-emerald-700 to-teal-600 px-6 py-8 text-white">
@@ -404,125 +553,32 @@ export default function ToursPage() {
       </div>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-[290px_1fr]">
-        <aside className="h-fit rounded-3xl border border-slate-200/80 bg-gradient-to-b from-white to-slate-50 p-5 shadow-xl shadow-slate-300/40 lg:sticky lg:top-6">
-          <h3 className="text-lg font-extrabold text-slate-900">Filtros</h3>
-
-          <div className="mt-4 space-y-4">
-            {filterConfig.country && (
-              <div className="pb-3 border-b border-slate-200/80 last:border-b-0">
-                <p className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-500">Pais</p>
-                <select
-                  value={selectedCountry}
-                  onChange={(e) => setSelectedCountry(e.target.value)}
-                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition focus:border-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-100"
-                >
-                  {countries.map((country) => (
-                    <option key={country}>{country}</option>
-                  ))}
-                </select>
-              </div>
-            )}
-
-            {filterConfig.zone && (
-              <div className="pb-3 border-b border-slate-200/80 last:border-b-0">
-                <p className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-500">Zona</p>
-                <select
-                  value={selectedZone}
-                  onChange={(e) => setSelectedZone(e.target.value)}
-                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition focus:border-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-100"
-                >
-                  {zones.map((zone) => (
-                    <option key={zone}>{zone}</option>
-                  ))}
-                </select>
-              </div>
-            )}
-
-            {filterConfig.category && (
-              <div className="pb-3 border-b border-slate-200/80 last:border-b-0">
-                <p className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-500">Categoria</p>
-                <select
-                  value={selectedCategory}
-                  onChange={(e) => setSelectedCategory(e.target.value)}
-                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition focus:border-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-100"
-                >
-                  {categoryOptions.map((option) => (
-                    <option key={option}>{option}</option>
-                  ))}
-                </select>
-              </div>
-            )}
-
-            {filterConfig.activityType && (
-              <div className="pb-3 border-b border-slate-200/80 last:border-b-0">
-                <p className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-500">Actividad</p>
-                <select
-                  value={selectedActivity}
-                  onChange={(e) => setSelectedActivity(e.target.value)}
-                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition focus:border-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-100"
-                >
-                  {activities.map((activity) => (
-                    <option key={activity}>{activity}</option>
-                  ))}
-                </select>
-              </div>
-            )}
-
-            {filterConfig.difficulty && (
-              <div className="pb-3 border-b border-slate-200/80 last:border-b-0">
-                <p className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-500">Dificultad</p>
-                <select
-                  value={selectedDifficulty}
-                  onChange={(e) => setSelectedDifficulty(e.target.value)}
-                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition focus:border-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-100"
-                >
-                  {difficulties.map((difficulty) => (
-                    <option key={difficulty}>{difficulty}</option>
-                  ))}
-                </select>
-              </div>
-            )}
-
-            {filterConfig.price && (
-              <div className="pb-3 border-b border-slate-200/80 last:border-b-0">
-                <p className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-500">Precio</p>
-                <RangeSlider
-                  minLimit={numericRanges.minPrice}
-                  maxLimit={numericRanges.maxPrice}
-                  valueMin={priceMin}
-                  valueMax={priceMax}
-                  onMinChange={setPriceMin}
-                  onMaxChange={setPriceMax}
-                  formatLabel={formatUsd}
-                />
-              </div>
-            )}
-
-            {filterConfig.durationDays && (
-              <div className="pb-3 border-b border-slate-200/80 last:border-b-0">
-                <p className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-500">Duracion en dias</p>
-                <RangeSlider
-                  minLimit={numericRanges.minDays}
-                  maxLimit={numericRanges.maxDays}
-                  valueMin={daysMin}
-                  valueMax={daysMax}
-                  onMinChange={setDaysMin}
-                  onMaxChange={setDaysMax}
-                  formatLabel={(value) => `${value} dia(s)`}
-                />
-              </div>
-            )}
-
-            {filterConfig.featured && (
-              <label className="flex items-center gap-2 pb-1 text-sm font-semibold text-slate-700">
-                <input type="checkbox" checked={onlyFeatured} onChange={(e) => setOnlyFeatured(e.target.checked)} className="h-4 w-4 rounded border-slate-300" />
-                Solo destacados
-              </label>
-            )}
+        <aside className="sticky top-6 hidden h-fit rounded-3xl border border-slate-200/80 bg-gradient-to-b from-white to-slate-50 p-5 shadow-xl shadow-slate-300/40 lg:block">
+          <div className="flex items-center justify-between gap-3">
+            <h3 className="text-lg font-extrabold text-slate-900">Filtros</h3>
+            <button
+              type="button"
+              onClick={clearFilters}
+              className="text-sm font-bold text-rose-600 transition hover:text-rose-700"
+            >
+              Limpiar
+            </button>
           </div>
+          {filtersControls}
         </aside>
 
         <div>
+          <div className="mb-4 lg:hidden">
+            <button
+              type="button"
+              onClick={() => setIsMobileFiltersOpen(true)}
+              className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-extrabold text-white shadow-lg shadow-emerald-900/20 transition hover:bg-emerald-500"
+            >
+              <span>Filtros</span>
+              <span className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-white/40 text-[11px]">+</span>
+            </button>
+          </div>
+
           {loadError && (
             <p className="mb-4 rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm font-semibold text-rose-700">{loadError}</p>
           )}
@@ -584,6 +640,48 @@ export default function ToursPage() {
           )}
         </div>
       </div>
+
+      {isMobileFiltersOpen && (
+        <div className="fixed inset-0 z-[70] lg:hidden" role="dialog" aria-modal="true" aria-label="Panel de filtros">
+          <button
+            type="button"
+            className="absolute inset-0 bg-slate-950/40 backdrop-blur-[1px]"
+            onClick={() => setIsMobileFiltersOpen(false)}
+            aria-label="Cerrar panel de filtros"
+          />
+
+          <div className="absolute right-0 top-0 h-full w-full max-w-sm overflow-y-auto bg-white p-5 shadow-2xl shadow-black/30">
+            <div className="sticky top-0 z-10 -mx-5 -mt-5 flex items-center justify-between border-b border-slate-200 bg-white px-5 py-4">
+              <h3 className="text-xl font-extrabold text-slate-900">Filtrar por</h3>
+              <div className="flex items-center gap-4">
+                <button type="button" onClick={clearFilters} className="text-sm font-bold text-rose-500">
+                  Limpiar
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsMobileFiltersOpen(false)}
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-300 text-xl leading-none text-slate-700"
+                  aria-label="Cerrar filtros"
+                >
+                  ×
+                </button>
+              </div>
+            </div>
+
+            {filtersControls}
+
+            <div className="sticky bottom-0 -mx-5 mt-6 border-t border-slate-200 bg-white px-5 py-4">
+              <button
+                type="button"
+                onClick={() => setIsMobileFiltersOpen(false)}
+                className="w-full rounded-xl bg-emerald-600 px-4 py-3 text-sm font-extrabold text-white shadow-lg shadow-emerald-900/20 transition hover:bg-emerald-500"
+              >
+                Aplicar filtros
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 }
