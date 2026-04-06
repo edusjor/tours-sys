@@ -9,8 +9,11 @@
     "dev": "next dev --webpack -p 3003",
     "prebuild": "npm run db:generate && npm run db:ensure",
     "build": "next build",
+    "build:standalone": "next build",
+    "package:vps": "npm run build:standalone && node scripts/package-standalone.cjs",
     "prestart": "npm run db:generate && npm run db:ensure",
     "start": "next start -p 3003",
+    "start:standalone": "node .deploy/server.js",
     "lint": "eslint",
     "postpull": "npm run build"
   },

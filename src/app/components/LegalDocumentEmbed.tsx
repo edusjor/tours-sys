@@ -33,7 +33,7 @@ async function extractLegalContent({ sourceUrl, type }: LegalPageConfig): Promis
     }
 
     const html = await response.text();
-    const $ = load(html, { decodeEntities: false });
+    const $ = load(html);
 
     $("script, style, noscript, iframe, header, footer, nav").remove();
 

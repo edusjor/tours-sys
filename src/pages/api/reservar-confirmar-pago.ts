@@ -11,7 +11,16 @@ type AvailabilityConfig = {
 };
 
 function normalizeAvailabilityConfig(input: unknown): AvailabilityConfig {
-  const source = input && typeof input === 'object' ? (input as Record<string, unknown>) : {};
+  let parsed: unknown = input;
+  if (typeof input === 'string') {
+    try {
+      parsed = JSON.parse(input);
+    } catch {
+      parsed = {};
+    }
+  }
+
+  const source = parsed && typeof parsed === 'object' ? (parsed as Record<string, unknown>) : {};
   const openSource = source.openSchedule && typeof source.openSchedule === 'object'
     ? (source.openSchedule as Record<string, unknown>)
     : {};

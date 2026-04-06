@@ -307,8 +307,18 @@ function normalizeOpenScheduleConfig(input: unknown): OpenScheduleConfig {
 }
 
 function normalizeAvailabilityConfig(input: unknown): AvailabilityConfig {
-  if (!input || typeof input !== "object") return defaultAvailabilityConfig;
-  const source = input as Partial<AvailabilityConfig>;
+  // Handle JSON string from database
+  let parsed: unknown = input;
+  if (typeof input === "string") {
+    try {
+      parsed = JSON.parse(input);
+    } catch {
+      return defaultAvailabilityConfig;
+    }
+  }
+
+  if (!parsed || typeof parsed !== "object") return defaultAvailabilityConfig;
+  const source = parsed as Partial<AvailabilityConfig>;
   const dateSchedulesRaw = source.dateSchedules;
   const dateSchedules: Record<string, string[]> = {};
 

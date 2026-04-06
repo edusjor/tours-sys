@@ -148,7 +148,16 @@ function normalizeTimeSlots(items: unknown): string[] {
 }
 
 function normalizeAvailabilityConfigInput(input: unknown): NormalizedAvailabilityConfig {
-  const source = input && typeof input === 'object' ? (input as Record<string, unknown>) : {};
+  let parsed: unknown = input;
+  if (typeof input === 'string') {
+    try {
+      parsed = JSON.parse(input);
+    } catch {
+      parsed = {};
+    }
+  }
+
+  const source = parsed && typeof parsed === 'object' ? (parsed as Record<string, unknown>) : {};
   const openRaw = source.openSchedule && typeof source.openSchedule === 'object'
     ? (source.openSchedule as Record<string, unknown>)
     : {};
@@ -189,7 +198,7 @@ function normalizePriceOptionsInput(items: unknown): NormalizedPriceOption[] {
       const isFree = Boolean(source?.isFree);
       const isBase = Boolean(source?.isBase);
       const parsedPrice = parseLooseDecimal(source?.price);
-      const price = isFree ? 0 : parsedPrice;
+      const price = isFree ? 0 : (parsedPrice ?? 0);
 
       return {
         id,

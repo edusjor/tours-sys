@@ -233,10 +233,21 @@ function buildTimeSlotsFromSchedule(schedule: OpenScheduleConfig): string[] {
 }
 
 function normalizeAvailabilityConfig(input: unknown): AvailabilityConfig {
-  if (!input || typeof input !== "object") return defaultAvailabilityConfig;
-  const source = input as Partial<AvailabilityConfig>;
+  // Handle JSON string from database
+  let parsed: unknown = input;
+  if (typeof input === "string") {
+    try {
+      parsed = JSON.parse(input);
+    } catch {
+      return defaultAvailabilityConfig;
+    }
+  }
+
+  if (!parsed || typeof parsed !== "object") return defaultAvailabilityConfig;
+  const source = parsed as Partial<AvailabilityConfig> & { availabilityMode?: unknown };
   const openSource = source.openSchedule ?? defaultOpenSchedule;
   const dateSchedulesRaw = source.dateSchedules;
+  const rawMode = String(source.mode ?? source.availabilityMode ?? "").trim().toUpperCase();
   const dateSchedules: Record<string, string[]> = {};
 
   if (dateSchedulesRaw && typeof dateSchedulesRaw === "object" && !Array.isArray(dateSchedulesRaw)) {
@@ -246,7 +257,7 @@ function normalizeAvailabilityConfig(input: unknown): AvailabilityConfig {
   }
 
   return {
-    mode: source.mode === "OPEN" ? "OPEN" : "SPECIFIC",
+    mode: rawMode === "OPEN" ? "OPEN" : "SPECIFIC",
     openSchedule: {
       maxPeople: Number.isFinite(Number(openSource.maxPeople)) && Number(openSource.maxPeople) > 0 ? Math.floor(Number(openSource.maxPeople)) : 10,
       startTime: normalizeTime24(openSource.startTime) ?? "08:00",
@@ -941,6 +952,11 @@ function ReservarPageContent({
     try {
       setIsCreatingPayment(true);
       setStatus(isSinpeMobileMethod ? "Validando reserva SINPE..." : "Preparando tu reserva y creando la sesion de pago...");
+
+      if (!tour) {
+        setStatus("No se encontro la informacion del tour. Recarga la pagina e intenta nuevamente.");
+        return;
+      }
 
       const fullPhone = `${phoneCountryDialCode} ${phone}`.trim();
 

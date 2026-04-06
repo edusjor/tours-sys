@@ -18,6 +18,10 @@ interface TourPackage {
   priceOptions: TourPriceOption[];
 }
 
+interface TourAvailabilityConfig {
+  mode: "SPECIFIC" | "OPEN";
+}
+
 interface Tour {
   id: number;
   title: string;
@@ -36,6 +40,7 @@ interface Tour {
   story?: string[];
   tourPackages?: TourPackage[];
   availability?: { id: number; date: string; maxPeople: number }[];
+  availabilityConfig?: TourAvailabilityConfig;
   includedItems?: string[];
   recommendations?: string[];
   faqs?: Array<{ question: string; answer: string }>;
@@ -185,6 +190,24 @@ function fromMonthKey(monthKey: string): Date | null {
   return new Date(year, month - 1, 1);
 }
 
+function getAvailabilityMode(input: unknown): "OPEN" | "SPECIFIC" {
+  // Handle JSON string from database
+  let parsed: unknown = input;
+  if (typeof input === "string") {
+    try {
+      parsed = JSON.parse(input);
+    } catch {
+      return "SPECIFIC";
+    }
+  }
+
+  if (!parsed || typeof parsed !== "object") return "SPECIFIC";
+  
+  const source = parsed as { mode?: unknown; availabilityMode?: unknown };
+  const rawMode = String(source.mode ?? source.availabilityMode ?? "").trim().toUpperCase();
+  return rawMode === "OPEN" ? "OPEN" : "SPECIFIC";
+}
+
 function normalizeTour(raw: Partial<Tour> | null | undefined): Tour | null {
   if (!raw?.id || !raw.title) return null;
 
@@ -213,6 +236,9 @@ function normalizeTour(raw: Partial<Tour> | null | undefined): Tour | null {
     story: hasStory ? (Array.isArray(raw.story) ? raw.story.filter(Boolean) : []) : undefined,
     tourPackages: buildNormalizedTourPackages(raw),
     availability: Array.isArray(raw.availability) ? raw.availability : [],
+    availabilityConfig: raw.availabilityConfig !== undefined && raw.availabilityConfig !== null
+      ? { mode: getAvailabilityMode(raw.availabilityConfig) }
+      : undefined,
     includedItems: hasIncludedItems ? (Array.isArray(raw.includedItems) ? raw.includedItems.filter(Boolean) : []) : undefined,
     recommendations: hasRecommendations ? (Array.isArray(raw.recommendations) ? raw.recommendations.filter(Boolean) : []) : undefined,
     faqs: hasFaqs
@@ -336,6 +362,7 @@ export default function TourDetailPage() {
   }, [tour?.tourPackages, selectedPackageId]);
 
   const activePriceOptions = selectedPackage?.priceOptions || [];
+  const calendarHasOpenAvailability = tour?.availabilityConfig?.mode === "OPEN";
 
   const sortedAvailability = useMemo(() => {
     const raw = tour?.availability || [];
@@ -382,7 +409,7 @@ export default function TourDetailPage() {
       if (dayNumber < 1 || dayNumber > daysInMonth) return null;
 
       const key = `${year}-${String(month + 1).padStart(2, "0")}-${String(dayNumber).padStart(2, "0")}`;
-      const isAvailable = availableDateSet.has(key);
+      const isAvailable = calendarHasOpenAvailability ? key >= todayDateKey : availableDateSet.has(key);
       const isSelected = selectedAvailabilityDate === key;
 
       return {
@@ -392,7 +419,9 @@ export default function TourDetailPage() {
         isSelected,
       };
     });
-  }, [calendarMonth, availableDateSet, selectedAvailabilityDate]);
+  }, [calendarHasOpenAvailability, calendarMonth, availableDateSet, selectedAvailabilityDate, todayDateKey]);
+
+  const hasCalendarAvailability = calendarHasOpenAvailability || availableDateKeys.length > 0;
 
   useEffect(() => {
     if (!tour?.tourPackages?.length) {
@@ -407,6 +436,13 @@ export default function TourDetailPage() {
   }, [tour?.tourPackages, selectedPackageId]);
 
   useEffect(() => {
+    if (calendarHasOpenAvailability) {
+      if (!selectedAvailabilityDate || selectedAvailabilityDate < todayDateKey) {
+        setSelectedAvailabilityDate(todayDateKey);
+      }
+      return;
+    }
+
     if (!availableDateKeys.length) {
       setSelectedAvailabilityDate("");
       return;
@@ -422,9 +458,10 @@ export default function TourDetailPage() {
         setCalendarMonth(toMonthStart(firstDateParsed));
       }
     }
-  }, [availableDateKeys, availableDateSet, selectedAvailabilityDate]);
+  }, [availableDateKeys, availableDateSet, calendarHasOpenAvailability, selectedAvailabilityDate, todayDateKey]);
 
   useEffect(() => {
+    if (calendarHasOpenAvailability) return;
     if (!availableMonthKeys.length) return;
     if (availableMonthKeys.includes(calendarMonthKey)) return;
 
@@ -432,7 +469,7 @@ export default function TourDetailPage() {
     if (nextMonth) {
       setCalendarMonth(nextMonth);
     }
-  }, [availableMonthKeys, calendarMonthKey]);
+  }, [availableMonthKeys, calendarHasOpenAvailability, calendarMonthKey]);
 
   const imagePool = useMemo(() => {
     if (!tour || !detail) return [];
@@ -737,17 +774,22 @@ export default function TourDetailPage() {
             <p className="text-sm font-extrabold text-slate-800">Consulta disponibilidad</p>
             <p className="mt-1 text-xs text-slate-600">Selecciona en el calendario una fecha disponible.</p>
 
-            {availableDateKeys.length > 0 ? (
+            {hasCalendarAvailability ? (
               <>
                 <div className="mt-3 flex items-center justify-between gap-2">
                   <button
                     type="button"
                     onClick={() => {
+                      if (calendarHasOpenAvailability) {
+                        setCalendarMonth((prev) => new Date(prev.getFullYear(), prev.getMonth() - 1, 1));
+                        return;
+                      }
+
                       if (!previousAvailableMonthKey) return;
                       const month = fromMonthKey(previousAvailableMonthKey);
                       if (month) setCalendarMonth(month);
                     }}
-                    disabled={!previousAvailableMonthKey}
+                    disabled={!calendarHasOpenAvailability && !previousAvailableMonthKey}
                     className="rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-bold text-slate-700 hover:border-emerald-300 disabled:cursor-not-allowed disabled:opacity-40"
                   >
                     Anterior
@@ -756,11 +798,16 @@ export default function TourDetailPage() {
                   <button
                     type="button"
                     onClick={() => {
+                      if (calendarHasOpenAvailability) {
+                        setCalendarMonth((prev) => new Date(prev.getFullYear(), prev.getMonth() + 1, 1));
+                        return;
+                      }
+
                       if (!nextAvailableMonthKey) return;
                       const month = fromMonthKey(nextAvailableMonthKey);
                       if (month) setCalendarMonth(month);
                     }}
-                    disabled={!nextAvailableMonthKey}
+                    disabled={!calendarHasOpenAvailability && !nextAvailableMonthKey}
                     className="rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-bold text-slate-700 hover:border-emerald-300 disabled:cursor-not-allowed disabled:opacity-40"
                   >
                     Siguiente
@@ -803,7 +850,11 @@ export default function TourDetailPage() {
                   })}
                 </div>
 
-                <p className="mt-2 text-[11px] text-slate-500">Solo se habilitan dias con disponibilidad.</p>
+                <p className="mt-2 text-[11px] text-slate-500">
+                  {calendarHasOpenAvailability
+                    ? "Modo abierto: puedes seleccionar cualquier fecha desde hoy."
+                    : "Solo se habilitan dias con disponibilidad."}
+                </p>
               </>
             ) : (
               <p className="mt-3 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-500">Sin fechas disponibles por ahora.</p>

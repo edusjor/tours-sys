@@ -11,9 +11,36 @@ function slugifyTourValue(value: string): string {
     .replace(/(^-|-$)/g, '');
 }
 
+type TourWithOptionalAvailabilityConfig = {
+  id: number;
+  availabilityConfig?: unknown;
+};
+
+async function hydrateAvailabilityConfigIfMissing(tour: TourWithOptionalAvailabilityConfig | null): Promise<TourWithOptionalAvailabilityConfig | null> {
+  if (!tour) return null;
+  if (tour.availabilityConfig !== undefined && tour.availabilityConfig !== null) return tour;
+
+  try {
+    const rows = await prisma.$queryRaw<Array<{ availabilityConfig: unknown }>>`
+      SELECT "availabilityConfig"
+      FROM "Tour"
+      WHERE "id" = ${tour.id}
+      LIMIT 1
+    `;
+
+    if (!rows[0]) return tour;
+    return {
+      ...tour,
+      availabilityConfig: rows[0].availabilityConfig,
+    };
+  } catch {
+    return tour;
+  }
+}
+
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const { id, slug } = req.query;
-  let tour = null;
+  let tour: TourWithOptionalAvailabilityConfig | null = null;
 
   try {
     if (typeof slug === 'string' && slug.length > 0) {
@@ -34,10 +61,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         });
       }
     }
+
+    tour = await hydrateAvailabilityConfigIfMissing(tour);
   } catch {
     return res.status(500).json({ error: 'Error consultando el tour.' });
   }
 
-  if (!tour) return res.status(404).json({ error: "Tour no encontrado" });
+  if (!tour) return res.status(404).json({ error: 'Tour no encontrado' });
   res.status(200).json(tour);
 }

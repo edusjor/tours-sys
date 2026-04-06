@@ -1,6 +1,15 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { prisma } from '../../lib/prisma';
 
+function slugify(value: string): string {
+  return value
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)/g, '');
+}
+
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') return res.status(405).end();
 
@@ -78,7 +87,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   ];
 
   for (const tour of tours) {
-    const createdTour = await prisma.tour.create({ data: tour });
+    const createdTour = await prisma.tour.create({
+      data: {
+        ...tour,
+        slug: slugify(tour.title),
+      },
+    });
     // Disponibilidad de prueba
     await prisma.availability.create({
       data: {
