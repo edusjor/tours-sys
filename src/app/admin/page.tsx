@@ -98,6 +98,7 @@ interface TourAdminView {
   id: number;
   title: string;
   slug?: string;
+  createdAt?: string | null;
   description: string;
   price: number;
   minPeople?: number;
@@ -196,6 +197,29 @@ const intervalMinuteOptions = [15, 30, 45, 60, 120, 180, 240];
 function formatIntervalOptionLabel(value: number): string {
   if (value < 60) return `${value} min`;
   return `${Math.round(value / 60)}h`;
+}
+
+function getTourCreatedAtMs(tour: Pick<TourAdminView, "id" | "createdAt">): number {
+  const raw = typeof tour.createdAt === "string" ? tour.createdAt.trim() : "";
+  if (raw) {
+    const parsed = new Date(raw).getTime();
+    if (Number.isFinite(parsed) && parsed > 0) return parsed;
+  }
+
+  const idAsTime = Number(tour.id);
+  return Number.isFinite(idAsTime) ? idAsTime : 0;
+}
+
+function sortToursByRecent(items: TourAdminView[]): TourAdminView[] {
+  return [...items].sort((a, b) => getTourCreatedAtMs(b) - getTourCreatedAtMs(a));
+}
+
+function formatCreatedAtLabel(value: string | null | undefined): string {
+  const raw = String(value ?? "").trim();
+  if (!raw) return "-";
+  const parsed = new Date(raw);
+  if (Number.isNaN(parsed.getTime())) return "-";
+  return parsed.toLocaleString("es-CR");
 }
 
 const hourOptions = Array.from({ length: 24 }, (_, hour) => String(hour).padStart(2, "0"));
@@ -1179,6 +1203,12 @@ function AdminPageContent() {
       .map((category) => normalizeCategory(category))
       .filter((category): category is Category => category !== null);
     const localTours = safeParse<TourAdminView[]>(localStorage.getItem(LOCAL_TOURS_KEY), []);
+    const localCreatedAtById = new Map<number, string>();
+    localTours.forEach((tour) => {
+      if (typeof tour.createdAt === "string" && tour.createdAt.trim()) {
+        localCreatedAtById.set(tour.id, tour.createdAt.trim());
+      }
+    });
 
     Promise.all([fetch("/api/categories").then((res) => res.json()), fetch("/api/tours").then((res) => res.json())])
       .then(([apiCategories, apiTours]) => {
@@ -1194,13 +1224,17 @@ function AdminPageContent() {
         setCategories(mergedCategories);
         if (!categoryId && mergedCategories[0]) setCategoryId(mergedCategories[0].id);
 
-        const remoteTours: TourAdminView[] = Array.isArray(apiTours)
+        const remoteToursRaw: TourAdminView[] = Array.isArray(apiTours)
           ? apiTours.map((tour: TourAdminView) => {
               const normalizedAvailability = sanitizeAvailabilityItems(tour.availability);
               const normalizedAvailabilityConfig = getEffectiveAvailabilityConfig(tour, normalizedAvailability);
 
               return {
                 ...tour,
+                createdAt:
+                  typeof tour.createdAt === "string" && tour.createdAt.trim()
+                    ? tour.createdAt
+                    : localCreatedAtById.get(tour.id) ?? null,
                 status: tour.status ?? "BORRADOR",
                 isDeleted: Boolean(tour.isDeleted),
                 deletedAt: tour.deletedAt ?? null,
@@ -1222,6 +1256,8 @@ function AdminPageContent() {
             })
           : [];
 
+        const remoteTours = sortToursByRecent(remoteToursRaw);
+
         setAllTours(remoteTours);
         localStorage.setItem(LOCAL_CATEGORIES_KEY, JSON.stringify(mergedCategories));
         localStorage.setItem(LOCAL_TOURS_KEY, JSON.stringify(remoteTours));
@@ -1230,7 +1266,7 @@ function AdminPageContent() {
         const categoriesFallback = localCategories.length ? localCategories : fallbackCategories;
         setCategories(categoriesFallback);
         if (!categoryId && categoriesFallback[0]) setCategoryId(categoriesFallback[0].id);
-        setAllTours(localTours);
+        setAllTours(sortToursByRecent(localTours));
       });
   }, [categoryId]);
 
@@ -1485,10 +1521,6 @@ function AdminPageContent() {
   };
 
   const handleRemoveTourPackage = (packageId: string) => {
-    if (tourPackages.length <= 1) {
-      setFeedback({ type: "error", message: "Cada tour debe tener al menos un paquete." });
-      return;
-    }
     setTourPackages((prev) => prev.filter((pkg) => pkg.id !== packageId));
     setOpenPackageIds((prev) => prev.filter((id) => id !== packageId));
   };
@@ -1931,8 +1963,9 @@ function AdminPageContent() {
 
   const saveToursLocal = (items: TourAdminView[]) => {
     try {
-      setAllTours(items);
-      localStorage.setItem(LOCAL_TOURS_KEY, JSON.stringify(items));
+      const sortedItems = sortToursByRecent(items);
+      setAllTours(sortedItems);
+      localStorage.setItem(LOCAL_TOURS_KEY, JSON.stringify(sortedItems));
       notifyToursSync();
       return true;
     } catch {
@@ -1964,20 +1997,6 @@ function AdminPageContent() {
     const category = categories.find((c) => c.id === categoryId);
     const payloadCategory = category ? { id: category.id, name: category.name } : { id: 0, name: "Sin categoria" };
 
-    const hasInvalidPackage = tourPackages.some((pkg) => {
-      const packageTitle = pkg.title.trim();
-      const packageOptions = preparePriceOptionsForPayload(pkg.priceOptions);
-      return !packageTitle || packageOptions.length === 0;
-    });
-
-    if (hasInvalidPackage) {
-      setFeedback({
-        type: "error",
-        message: "Cada paquete debe tener titulo y al menos un tipo de precio valido.",
-      });
-      return false;
-    }
-
     const preparedTourPackages = tourPackages
       .map((pkg) => ({
         id: String(pkg.id || "").trim(),
@@ -1986,14 +2005,6 @@ function AdminPageContent() {
         priceOptions: preparePriceOptionsForPayload(pkg.priceOptions),
       }))
       .filter((pkg) => pkg.id && pkg.title && pkg.priceOptions.length > 0);
-
-    if (preparedTourPackages.length === 0) {
-      setFeedback({
-        type: "error",
-        message: "Debes tener al menos un paquete con precios para guardar el tour.",
-      });
-      return false;
-    }
 
     const effectiveBasePrice = getPrimaryPriceFromPackages(preparedTourPackages, 0);
 
@@ -2157,7 +2168,12 @@ function AdminPageContent() {
           return false;
         }
 
-        updatedTours = [{ id: createdId, ...payload, ...(createdTour || {}) }, ...updatedTours];
+        const inferredCreatedAt =
+          createdTour && typeof createdTour.createdAt === "string" && createdTour.createdAt.trim()
+            ? createdTour.createdAt
+            : new Date().toISOString();
+
+        updatedTours = [{ id: createdId, createdAt: inferredCreatedAt, ...payload, ...(createdTour || {}) }, ...updatedTours];
         setFeedback({ type: "success", message: "Tour creado correctamente." });
       }
 
@@ -2896,6 +2912,7 @@ function AdminPageContent() {
                 <th className="px-3 py-3">Pais</th>
                 <th className="px-3 py-3">Zona</th>
                 <th className="px-3 py-3">Actividad</th>
+                <th className="px-3 py-3">Creado</th>
                 <th className="px-3 py-3">Acciones</th>
               </tr>
             </thead>
@@ -2945,6 +2962,7 @@ function AdminPageContent() {
                   <td className="px-3 py-3 text-slate-700">{tour.country || "-"}</td>
                   <td className="px-3 py-3 text-slate-700">{tour.zone || "-"}</td>
                   <td className="px-3 py-3 text-slate-700">{tour.activityType || "-"}</td>
+                  <td className="px-3 py-3 text-xs text-slate-600">{formatCreatedAtLabel(tour.createdAt)}</td>
                   <td className="px-3 py-3">
                     <div className="flex gap-2">
                       {activeTab === "PAPELERA" ? (
@@ -2972,7 +2990,7 @@ function AdminPageContent() {
               ))}
               {paginatedTours.length === 0 && (
                 <tr>
-                  <td colSpan={9} className="px-3 py-5 text-center text-slate-500">
+                  <td colSpan={10} className="px-3 py-5 text-center text-slate-500">
                     No hay tours para mostrar en esta pestana.
                   </td>
                 </tr>
@@ -3069,7 +3087,7 @@ function AdminPageContent() {
                 <div className="mt-3 space-y-4">
                   <div className="rounded-xl bg-emerald-50/70 p-3">
                     <div className="flex flex-wrap items-center justify-between gap-2">
-                      <p className="text-sm font-bold text-emerald-900">Cada tour debe tener al menos un paquete</p>
+                      <p className="text-sm font-bold text-emerald-900">Paquetes de precio (opcional)</p>
                       <button
                         type="button"
                         onClick={handleAddTourPackage}
@@ -3079,7 +3097,7 @@ function AdminPageContent() {
                       </button>
                     </div>
                     <p className="mt-1 text-sm text-slate-600">
-                      Cada paquete requiere titulo y al menos un tipo de precio valido. La descripcion es opcional.
+                      Si no agregas paquetes ni precios, el tour se guardara solo informativo (sin opcion de reserva).
                     </p>
                     <div className="mt-3 flex flex-wrap items-center gap-2">
                       <button

@@ -335,12 +335,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           ]
         : [];
 
-  const requiresFullTourValidation = req.method === 'POST' || req.method === 'PUT';
-
-  if (requiresFullTourValidation && tourPackages.length === 0) {
-    return res.status(400).json({ error: 'Cada tour debe tener al menos un paquete con titulo y precios.' });
-  }
-
   const parsedFallbackPrice = parseLooseDecimal(price);
   const fallbackPrice = parsedFallbackPrice !== null && parsedFallbackPrice >= 0 ? roundPriceToTwo(parsedFallbackPrice) : 0;
   const effectiveTourPrice = roundPriceToTwo(getPrimaryTourPriceFromPackages(tourPackages, fallbackPrice));

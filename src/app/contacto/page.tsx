@@ -21,7 +21,7 @@ export default function ContactoPage() {
           <aside className="space-y-3.5 md:space-y-4">
           <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
             <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-emerald-700">Telefono</p>
-            <p className="mt-1.5 text-lg font-semibold leading-snug text-emerald-700 md:text-xl">+506 7154-6738</p>
+            <p className="mt-1.5 text-sm font-bold leading-snug text-emerald-700 md:text-base">+506 7154-6738</p>
             <p className="mt-1.5 text-sm leading-relaxed text-slate-600">Atencion de lunes a domingo de 8:00 AM a 5:00 PM.</p>
           </article>
 
@@ -29,7 +29,7 @@ export default function ContactoPage() {
             <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-emerald-700">E-mail</p>
             <a
               href="mailto:atencionalcliente@guapileslineatours.com"
-              className="mt-1.5 block max-w-full text-lg font-semibold leading-snug text-emerald-700 underline underline-offset-4 break-words [overflow-wrap:anywhere] md:text-xl"
+              className="mt-1.5 block max-w-full text-sm font-bold leading-snug text-emerald-700 break-words [overflow-wrap:anywhere] md:text-base"
             >
               atencionalcliente@guapileslineatours.com
             </a>
@@ -38,7 +38,7 @@ export default function ContactoPage() {
 
           <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
             <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-emerald-700">Ubicacion</p>
-            <p className="mt-1.5 text-lg font-semibold leading-snug text-emerald-700 md:text-xl">Quepos, Costa Rica</p>
+            <p className="mt-1.5 text-sm font-bold leading-snug text-emerald-700 md:text-base">Costa Rica, Limon, Pococi, La Colonia</p>
             <p className="mt-1.5 text-sm leading-relaxed text-slate-600">Citas presenciales con cita previa.</p>
           </article>
           </aside>

@@ -157,6 +157,17 @@ function getBasePriceOption(options: TourPriceOption[] | undefined): TourPriceOp
   return options.find((option) => option.isBase) || null;
 }
 
+function hasReservablePricing(tour: Tour): boolean {
+  const hasPackagePricing = Array.isArray(tour.tourPackages)
+    && tour.tourPackages.some((pkg) => Array.isArray(pkg.priceOptions) && pkg.priceOptions.length > 0);
+  if (hasPackagePricing) return true;
+
+  const hasLegacyPricing = Array.isArray(tour.priceOptions) && tour.priceOptions.length > 0;
+  if (hasLegacyPricing) return true;
+
+  return typeof tour.price === "number" && Number.isFinite(tour.price) && tour.price > 0;
+}
+
 function getEffectiveTourPrice(tour: Tour): number {
   const firstPackageWithPrices = Array.isArray(tour.tourPackages)
     ? tour.tourPackages.find((pkg) => Array.isArray(pkg.priceOptions) && pkg.priceOptions.length > 0)
@@ -176,7 +187,8 @@ function getEffectiveTourPrice(tour: Tour): number {
   return Number.isFinite(baseOption.price) ? baseOption.price : tour.price;
 }
 
-function getTourPriceLabel(tour: Tour): string {
+function getTourPriceLabel(tour: Tour): string | null {
+  if (!hasReservablePricing(tour)) return null;
   const effectivePrice = getEffectiveTourPrice(tour);
   if (effectivePrice === 0) return "Gratis";
   return `$${effectivePrice.toFixed(2)}`;
@@ -277,7 +289,10 @@ export default function ToursPage() {
   }, []);
 
   const numericRanges = useMemo(() => {
-    const prices = tours.map((t) => getEffectiveTourPrice(t)).filter((v) => Number.isFinite(v));
+    const prices = tours
+      .filter((t) => hasReservablePricing(t))
+      .map((t) => getEffectiveTourPrice(t))
+      .filter((v) => Number.isFinite(v));
     const dayValues = tours.map((t) => t.durationDays ?? 0).filter((v) => v > 0);
 
     return {
@@ -390,8 +405,10 @@ export default function ToursPage() {
       if (filterConfig.featured && onlyFeatured && !tour.featured) return false;
 
       if (filterConfig.price) {
-        const effectivePrice = getEffectiveTourPrice(tour);
-        if (effectivePrice < priceMin || effectivePrice > priceMax) return false;
+        if (hasReservablePricing(tour)) {
+          const effectivePrice = getEffectiveTourPrice(tour);
+          if (effectivePrice < priceMin || effectivePrice > priceMax) return false;
+        }
       }
 
       if (filterConfig.durationDays && tour.durationDays) {
@@ -598,6 +615,7 @@ export default function ToursPage() {
             {filteredTours.map((tour) => (
               (() => {
                 const locationLabel = getTourLocationLabel(tour);
+                const priceLabel = getTourPriceLabel(tour);
                 return (
               <article key={tour.id} className="flex flex-col overflow-hidden rounded-2xl bg-white shadow-xl shadow-slate-300/40">
                 <div className="relative">
@@ -620,7 +638,11 @@ export default function ToursPage() {
                   </div>
 
                   <div className="mt-auto flex items-center justify-between gap-3 pt-4">
-                    <span className="text-3xl font-black text-emerald-600">{getTourPriceLabel(tour)}</span>
+                    {priceLabel ? (
+                      <span className="text-3xl font-black text-emerald-600">{priceLabel}</span>
+                    ) : (
+                      <span className="text-sm font-bold uppercase tracking-wide text-slate-400">Solo informativo</span>
+                    )}
                     <Link
                       href={`/tours/${encodeURIComponent(getTourRouteParam(tour))}`}
                       className="rounded-lg bg-amber-400 px-4 py-2 text-sm font-extrabold text-slate-900 transition hover:bg-amber-300"

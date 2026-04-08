@@ -1,6 +1,9 @@
 import Link from "next/link";
+import path from "path";
+import { readdir } from "fs/promises";
 import FeaturedToursSlice from "./components/FeaturedToursSlice";
 import ContactUnifiedForm from "./components/ContactUnifiedForm";
+import ProvidersCarousel from "./components/ProvidersCarousel";
 import { prisma } from "../lib/prisma";
 
 type FeaturedTourView = {
@@ -9,7 +12,7 @@ type FeaturedTourView = {
   image: string;
   description: string;
   categoryName: string;
-  priceLabel: string;
+  priceLabel: string | null;
   location: string;
   featured: boolean;
 };
@@ -32,6 +35,7 @@ type GooglePlaceReviewsData = {
 const TOUR_PLACEHOLDER_IMAGE = "/tour-placeholder.svg";
 const GOOGLE_REVIEWS_URL = "https://maps.app.goo.gl/tqrezf2o6pirX9qx6";
 const GOOGLE_PLACE_DEFAULT_QUERY = "LINEA TOURS - Agencia de Viajes, Guapiles, Costa Rica";
+const PROVIDER_EXTENSIONS = new Set([".png", ".jpg", ".jpeg", ".webp", ".svg", ".gif", ".avif"]);
 const HERO_SLIDES = [
   {
     src: "https://images.unsplash.com/photo-1580259679654-9276b39fd2d5?auto=format&fit=crop&w=2200&q=80",
@@ -147,6 +151,44 @@ function buildFeaturedPriceLabel(price?: number | null): string {
   return `$${numeric.toFixed(2)}`;
 }
 
+function hasTourPricing(tour: {
+  price?: number | null;
+  tourPackages?: unknown;
+  priceOptions?: unknown;
+}): boolean {
+  const hasPackages = Array.isArray(tour.tourPackages)
+    && tour.tourPackages.some((pkg) => {
+      if (!pkg || typeof pkg !== "object") return false;
+      const options = (pkg as { priceOptions?: unknown }).priceOptions;
+      return Array.isArray(options) && options.length > 0;
+    });
+  if (hasPackages) return true;
+
+  const hasLegacyOptions = Array.isArray(tour.priceOptions) && tour.priceOptions.length > 0;
+  if (hasLegacyOptions) return true;
+
+  return typeof tour.price === "number" && Number.isFinite(tour.price) && tour.price > 0;
+}
+
+async function getProviderLogos(): Promise<Array<{ src: string; name: string }>> {
+  try {
+    const providersDir = path.join(process.cwd(), "uploads", "proveedores");
+    const entries = await readdir(providersDir, { withFileTypes: true });
+
+    return entries
+      .filter((entry) => entry.isFile())
+      .map((entry) => entry.name)
+      .filter((fileName) => PROVIDER_EXTENSIONS.has(path.extname(fileName).toLowerCase()))
+      .sort((a, b) => a.localeCompare(b, "es"))
+      .map((fileName) => ({
+        src: `/uploads/proveedores/${encodeURIComponent(fileName)}`,
+        name: path.parse(fileName).name.replace(/[-_]+/g, " ").trim() || "Proveedor",
+      }));
+  } catch {
+    return [];
+  }
+}
+
 function IconWrap({ children }: { children: React.ReactNode }) {
   return <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-emerald-100 text-emerald-700">{children}</span>;
 }
@@ -219,6 +261,7 @@ function SparkIcon() {
 export default async function Home() {
   let featuredTours: FeaturedTourView[] = [];
   const googlePlaceReviews = await getGooglePlaceReviews();
+  const providerLogos = await getProviderLogos();
 
   try {
     const featuredRaw = await prisma.tour.findMany({
@@ -233,6 +276,8 @@ export default async function Home() {
         zone: true,
         country: true,
         featured: true,
+        tourPackages: true,
+        priceOptions: true,
         category: {
           select: {
             name: true,
@@ -247,7 +292,7 @@ export default async function Home() {
       image: Array.isArray(tour.images) && tour.images[0] ? tour.images[0] : TOUR_PLACEHOLDER_IMAGE,
       description: String(tour.description ?? ""),
       categoryName: String(tour.category?.name ?? "Tour"),
-      priceLabel: buildFeaturedPriceLabel(tour.price),
+      priceLabel: hasTourPricing(tour) ? buildFeaturedPriceLabel(tour.price) : null,
       location: buildFeaturedLocation(tour.zone, tour.country),
       featured: Boolean(tour.featured),
     }));
@@ -363,6 +408,8 @@ export default async function Home() {
           </div>
         </div>
       </section>
+
+      {providerLogos.length > 0 ? <ProvidersCarousel logos={providerLogos} /> : null}
 
       <section className="section-band py-12">
         <div className="mx-auto max-w-6xl px-4">

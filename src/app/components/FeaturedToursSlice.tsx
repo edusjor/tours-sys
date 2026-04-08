@@ -9,7 +9,7 @@ type FeaturedTour = {
   image: string;
   description: string;
   categoryName: string;
-  priceLabel: string;
+  priceLabel: string | null;
   location: string;
   featured: boolean;
 };
@@ -82,7 +82,11 @@ export default function FeaturedToursSlice({ tours }: Props) {
               </div>
 
               <div className="mt-auto flex items-center justify-between gap-3 pt-4">
-                <span className="text-3xl font-black text-emerald-600">{item.priceLabel}</span>
+                {item.priceLabel ? (
+                  <span className="text-3xl font-black text-emerald-600">{item.priceLabel}</span>
+                ) : (
+                  <span className="text-xs font-bold uppercase tracking-wide text-slate-400">Solo informativo</span>
+                )}
               <Link
                 href={getTourHref(item)}
                 className="rounded-lg bg-amber-400 px-4 py-2 text-sm font-extrabold text-slate-900 transition hover:bg-amber-300"

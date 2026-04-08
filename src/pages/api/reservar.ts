@@ -226,23 +226,7 @@ function buildNormalizedPackages(tour: { tourPackages?: unknown; priceOptions?: 
     ];
   }
 
-  const fallbackPrice = typeof tour.price === 'number' && Number.isFinite(tour.price) ? tour.price : 0;
-  return [
-    {
-      id: 'package-main',
-      title: 'Paquete principal',
-      description: '',
-      priceOptions: [
-        {
-          id: 'general',
-          name: 'General',
-          price: fallbackPrice,
-          isFree: fallbackPrice === 0,
-          isBase: true,
-        },
-      ],
-    },
-  ];
+  return [];
 }
 
 function normalizeSelectedPrices(items: unknown): Map<string, number> {

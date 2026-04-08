@@ -1,0 +1,48 @@
+type ProviderLogo = {
+  src: string;
+  name: string;
+};
+
+type ProvidersCarouselProps = {
+  logos: ProviderLogo[];
+};
+
+export default function ProvidersCarousel({ logos }: ProvidersCarouselProps) {
+  if (!logos.length) return null;
+
+  const minimumBaseItems = Math.max(12, logos.length * 4);
+  const baseItems = Array.from({ length: minimumBaseItems }, (_, index) => logos[index % logos.length]);
+  const trackItems = [...baseItems, ...baseItems];
+
+  return (
+    <section className="bg-white py-10 md:py-12">
+      <div className="mx-auto max-w-6xl px-4">
+        <div className="rounded-3xl border border-slate-200 bg-slate-50 p-5 shadow-sm md:p-7">
+          <div className="mb-5 flex flex-wrap items-end justify-between gap-2">
+            <div>
+              <p className="text-xs font-black uppercase tracking-[0.18em] text-emerald-700">Alianzas</p>
+              <h2 className="mt-1 text-2xl font-extrabold text-slate-900 md:text-3xl">Nuestros proveedores</h2>
+            </div>
+            <p className="text-sm font-semibold text-slate-500">Mas de 35 aliados turisticos</p>
+          </div>
+
+          <div className="provider-tape" aria-label="Carrusel de proveedores">
+            <div className="provider-tape-track">
+              {trackItems.map((logo, index) => (
+                <div key={`${logo.src}-${index}`} className="provider-logo-card" title={logo.name} aria-label={logo.name}>
+                  <img
+                    src={logo.src}
+                    alt={logo.name}
+                    loading="lazy"
+                    decoding="async"
+                    className="h-14 w-full object-contain md:h-16"
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}

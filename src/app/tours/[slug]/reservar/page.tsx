@@ -373,18 +373,10 @@ function normalizePriceOptions(items: unknown): TourPriceOption[] {
     .filter((item) => item.id && item.name && (item.isFree || (Number.isFinite(item.price) && item.price > 0)));
 }
 
-function getVisiblePriceOptions(options: TourPriceOption[], fallbackPrice: number): TourPriceOption[] {
+function getVisiblePriceOptions(options: TourPriceOption[]): TourPriceOption[] {
   const visible = options.filter((item) => item.name.trim() && (item.isFree || Number.isFinite(item.price)));
   if (visible.length) return visible;
-
-  return [
-    {
-      id: "default-general",
-      name: "General",
-      price: fallbackPrice,
-      isFree: false,
-    },
-  ];
+  return [];
 }
 
 function formatOptionPrice(option: TourPriceOption): string {
@@ -423,23 +415,7 @@ function buildNormalizedPackages(tour: { tourPackages?: unknown; priceOptions?: 
     ];
   }
 
-  const fallbackPrice = typeof tour.price === "number" && Number.isFinite(tour.price) ? tour.price : 0;
-  return [
-    {
-      id: "package-main",
-      title: "Paquete principal",
-      description: "",
-      priceOptions: [
-        {
-          id: "general",
-          name: "General",
-          price: fallbackPrice,
-          isFree: fallbackPrice === 0,
-          isBase: true,
-        },
-      ],
-    },
-  ];
+  return [];
 }
 
 function slugifyTourValue(value: string): string {
@@ -647,8 +623,13 @@ function ReservarPageContent({
   const visiblePriceOptions = useMemo(() => {
     if (!tour) return [];
     const sourceOptions = selectedPackage?.priceOptions || [];
-    return getVisiblePriceOptions(sourceOptions, tour.price);
+    return getVisiblePriceOptions(sourceOptions);
   }, [selectedPackage, tour]);
+
+  const isInfoOnlyTour = useMemo(() => {
+    if (!tour) return false;
+    return !Array.isArray(tour.tourPackages) || !tour.tourPackages.some((pkg) => Array.isArray(pkg.priceOptions) && pkg.priceOptions.length > 0);
+  }, [tour]);
 
   const normalizedPriceQuantities = useMemo(() => {
     if (!visiblePriceOptions.length) return {} as Record<string, number>;
@@ -820,7 +801,7 @@ function ReservarPageContent({
     return `${min}:${sec}`;
   }, [remainingSeconds]);
 
-  const canContinueToPay = name.trim() && lastName.trim() && email.trim() && phoneCountryDialCode.trim() && phone.trim();
+  const canContinueToPay = !isInfoOnlyTour && name.trim() && lastName.trim() && email.trim() && phoneCountryDialCode.trim() && phone.trim();
   const minimumPeople = Math.max(1, tour?.minPeople ?? 1);
   const meetsMinimumPeople = totalPeople >= minimumPeople;
   const isSinpeMobileMethod = payMethod === "SINPE Movil";
@@ -886,6 +867,11 @@ function ReservarPageContent({
 
   const handleReserve = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (isInfoOnlyTour) {
+      setStatus("Este tour es solo informativo y no permite reservas en linea.");
+      return;
+    }
 
     if (hasNoRemainingTimeToday) {
       setStatus("Ya no hay horarios disponibles para hoy. Elige otra fecha.");
@@ -1099,6 +1085,17 @@ function ReservarPageContent({
         <h1 className="text-4xl font-extrabold tracking-tight text-slate-900">Reserva tu tour</h1>
         <p className="mt-4 rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm font-semibold text-rose-700">
           {loadError || "No se pudo cargar la reserva porque el tour no esta disponible."}
+        </p>
+      </section>
+    );
+  }
+
+  if (isInfoOnlyTour) {
+    return (
+      <section className="mx-auto max-w-6xl px-4 py-8">
+        <h1 className="text-4xl font-extrabold tracking-tight text-slate-900">Reserva tu tour</h1>
+        <p className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm font-semibold text-amber-800">
+          Este tour no tiene precios configurados y no permite reservas en linea.
         </p>
       </section>
     );

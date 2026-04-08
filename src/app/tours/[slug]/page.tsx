@@ -81,6 +81,18 @@ function getBasePriceOption(options: TourPriceOption[]): TourPriceOption | null 
   return options.find((option) => option.isBase) || null;
 }
 
+function hasReservablePricing(raw: Partial<Tour>): boolean {
+  const hasPackages = Array.isArray(raw.tourPackages)
+    && raw.tourPackages.some((pkg) => Array.isArray(pkg.priceOptions) && pkg.priceOptions.length > 0);
+  if (hasPackages) return true;
+
+  const hasLegacyOptions = Array.isArray((raw as { priceOptions?: unknown }).priceOptions)
+    && ((raw as { priceOptions?: unknown }).priceOptions as unknown[]).length > 0;
+  if (hasLegacyOptions) return true;
+
+  return typeof raw.price === "number" && Number.isFinite(raw.price) && raw.price > 0;
+}
+
 function normalizeTourPackages(items: unknown): TourPackage[] {
   if (!Array.isArray(items)) return [];
 
@@ -113,23 +125,7 @@ function buildNormalizedTourPackages(raw: Partial<Tour>): TourPackage[] {
     ];
   }
 
-  const fallbackPrice = typeof raw.price === "number" && Number.isFinite(raw.price) ? raw.price : 0;
-  return [
-    {
-      id: "package-main",
-      title: "Paquete principal",
-      description: "",
-      priceOptions: [
-        {
-          id: "general",
-          name: "General",
-          price: fallbackPrice,
-          isFree: fallbackPrice === 0,
-          isBase: true,
-        },
-      ],
-    },
-  ];
+  return [];
 }
 
 function getDurationLabel(days?: number): string {
@@ -343,7 +339,10 @@ export default function TourDetailPage() {
     };
   }, [tour]);
 
+  const isInfoOnlyTour = useMemo(() => !hasReservablePricing(tour ?? {}), [tour]);
+
   const detailPricePreview = useMemo(() => {
+    if (isInfoOnlyTour) return { label: null as string | null };
     if (!detail) return { label: `$${tour?.price.toFixed(2) ?? "0.00"}` };
 
     const selectedPackage = (tour?.tourPackages || []).find((pkg) => pkg.id === selectedPackageId) || null;
@@ -354,7 +353,7 @@ export default function TourDetailPage() {
     if (baseOption) return { label: formatPriceLabel(baseOption) };
 
     return { label: `$${tour?.price.toFixed(2) ?? "0.00"}` };
-  }, [detail, tour?.price, tour?.tourPackages, selectedPackageId]);
+  }, [detail, isInfoOnlyTour, tour?.price, tour?.tourPackages, selectedPackageId]);
 
   const selectedPackage = useMemo(() => {
     if (!tour?.tourPackages?.length) return null;
@@ -559,12 +558,18 @@ export default function TourDetailPage() {
             {[tour.zone, tour.country].filter(Boolean).length > 0 && (
               <p className="mt-3 text-sm text-slate-700">{[tour.zone, tour.country].filter(Boolean).join(", ")}</p>
             )}
-            <a
-              href={reserveHref}
-              className="mt-6 inline-block rounded-xl bg-amber-400 px-6 py-3 font-extrabold text-slate-900 transition hover:bg-amber-300"
-            >
-              Reservar tour - {detailPricePreview.label}
-            </a>
+            {!isInfoOnlyTour && detailPricePreview.label ? (
+              <a
+                href={reserveHref}
+                className="mt-6 inline-block rounded-xl bg-amber-400 px-6 py-3 font-extrabold text-slate-900 transition hover:bg-amber-300"
+              >
+                Reservar tour - {detailPricePreview.label}
+              </a>
+            ) : (
+              <p className="mt-6 inline-block rounded-xl border border-slate-300 bg-white/80 px-5 py-3 text-sm font-bold text-slate-700">
+                Este tour es informativo y no tiene reserva en linea.
+              </p>
+            )}
           </div>
         </div>
 
@@ -682,7 +687,7 @@ export default function TourDetailPage() {
             )}
           </article>
 
-          {(Boolean(tour.tourPackages?.length) || Boolean(activePriceOptions.length)) && (
+          {!isInfoOnlyTour && (Boolean(tour.tourPackages?.length) || Boolean(activePriceOptions.length)) && (
             <article className="mt-7 rounded-2xl border border-white/70 bg-white/95 p-5 shadow-[0_8px_30px_rgba(15,23,42,0.07)] backdrop-blur-sm">
               <h3 className="text-xl font-extrabold text-slate-900">Paquetes y precios</h3>
 
@@ -767,12 +772,14 @@ export default function TourDetailPage() {
         </div>
 
         <aside className="self-start rounded-2xl border border-white/70 bg-white/95 p-5 shadow-[0_10px_35px_rgba(15,23,42,0.09)] backdrop-blur-sm lg:sticky lg:top-20 lg:max-h-[calc(100vh-6rem)] lg:overflow-y-auto">
-          <p className="text-4xl font-black text-emerald-800">{detailPricePreview.label}</p>
-          <p className="mt-1 text-xs uppercase tracking-wide text-slate-500">Precio segun tipo seleccionado</p>
+          {!isInfoOnlyTour && detailPricePreview.label ? (
+            <>
+              <p className="text-4xl font-black text-emerald-800">{detailPricePreview.label}</p>
+              <p className="mt-1 text-xs uppercase tracking-wide text-slate-500">Precio segun tipo seleccionado</p>
 
-          <div className="mt-5 rounded-xl border border-slate-200 bg-slate-50 p-3">
-            <p className="text-sm font-extrabold text-slate-800">Consulta disponibilidad</p>
-            <p className="mt-1 text-xs text-slate-600">Selecciona en el calendario una fecha disponible.</p>
+              <div className="mt-5 rounded-xl border border-slate-200 bg-slate-50 p-3">
+                <p className="text-sm font-extrabold text-slate-800">Consulta disponibilidad</p>
+                <p className="mt-1 text-xs text-slate-600">Selecciona en el calendario una fecha disponible.</p>
 
             {hasCalendarAvailability ? (
               <>
@@ -859,15 +866,24 @@ export default function TourDetailPage() {
             ) : (
               <p className="mt-3 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-500">Sin fechas disponibles por ahora.</p>
             )}
-          </div>
+              </div>
 
-          <a
-            href={reserveHref}
-            className="mt-5 block rounded-xl bg-emerald-700 px-5 py-3 text-center font-extrabold text-white transition hover:bg-emerald-600"
-          >
-            Reservar ahora
-          </a>
-          <p className="mt-3 text-xs text-slate-500">Reserva flexible y confirmacion por correo en minutos.</p>
+              <a
+                href={reserveHref}
+                className="mt-5 block rounded-xl bg-emerald-700 px-5 py-3 text-center font-extrabold text-white transition hover:bg-emerald-600"
+              >
+                Reservar ahora
+              </a>
+              <p className="mt-3 text-xs text-slate-500">Reserva flexible y confirmacion por correo en minutos.</p>
+            </>
+          ) : (
+            <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+              <p className="text-sm font-extrabold text-slate-800">Tour informativo</p>
+              <p className="mt-2 text-sm leading-relaxed text-slate-600">
+                Este tour no tiene precios configurados, por eso no se habilita reserva en linea.
+              </p>
+            </div>
+          )}
         </aside>
       </div>
       </div>
