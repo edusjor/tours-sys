@@ -541,22 +541,23 @@ export default function TourDetailPage() {
       <div
         className="relative w-full"
         style={{
-          backgroundImage: `linear-gradient(108deg, rgba(248, 252, 250, 0.76) 0%, rgba(248, 252, 250, 0.54) 42%, rgba(248, 252, 250, 0.28) 100%), url(${imagesForView[heroIndex]})`,
+          backgroundImage: `url(${imagesForView[heroIndex]})`,
           backgroundSize: "cover",
           backgroundPosition: "center",
         }}
       >
-        <div className="mx-auto max-w-6xl px-4 py-8 md:py-11">
-          <div className="max-w-3xl">
+        <div className="pointer-events-none absolute inset-0 z-0 bg-[linear-gradient(108deg,rgba(7,20,15,0.78)_0%,rgba(7,20,15,0.56)_46%,rgba(7,20,15,0.36)_100%)]" />
+        <div className="relative z-10 mx-auto max-w-6xl px-4 py-8 md:py-11">
+          <div className="max-w-3xl p-1 md:p-2">
             <div className="mb-3 flex flex-wrap gap-2 text-xs font-bold uppercase tracking-wide">
-              <span className="rounded-full bg-emerald-50/90 px-3 py-1 text-emerald-700">{tour.category?.name ?? "Tour"}</span>
+              <span className="rounded-full border border-white/35 bg-white/12 px-3 py-1 text-white">{tour.category?.name ?? "Tour"}</span>
               {getDurationLabel(tour.durationDays) && (
-                <span className="rounded-full bg-emerald-50/90 px-3 py-1 text-emerald-700">{getDurationLabel(tour.durationDays)}</span>
+                <span className="rounded-full border border-white/35 bg-white/12 px-3 py-1 text-white">{getDurationLabel(tour.durationDays)}</span>
               )}
             </div>
-            <h1 className="text-3xl font-extrabold leading-tight text-slate-900 md:text-5xl">{tour.title}</h1>
+            <h1 className="text-3xl font-extrabold leading-tight text-white md:text-5xl">{tour.title}</h1>
             {[tour.zone, tour.country].filter(Boolean).length > 0 && (
-              <p className="mt-3 text-sm text-slate-700">{[tour.zone, tour.country].filter(Boolean).join(", ")}</p>
+              <p className="mt-3 text-sm text-slate-100">{[tour.zone, tour.country].filter(Boolean).join(", ")}</p>
             )}
             {!isInfoOnlyTour && detailPricePreview.label ? (
               <a
@@ -566,14 +567,14 @@ export default function TourDetailPage() {
                 Reservar tour - {detailPricePreview.label}
               </a>
             ) : (
-              <p className="mt-6 inline-block rounded-xl border border-slate-300 bg-white/80 px-5 py-3 text-sm font-bold text-slate-700">
+              <p className="mt-6 inline-block rounded-xl border border-white/35 bg-white/12 px-5 py-3 text-sm font-bold text-white">
                 Este tour es informativo y no tiene reserva en linea.
               </p>
             )}
           </div>
         </div>
 
-        <div className="absolute inset-x-0 bottom-4">
+        <div className="absolute inset-x-0 bottom-4 z-10">
           <div className="mx-auto flex max-w-6xl justify-end px-4">
             <div className="flex items-center gap-2">
               {imagesForView.map((img, index) => (
@@ -582,14 +583,13 @@ export default function TourDetailPage() {
                   type="button"
                   aria-label={`Ir al slide ${index + 1}`}
                   onClick={() => setHeroIndex(index)}
-                  className={`h-2.5 w-2.5 rounded-full transition ${heroIndex === index ? "bg-slate-900" : "bg-slate-400/60"}`}
+                  className={`h-2.5 w-2.5 rounded-full transition ${heroIndex === index ? "bg-white" : "bg-white/50"}`}
                 />
               ))}
             </div>
           </div>
         </div>
 
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-20 bg-gradient-to-b from-transparent to-[#ecf3f1]" />
       </div>
 
       <div className="mx-auto max-w-6xl px-4 pb-8 pt-6">
@@ -730,7 +730,7 @@ export default function TourDetailPage() {
             </article>
           )}
 
-          {(detail.includes?.length || detail.recommendations?.length) && (
+          {Boolean((detail.includes?.length || 0) + (detail.recommendations?.length || 0)) && (
             <div className="mt-7 grid gap-4 md:grid-cols-2">
               {Boolean(detail.includes?.length) && (
                 <article className="rounded-2xl border border-white/70 bg-white/95 p-5 shadow-[0_8px_30px_rgba(15,23,42,0.07)] backdrop-blur-sm">
