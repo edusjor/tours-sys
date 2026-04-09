@@ -1233,7 +1233,7 @@ function ReservarPageContent({
               </p>
             </div>
 
-            <div className="mt-5 grid gap-3 md:grid-cols-[1.5fr_1fr]">
+            <div className="mt-5">
               <div>
                 <label className="mb-2 block text-xs font-bold uppercase tracking-wide text-slate-600">Elige el horario</label>
                 <select
@@ -1251,21 +1251,16 @@ function ReservarPageContent({
                   <p className="mt-2 text-xs font-bold text-rose-700">Ya no quedan horarios para hoy. Selecciona otra fecha.</p>
                 ) : null}
               </div>
-
-              <div>
-                <label className="mb-2 block text-xs font-bold uppercase tracking-wide text-slate-600">Personas</label>
-                <div className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-left font-semibold text-slate-800">
-                  {totalPeople} pers.
-                </div>
-                {!meetsMinimumPeople && (
-                  <p className="mt-2 text-xs font-bold text-rose-700">Reserva minima: {minimumPeople} personas.</p>
-                )}
-              </div>
             </div>
 
             <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50/40 p-4">
               <p className="text-lg font-extrabold text-slate-900">Precios</p>
               <p className="mt-1 text-xs text-slate-600">Puedes ajustar paquete y cantidades directamente en checkout.</p>
+              {!meetsMinimumPeople && (
+                <p className="mt-2 text-xs font-bold text-rose-700">
+                  Debes seleccionar minimo {minimumPeople} persona{minimumPeople === 1 ? "" : "s"} en precios.
+                </p>
+              )}
               <div className="mt-3 space-y-3">
                 {visiblePriceOptions.map((option) => {
                   const quantity = normalizedPriceQuantities[option.id] ?? 0;
