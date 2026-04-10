@@ -37,6 +37,7 @@ type SelectedPriceInput = {
 
 const CARD_PAYMENT_METHOD = 'Tarjeta de Credito o Debito (ONVO)';
 const SINPE_PAYMENT_METHOD = 'SINPE Movil';
+const CARD_HOLD_WINDOW_MINUTES = 30;
 
 function normalizePaymentMethod(input: unknown): string | null {
   const raw = String(input ?? '').trim();
@@ -248,6 +249,10 @@ function roundUsd(value: number): number {
   return Math.round(value * 100) / 100;
 }
 
+function getCardHoldCutoffDate(): Date {
+  return new Date(Date.now() - (CARD_HOLD_WINDOW_MINUTES * 60 * 1000));
+}
+
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') return res.status(405).end();
   const {
@@ -440,17 +445,26 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           return { ok: false as const, error: 'El horario seleccionado no esta disponible para esa fecha' };
         }
 
-        const grouped = await tx.reservation.groupBy({
-          by: ['tourId', 'date'],
+        const activeCardHoldCutoff = getCardHoldCutoffDate();
+        const reservationAggregate = await tx.reservation.aggregate({
+          _sum: { people: true },
           where: {
             tourId: parsedTourId,
             date: targetDate,
-            paid: true,
+            OR: [
+              { paid: true },
+              {
+                paid: false,
+                paymentMethod: CARD_PAYMENT_METHOD,
+                createdAt: {
+                  gte: activeCardHoldCutoff,
+                },
+              },
+            ],
           },
-          _sum: { people: true },
         });
 
-        const reservedPeople = grouped[0]?._sum.people ?? 0;
+        const reservedPeople = reservationAggregate._sum.people ?? 0;
         const remaining = maxPeople - reservedPeople;
 
         if (parsedPeople > remaining) {

@@ -13,6 +13,8 @@ function normalizeSortOrder(value: unknown): SortOrder {
   return String(value ?? '').trim().toLowerCase() === 'asc' ? 'asc' : 'desc';
 }
 
+const SINPE_PAYMENT_METHOD = 'SINPE Movil';
+
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (!requireAdminSession(req, res)) return;
 
@@ -28,6 +30,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     const reservations = await prisma.reservation.findMany({
       orderBy,
+      where: {
+        OR: [
+          { paid: true },
+          { paymentMethod: SINPE_PAYMENT_METHOD },
+        ],
+      },
       include: {
         tour: {
           select: {

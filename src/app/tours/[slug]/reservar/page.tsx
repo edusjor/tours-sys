@@ -981,17 +981,20 @@ function ReservarPageContent({
           setStatus("La reserva se creo, pero no se recibio un numero de reserva valido.");
           return;
         }
-
-        const nextStatus = isSinpeMobileMethod ? "pending_validation" : "confirmed";
         const nextMessage =
           String(payload?.message || "").trim() ||
           (isSinpeMobileMethod
-            ? "Reserva recibida. Tu pago por SINPE queda pendiente de validacion administrativa."
+            ? "Recibimos tu comprobante. Te contactaremos cuando el pago sea validado."
             : "Reserva confirmada. Te enviamos el detalle por correo.");
+
+        if (isSinpeMobileMethod) {
+          setStatus(nextMessage);
+          return;
+        }
 
         navigateToConfirmation({
           reservationId,
-          status: nextStatus,
+          status: "confirmed",
           paymentMethod: payMethod,
           message: nextMessage,
         });
