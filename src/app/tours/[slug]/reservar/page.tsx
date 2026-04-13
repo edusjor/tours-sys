@@ -674,6 +674,13 @@ function ReservarPageContent({
     return null;
   }, [activeSelectedDateKey, availability, availabilityByDateKey, availabilityConfig]);
 
+  const maximumPeoplePerReservation = selectedDate?.maxPeople ?? null;
+  const exceedsMaximumPeople = maximumPeoplePerReservation !== null && totalPeople > maximumPeoplePerReservation;
+  const maxPeopleExceededMessage =
+    maximumPeoplePerReservation !== null
+      ? `El cupo maximo por compra para esta fecha es de ${maximumPeoplePerReservation} persona${maximumPeoplePerReservation === 1 ? "" : "s"}. Si necesitas un grupo personalizado, contactanos para ayudarte a coordinarlo.`
+      : "";
+
   const openScheduleSlots = useMemo(
     () => buildTimeSlotsFromSchedule(availabilityConfig.openSchedule),
     [availabilityConfig.openSchedule],
@@ -790,6 +797,7 @@ function ReservarPageContent({
     Boolean(activeSelectedDateKey) &&
     totalPeople > 0 &&
     meetsMinimumPeople &&
+    !exceedsMaximumPeople &&
     !hasNoRemainingTimeToday;
   const canContinueToPay =
     hasSelectionStepCompleted &&
@@ -817,6 +825,10 @@ function ReservarPageContent({
   };
   const openContactStep = () => {
     if (isConfirmingReservation) return;
+    if (exceedsMaximumPeople) {
+      setStep("seleccion");
+      return;
+    }
     if (!hasSelectionStepCompleted) {
       setStepError({
         step: "contacto",
@@ -832,6 +844,10 @@ function ReservarPageContent({
   };
   const openPaymentStep = () => {
     if (isConfirmingReservation) return;
+    if (exceedsMaximumPeople) {
+      setStep("seleccion");
+      return;
+    }
     if (!hasSelectionStepCompleted) {
       setStepError({
         step: "pago",
@@ -848,6 +864,13 @@ function ReservarPageContent({
     }
     setStepError(null);
     setStep("pago");
+  };
+
+  const handleIncreaseQuantity = (optionId: string) => {
+    setPriceQuantities((prev) => ({
+      ...prev,
+      [optionId]: (normalizedPriceQuantities[optionId] ?? 0) + 1,
+    }));
   };
 
   const navigateToConfirmation = (input: {
@@ -930,6 +953,11 @@ function ReservarPageContent({
 
     if (people < minimumPeople) {
       setStatus(`Este tour requiere minimo ${minimumPeople} persona${minimumPeople === 1 ? "" : "s"}.`);
+      return;
+    }
+
+    if (maximumPeoplePerReservation !== null && people > maximumPeoplePerReservation) {
+      setStatus(maxPeopleExceededMessage);
       return;
     }
 
@@ -1324,11 +1352,19 @@ function ReservarPageContent({
             <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50/40 p-4">
               <p className="text-lg font-extrabold text-slate-900">Precios</p>
               <p className="mt-1 text-xs text-slate-600">Puedes ajustar paquete y cantidades directamente en checkout.</p>
+              {maximumPeoplePerReservation !== null ? (
+                <p className="mt-2 text-xs font-semibold text-slate-600">
+                  Cupo maximo por compra para esta fecha: {maximumPeoplePerReservation} persona{maximumPeoplePerReservation === 1 ? "" : "s"}.
+                </p>
+              ) : null}
               {!meetsMinimumPeople && (
                 <p className="mt-2 text-xs font-bold text-rose-700">
                   Debes seleccionar minimo {minimumPeople} persona{minimumPeople === 1 ? "" : "s"} en precios.
                 </p>
               )}
+              {exceedsMaximumPeople ? (
+                <p className="mt-2 text-xs font-bold text-rose-700">{maxPeopleExceededMessage}</p>
+              ) : null}
               <div className="mt-3 space-y-3">
                 {visiblePriceOptions.map((option) => {
                   const quantity = normalizedPriceQuantities[option.id] ?? 0;
@@ -1366,12 +1402,7 @@ function ReservarPageContent({
                       <button
                         type="button"
                         className="rounded border border-slate-300 bg-white px-2 py-1 font-bold text-slate-700 hover:border-emerald-300"
-                        onClick={() =>
-                          setPriceQuantities((prev) => ({
-                            ...prev,
-                            [option.id]: (normalizedPriceQuantities[option.id] ?? 0) + 1,
-                          }))
-                        }
+                        onClick={() => handleIncreaseQuantity(option.id)}
                       >
                         +
                       </button>
