@@ -86,3 +86,36 @@ Asumo que quieres que SINPE tenga aprobación operativa dentro del sistema (no s
 No ejecuté pruebas de carga ni pruebas E2E; esta revisión es estática de código y flujo.
 Resumen corto
 El checkout está funcional en happy path de tarjeta, pero tiene tres riesgos fuertes: autenticación de webhook, cierre incompleto de SINPE y posible desalineación de fechas por timezone. Además, hay oportunidades claras de eficiencia y robustez en concurrencia y en protección del upload.
+
+
+/////////////////////////////
+Pasos exactos en tu VPS (DB externa):
+
+Entrar al VPS por SSH.
+
+Ir al proyecto y actualizar código.
+Comandos:
+cd /ruta/de/tours-sys
+git pull origin main
+
+Verificar que el archivo .env tenga tu DATABASE_URL externa y credenciales reales (SMTP, ONVO, admin, etc).
+
+Levantar contenedor de app.
+Comando:
+docker compose -f docker-compose.vps.yml up -d --build
+
+Ver logs de arranque y migraciones.
+Comando:
+docker compose -f docker-compose.vps.yml logs -f app
+
+Probar en navegador:
+http://IP_DEL_VPS:3003
+
+Si usas firewall, abrir puerto 3003 (o enrutar por proxy inverso con dominio y SSL).
+
+Para updates futuros en VPS:
+
+git pull origin main
+docker compose -f docker-compose.vps.yml up -d --build
+docker compose -f docker-compose.vps.yml logs -f app
+Si quieres, siguiente paso te lo dejo con Nginx + SSL (Let’s Encrypt) para servirlo con dominio y sin exponer 3003 directamente.
