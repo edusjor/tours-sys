@@ -72,7 +72,7 @@ async function moveFileWithFallback(sourcePath: string, destinationPath: string)
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Metodo no permitido' });
+    return res.status(405).json({ error: 'Método no permitido' });
   }
 
   if (!requireAdminSession(req, res)) return;
@@ -89,7 +89,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     ];
 
     if (!candidates.length) {
-      return res.status(400).json({ error: 'No se recibieron imagenes validas.' });
+      return res.status(400).json({ error: 'No se recibieron imágenes válidas.' });
     }
 
     const urls: string[] = [];
@@ -117,6 +117,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(200).json({ urls });
   } catch (error) {
     const detail = error instanceof Error ? error.message : 'Error desconocido';
-    return res.status(500).json({ error: 'No se pudieron subir las imagenes.', detail });
+    return res.status(500).json({ error: 'No se pudieron subir las imágenes.', detail });
   }
 }

@@ -19,7 +19,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   await prisma.tour.deleteMany();
   await prisma.category.deleteMany();
 
-  // Crea categorias
+  // Crea categorías
   const beach = await prisma.category.create({ data: { name: 'Playa' } });
   const mountain = await prisma.category.create({ data: { name: 'Montana' } });
   const city = await prisma.category.create({ data: { name: 'Ciudad' } });
@@ -51,7 +51,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     },
     {
       title: 'Rafting Rio Esmeralda',
-      description: 'Rafting nivel intermedio con equipo y guia profesional.',
+      description: 'Rafting nivel intermedio con equipo y guía profesional.',
       price: 98.0,
       images: ['https://images.unsplash.com/photo-1521334884684-d80222895322?auto=format&fit=crop&w=1200&q=80'],
       categoryId: adventure.id,
@@ -72,7 +72,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     },
     {
       title: 'Noche de Bioluminiscencia',
-      description: 'Experiencia nocturna en kayak con guia local.',
+      description: 'Experiencia nocturna en kayak con guía local.',
       price: 84.0,
       images: ['https://images.unsplash.com/photo-1518020382113-a7e8fc38eac9?auto=format&fit=crop&w=1200&q=80'],
       categoryId: beach.id,

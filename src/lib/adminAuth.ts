@@ -131,13 +131,13 @@ export function getAdminSessionFromRequest(req: NextApiRequest): { ok: boolean; 
 
 export function requireAdminSession(req: NextApiRequest, res: NextApiResponse): boolean {
   if (!getAdminAuthConfig()) {
-    res.status(503).json({ error: 'Configuracion admin incompleta' });
+    res.status(503).json({ error: 'Configuración admin incompleta' });
     return false;
   }
 
   const session = getAdminSessionFromRequest(req);
   if (session.ok) {
-    // Renovar sesion en cada peticion autenticada (ventana deslizante)
+    // Renovar sesión en cada petición autenticada (ventana deslizante)
     if (session.username) {
       setAdminSessionCookie(res, createAdminSessionToken(session.username));
     }

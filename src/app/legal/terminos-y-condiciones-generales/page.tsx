@@ -4,17 +4,17 @@ import LegalDocumentEmbed, { buildLegalMetadata } from "../../components/LegalDo
 const SOURCE_URL = "https://booking.lineatoursguapiles.com/es/conditions/all-general/";
 
 export const metadata: Metadata = buildLegalMetadata({
-  title: "Terminos y condiciones generales",
+  title: "Términos y condiciones generales",
   sourceUrl: SOURCE_URL,
 });
 
 export default function TerminosCondicionesPage() {
   return (
     <LegalDocumentEmbed
-      title="Terminos y condiciones generales"
+      title="Términos y condiciones generales"
       sourceUrl={SOURCE_URL}
       type="general"
-      description="Contenido oficial de terminos y condiciones generales publicado por Linea Tours Guapiles."
+      description="Contenido oficial de términos y condiciones generales publicado por Linea Tours Guapiles."
     />
   );
 }

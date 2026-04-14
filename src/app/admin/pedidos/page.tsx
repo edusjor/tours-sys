@@ -113,7 +113,7 @@ export default function AdminOrdersPage() {
       const res = await fetch(`/api/admin/reservations?${query.toString()}`);
       if (res.status === 401) {
         setIsAuthenticated(false);
-        setFeedback({ type: "error", message: "Sesion expirada. Inicia sesion nuevamente." });
+        setFeedback({ type: "error", message: "Sesión expirada. Inicia sesión nuevamente." });
         setReservations([]);
         return;
       }
@@ -173,20 +173,20 @@ export default function AdminOrdersPage() {
   const title = useMemo(() => {
     if (sortBy === "createdAt") {
       return order === "desc"
-        ? "Ordenadas por fecha de ingreso (mas recientes primero)"
-        : "Ordenadas por fecha de ingreso (mas antiguas primero)";
+        ? "Ordenadas por fecha de ingreso (más recientes primero)"
+        : "Ordenadas por fecha de ingreso (más antiguas primero)";
     }
 
     return order === "desc"
-      ? "Ordenadas por fecha reservada (mas recientes primero)"
-      : "Ordenadas por fecha reservada (mas antiguas primero)";
+      ? "Ordenadas por fecha reservada (más recientes primero)"
+      : "Ordenadas por fecha reservada (más antiguas primero)";
   }, [order, sortBy]);
 
   if (isAuthChecking) {
     return (
       <section className="mx-auto max-w-7xl px-4 py-10">
         <div className="rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
-          <p className="text-sm font-semibold text-slate-600">Verificando sesion de administrador...</p>
+          <p className="text-sm font-semibold text-slate-600">Verificando sesión de administrador...</p>
         </div>
       </section>
     );
@@ -196,8 +196,8 @@ export default function AdminOrdersPage() {
     return (
       <section className="mx-auto max-w-7xl px-4 py-10">
         <div className="rounded-2xl border border-rose-200 bg-rose-50 p-8 text-center shadow-sm">
-          <h1 className="text-2xl font-extrabold text-rose-800">Sesion requerida</h1>
-          <p className="mt-2 text-sm font-semibold text-rose-700">Debes iniciar sesion como administrador para ver los pedidos.</p>
+          <h1 className="text-2xl font-extrabold text-rose-800">Sesión requerida</h1>
+          <p className="mt-2 text-sm font-semibold text-rose-700">Debes iniciar sesión como administrador para ver los pedidos.</p>
           <Link href="/admin" className="mt-4 inline-flex rounded-lg bg-rose-700 px-4 py-2 text-sm font-bold text-white hover:bg-rose-600">
             Ir al login admin
           </Link>
@@ -234,7 +234,7 @@ export default function AdminOrdersPage() {
           <option value="desc">Descendente</option>
           <option value="asc">Ascendente</option>
         </select>
-        <label className="text-sm font-semibold text-slate-700">Metodo</label>
+        <label className="text-sm font-semibold text-slate-700">Método</label>
         <select
           value={paymentFilter}
           onChange={(e) => setPaymentFilter(e.target.value as PaymentFilter)}
@@ -307,7 +307,7 @@ export default function AdminOrdersPage() {
                     <td className="px-3 py-3 text-slate-700">
                       <p className="font-semibold text-slate-900">{[item.name, item.lastName].filter(Boolean).join(" ")}</p>
                       <p>{item.email}</p>
-                      <p>{item.phone || "Sin telefono"}</p>
+                      <p>{item.phone || "Sin teléfono"}</p>
                     </td>
                     <td className="px-3 py-3 text-slate-700">
                       <p className="font-extrabold text-emerald-800">{formatPriceDetail(item.totalAmount)}</p>
@@ -371,7 +371,7 @@ export default function AdminOrdersPage() {
                 <p className="text-xs font-bold uppercase tracking-wide text-slate-500">Cliente</p>
                 <p className="mt-1 font-semibold text-slate-900">{[activeReservation.name, activeReservation.lastName].filter(Boolean).join(" ")}</p>
                 <p className="text-sm text-slate-700">{activeReservation.email}</p>
-                <p className="text-sm text-slate-700">{activeReservation.phone || "Sin telefono"}</p>
+                <p className="text-sm text-slate-700">{activeReservation.phone || "Sin teléfono"}</p>
               </div>
               <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
                 <p className="text-xs font-bold uppercase tracking-wide text-slate-500">Hospedaje</p>
@@ -397,7 +397,7 @@ export default function AdminOrdersPage() {
                 <p className="mt-1 font-semibold text-slate-900">{activeReservation.packageTitle || "No indicado"}</p>
               </div>
               <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 sm:col-span-2">
-                <p className="text-xs font-bold uppercase tracking-wide text-slate-500">Detalle de seleccion</p>
+                <p className="text-xs font-bold uppercase tracking-wide text-slate-500">Detalle de selección</p>
                 {Array.isArray(activeReservation.priceBreakdown) && activeReservation.priceBreakdown.length > 0 ? (
                   <ul className="mt-2 space-y-1 text-sm text-slate-700">
                     {activeReservation.priceBreakdown.map((row) => (

@@ -372,7 +372,7 @@ export default async function Home() {
           </p>
           <h1 className="script-title text-5xl leading-tight drop-shadow-md md:text-7xl">Descubre el turismo rural costarricense</h1>
           <p className="mt-5 max-w-2xl text-lg font-semibold text-slate-100 md:text-2xl">
-            Experiencias unicas y autenticas dentro y fuera del pais para todos los estilos de vida.
+            Experiencias únicas y auténticas dentro y fuera del país para todos los estilos de vida.
           </p>
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
             <Link
@@ -397,7 +397,7 @@ export default async function Home() {
             <h2 className="text-3xl font-extrabold text-emerald-900 md:text-4xl">Turismo rural, local e internacional</h2>
             <p className="mt-4 text-lg leading-relaxed text-slate-700">
               Trabajamos junto a familias, emprendedores y comunidades locales para crear experiencias seguras y de alta calidad.
-              Tambien ofrecemos circuitos internacionales con acompanamiento cercano de principio a fin.
+              También ofrecemos circuitos internacionales con acompañamiento cercano de principio a fin.
             </p>
             <div className="mt-6 grid gap-3 text-sm font-semibold text-emerald-900 sm:grid-cols-2">
               <div className="flex items-center gap-2 rounded-xl bg-white px-3 py-2 shadow-sm">
@@ -410,19 +410,19 @@ export default async function Home() {
                 <IconWrap>
                   <SparkIcon />
                 </IconWrap>
-                Mas de 35 aliados turisticos
+                Más de 35 aliados turísticos
               </div>
               <div className="flex items-center gap-2 rounded-xl bg-white px-3 py-2 shadow-sm sm:col-span-2">
                 <IconWrap>
                   <ShieldIcon />
                 </IconWrap>
-                Atencion cercana y personalizada en cada etapa del viaje
+                Atención cercana y personalizada en cada etapa del viaje
               </div>
             </div>
           </div>
           <img
             src="https://images.unsplash.com/photo-1659120409178-afa7c3630bb4?auto=format&fit=crop&w=1000&q=80"
-            alt="Guia local de turismo"
+            alt="Guía local de turismo"
             className="h-72 w-full rounded-2xl object-cover shadow-xl"
           />
         </div>
@@ -439,13 +439,13 @@ export default async function Home() {
 
       <section className="bg-white py-12">
         <div className="mx-auto max-w-6xl px-4">
-          <h2 className="text-center text-4xl font-extrabold text-emerald-900">Por que elegir Guapiles Linea Tours</h2>
+          <h2 className="text-center text-4xl font-extrabold text-emerald-900">Por qué elegir Guapiles Linea Tours</h2>
           <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
             {[
               { title: "Turismo responsable", desc: "Viajes que aportan a comunidades y tradiciones locales", icon: <GlobeIcon /> },
               { title: "Calidad y seguridad", desc: "Operadores confiables y experiencias bien coordinadas", icon: <ShieldIcon /> },
               { title: "Destinos variados", desc: "Naturaleza, playa y ciudad en una sola propuesta", icon: <MapPinIcon /> },
-              { title: "Acompanamiento real", desc: "Atencion personalizada antes, durante y despues del viaje", icon: <PhoneIcon /> },
+              { title: "Acompañamiento real", desc: "Atención personalizada antes, durante y después del viaje", icon: <PhoneIcon /> },
             ].map((item) => (
               <div key={item.title} className="rounded-2xl border border-slate-200 bg-slate-50 p-5 shadow-sm">
                 <div className="mb-3">
@@ -470,7 +470,7 @@ export default async function Home() {
               {googlePlaceReviews ? (
                 <>
                   <p className="mt-3 text-slate-700">
-                    Calificacion promedio {ratingAsText(googlePlaceReviews.rating)}/5 basada en {googlePlaceReviews.totalRatings} opiniones para {googlePlaceReviews.placeName}.
+                    Calificación promedio {ratingAsText(googlePlaceReviews.rating)}/5 basada en {googlePlaceReviews.totalRatings} opiniones para {googlePlaceReviews.placeName}.
                   </p>
                   <div className="mt-6 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                     {googlePlaceReviews.reviews.map((review, index) => (
@@ -489,14 +489,14 @@ export default async function Home() {
                       rel="noopener noreferrer"
                       className="inline-block rounded-lg bg-emerald-600 px-5 py-3 text-sm font-extrabold text-white transition hover:bg-emerald-500"
                     >
-                      Ver mas opiniones en Google
+                      Ver más opiniones en Google
                     </Link>
                   </div>
                 </>
               ) : (
                 <>
                   <p className="mt-3 text-slate-700">
-                    Para mostrar resenas automaticas en esta pagina, agrega GOOGLE_PLACES_API_KEY en el entorno del servidor.
+                    Para mostrar reseñas automáticas en esta página, agrega GOOGLE_PLACES_API_KEY en el entorno del servidor.
                   </p>
                   <Link
                     href={GOOGLE_REVIEWS_URL}
@@ -515,10 +515,10 @@ export default async function Home() {
 
       <section className="jungle-band py-12 text-white">
         <div className="mx-auto max-w-6xl px-4">
-          <h2 className="text-center text-4xl font-extrabold">Contactanos directamente</h2>
+          <h2 className="text-center text-4xl font-extrabold">Contáctanos directamente</h2>
           <div className="mt-8 grid gap-4 md:grid-cols-2">
             <article className="rounded-2xl border border-white/20 bg-white/10 p-6 backdrop-blur-sm">
-              <h3 className="text-2xl font-extrabold">Canales de atencion</h3>
+              <h3 className="text-2xl font-extrabold">Canales de atención</h3>
               <div className="mt-4 space-y-3 text-sm font-semibold text-emerald-50">
                 <p className="flex items-center gap-2"><PhoneIcon /> +506 6015 9782 / +506 7154 6738</p>
                 <p className="flex items-center gap-2"><MailIcon /> atencionalcliente@guapileslineatours.com</p>
@@ -528,9 +528,9 @@ export default async function Home() {
             </article>
 
             <article className="rounded-2xl border border-white/20 bg-white/10 p-6 backdrop-blur-sm">
-              <h3 className="text-2xl font-extrabold">Contactanos por WhatsApp</h3>
+              <h3 className="text-2xl font-extrabold">Contáctanos por WhatsApp</h3>
               <p className="mt-3 text-emerald-50">
-                Escribenos al +506 6015 9782 y te ayudamos a elegir tour, fechas y metodo de pago en minutos.
+                Escríbenos al +506 6015 9782 y te ayudamos a elegir tour, fechas y método de pago en minutos.
               </p>
               <a
                 href="https://wa.me/50660159782"

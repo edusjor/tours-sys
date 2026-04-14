@@ -12,7 +12,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const credentials = getAdminCredentials();
   if (!credentials) {
     return res.status(503).json({
-      error: 'Configuracion admin incompleta',
+      error: 'Configuración admin incompleta',
       missing: getAdminAuthMissingEnv(),
     });
   }
@@ -23,7 +23,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(401).json({ ok: false });
     }
 
-    // Renovar sesion mientras el admin siga activo
+    // Renovar sesión mientras el admin siga activo
     if (session.username) {
       setAdminSessionCookie(res, createAdminSessionToken(session.username));
     }

@@ -112,7 +112,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
 
       if (String(reservation.paymentMethod ?? '') !== SINPE_PAYMENT_METHOD) {
-        return res.status(400).json({ error: 'Solo las reservas SINPE se gestionan manualmente en este modulo.' });
+        return res.status(400).json({ error: 'Solo las reservas SINPE se gestionan manualmente en este módulo.' });
       }
 
       const nextPaid = desiredStatus === 'paid';
@@ -138,7 +138,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   if (req.method !== 'GET') {
-    return res.status(405).json({ error: 'Metodo no permitido' });
+    return res.status(405).json({ error: 'Método no permitido' });
   }
 
   const sortBy = normalizeSortBy(req.query.sortBy);

@@ -302,9 +302,9 @@ async function resolveCategoryId(
   }
 
   const fallbackCategory = await db.category.upsert({
-    where: { name: 'Sin categoria' },
+    where: { name: 'Sin categoría' },
     update: {},
-    create: { name: 'Sin categoria' },
+    create: { name: 'Sin categoría' },
   });
 
   return fallbackCategory.id;

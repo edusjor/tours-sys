@@ -87,7 +87,7 @@ async function sendReservationConfirmationEmail(input: {
   const text = [
     `Hola ${input.customerName},`,
     '',
-    'Tu pago fue aprobado y tu reserva quedo confirmada.',
+    'Tu pago fue aprobado y tu reserva quedó confirmada.',
     '',
     'Resumen de compra:',
     `Reserva: #${input.reservationId}`,
@@ -97,14 +97,14 @@ async function sendReservationConfirmationEmail(input: {
     `Personas: ${input.people}`,
     `Total pagado: ${totalAmountText}`,
     `Paquete: ${packageTitleText}`,
-    `Detalle de seleccion:\n${priceBreakdownText}`,
+    `Detalle de selección:\n${priceBreakdownText}`,
     `Hospedaje: ${hotelText}`,
-    `Metodo de pago: ${paymentMethodText}`,
+    `Método de pago: ${paymentMethodText}`,
     '',
-    'Si necesitas ayuda, contactanos:',
+    'Si necesitas ayuda, contáctanos:',
     `Correo: ${SUPPORT_EMAIL}`,
     `WhatsApp: ${SUPPORT_WHATSAPP}`,
-    `Ubicacion: ${SUPPORT_LOCATION}`,
+    `Ubicación: ${SUPPORT_LOCATION}`,
     '',
     'Gracias por reservar con nosotros.',
   ].join('\n');
@@ -119,7 +119,7 @@ async function sendReservationConfirmationEmail(input: {
 
         <div style="padding:22px 24px;">
           <p style="margin:0 0 12px;font-size:15px;">Hola <strong>${input.customerName}</strong>,</p>
-          <p style="margin:0 0 16px;font-size:15px;color:#334155;">Tu pago fue aprobado y tu reserva quedo confirmada. Aqui tienes el resumen de tu compra:</p>
+          <p style="margin:0 0 16px;font-size:15px;color:#334155;">Tu pago fue aprobado y tu reserva quedó confirmada. Aquí tienes el resumen de tu compra:</p>
 
           <table role="presentation" style="width:100%;border-collapse:separate;border-spacing:0;border:1px solid #e2e8f0;border-radius:10px;overflow:hidden;">
             <tbody>
@@ -131,7 +131,7 @@ async function sendReservationConfirmationEmail(input: {
               <tr><td style="padding:10px 12px;background:#f8fafc;border-bottom:1px solid #e2e8f0;font-weight:700;">Total pagado</td><td style="padding:10px 12px;border-bottom:1px solid #e2e8f0;">${totalAmountText}</td></tr>
               <tr><td style="padding:10px 12px;background:#f8fafc;border-bottom:1px solid #e2e8f0;font-weight:700;">Paquete</td><td style="padding:10px 12px;border-bottom:1px solid #e2e8f0;">${packageTitleText}</td></tr>
               <tr><td style="padding:10px 12px;background:#f8fafc;border-bottom:1px solid #e2e8f0;font-weight:700;">Hospedaje</td><td style="padding:10px 12px;border-bottom:1px solid #e2e8f0;">${hotelText}</td></tr>
-              <tr><td style="padding:10px 12px;background:#f8fafc;font-weight:700;">Metodo de pago</td><td style="padding:10px 12px;">${paymentMethodText}</td></tr>
+              <tr><td style="padding:10px 12px;background:#f8fafc;font-weight:700;">Método de pago</td><td style="padding:10px 12px;">${paymentMethodText}</td></tr>
             </tbody>
           </table>
 
@@ -143,10 +143,10 @@ async function sendReservationConfirmationEmail(input: {
           </div>
 
           <div style="margin-top:16px;padding:14px;border:1px solid #bae6fd;background:#f0f9ff;border-radius:10px;">
-            <p style="margin:0 0 8px;font-size:14px;font-weight:700;color:#0c4a6e;">Atencion al cliente</p>
+            <p style="margin:0 0 8px;font-size:14px;font-weight:700;color:#0c4a6e;">Atención al cliente</p>
             <p style="margin:0;font-size:14px;color:#0f172a;"><strong>Correo:</strong> ${SUPPORT_EMAIL}</p>
             <p style="margin:4px 0 0;font-size:14px;color:#0f172a;"><strong>WhatsApp:</strong> ${SUPPORT_WHATSAPP}</p>
-            <p style="margin:4px 0 0;font-size:14px;color:#0f172a;"><strong>Ubicacion:</strong> ${SUPPORT_LOCATION}</p>
+            <p style="margin:4px 0 0;font-size:14px;color:#0f172a;"><strong>Ubicación:</strong> ${SUPPORT_LOCATION}</p>
           </div>
 
           <p style="margin:16px 0 0;font-size:14px;color:#334155;">Gracias por reservar con nosotros.</p>
@@ -224,7 +224,7 @@ async function sendReservationPendingValidationEmail(input: {
     '',
     'Recibimos tu solicitud de reserva y el comprobante SINPE.',
     'Estado actual: Pendiente por validar pago.',
-    'Nuestro equipo revisara manualmente la transferencia y, una vez validada, te enviaremos un nuevo correo con tu reserva confirmada.',
+    'Nuestro equipo revisará manualmente la transferencia y, una vez validada, te enviaremos un nuevo correo con tu reserva confirmada.',
     '',
     'Resumen de la solicitud:',
     `Reserva: #${input.reservationId}`,
@@ -234,15 +234,15 @@ async function sendReservationPendingValidationEmail(input: {
     `Personas: ${input.people}`,
     `Total de la reserva: ${totalAmountText}`,
     `Paquete: ${packageTitleText}`,
-    `Detalle de seleccion:\n${priceBreakdownText}`,
+    `Detalle de selección:\n${priceBreakdownText}`,
     `Hospedaje: ${hotelText}`,
-    `Metodo de pago: ${paymentMethodText}`,
+    `Método de pago: ${paymentMethodText}`,
     `Estado: Pendiente por validar`,
     '',
-    'Si necesitas ayuda, contactanos:',
+    'Si necesitas ayuda, contáctanos:',
     `Correo: ${SUPPORT_EMAIL}`,
     `WhatsApp: ${SUPPORT_WHATSAPP}`,
-    `Ubicacion: ${SUPPORT_LOCATION}`,
+    `Ubicación: ${SUPPORT_LOCATION}`,
   ].join('\n');
 
   const html = `
@@ -257,7 +257,7 @@ async function sendReservationPendingValidationEmail(input: {
           <p style="margin:0 0 12px;font-size:15px;">Hola <strong>${input.customerName}</strong>,</p>
           <p style="margin:0 0 10px;font-size:15px;color:#334155;">Recibimos tu solicitud de reserva y el comprobante SINPE.</p>
           <p style="margin:0 0 16px;font-size:15px;color:#7c2d12;"><strong>Estado actual:</strong> Pendiente por validar pago.</p>
-          <p style="margin:0 0 16px;font-size:14px;color:#334155;">Apenas validemos manualmente la transferencia, te enviaremos un nuevo correo con la confirmacion exitosa de tu reserva.</p>
+          <p style="margin:0 0 16px;font-size:14px;color:#334155;">Apenas validemos manualmente la transferencia, te enviaremos un nuevo correo con la confirmación exitosa de tu reserva.</p>
 
           <table role="presentation" style="width:100%;border-collapse:separate;border-spacing:0;border:1px solid #e2e8f0;border-radius:10px;overflow:hidden;">
             <tbody>
@@ -269,7 +269,7 @@ async function sendReservationPendingValidationEmail(input: {
               <tr><td style="padding:10px 12px;background:#fff7ed;border-bottom:1px solid #e2e8f0;font-weight:700;">Total de la reserva</td><td style="padding:10px 12px;border-bottom:1px solid #e2e8f0;">${totalAmountText}</td></tr>
               <tr><td style="padding:10px 12px;background:#fff7ed;border-bottom:1px solid #e2e8f0;font-weight:700;">Paquete</td><td style="padding:10px 12px;border-bottom:1px solid #e2e8f0;">${packageTitleText}</td></tr>
               <tr><td style="padding:10px 12px;background:#fff7ed;border-bottom:1px solid #e2e8f0;font-weight:700;">Hospedaje</td><td style="padding:10px 12px;border-bottom:1px solid #e2e8f0;">${hotelText}</td></tr>
-              <tr><td style="padding:10px 12px;background:#fff7ed;border-bottom:1px solid #e2e8f0;font-weight:700;">Metodo de pago</td><td style="padding:10px 12px;border-bottom:1px solid #e2e8f0;">${paymentMethodText}</td></tr>
+              <tr><td style="padding:10px 12px;background:#fff7ed;border-bottom:1px solid #e2e8f0;font-weight:700;">Método de pago</td><td style="padding:10px 12px;border-bottom:1px solid #e2e8f0;">${paymentMethodText}</td></tr>
               <tr><td style="padding:10px 12px;background:#fff7ed;font-weight:700;">Estado</td><td style="padding:10px 12px;color:#9a3412;font-weight:700;">Pendiente por validar</td></tr>
             </tbody>
           </table>
@@ -282,10 +282,10 @@ async function sendReservationPendingValidationEmail(input: {
           </div>
 
           <div style="margin-top:16px;padding:14px;border:1px solid #bae6fd;background:#f0f9ff;border-radius:10px;">
-            <p style="margin:0 0 8px;font-size:14px;font-weight:700;color:#0c4a6e;">Atencion al cliente</p>
+            <p style="margin:0 0 8px;font-size:14px;font-weight:700;color:#0c4a6e;">Atención al cliente</p>
             <p style="margin:0;font-size:14px;color:#0f172a;"><strong>Correo:</strong> ${SUPPORT_EMAIL}</p>
             <p style="margin:4px 0 0;font-size:14px;color:#0f172a;"><strong>WhatsApp:</strong> ${SUPPORT_WHATSAPP}</p>
-            <p style="margin:4px 0 0;font-size:14px;color:#0f172a;"><strong>Ubicacion:</strong> ${SUPPORT_LOCATION}</p>
+            <p style="margin:4px 0 0;font-size:14px;color:#0f172a;"><strong>Ubicación:</strong> ${SUPPORT_LOCATION}</p>
           </div>
         </div>
       </div>
@@ -376,7 +376,7 @@ export async function finalizeReservationPayment(input: {
   const expectedReservationId = Number(input.reservationId);
 
   if (!paymentIntentId) {
-    return { ok: false, status: 400, error: 'Datos de confirmacion invalidos' };
+    return { ok: false, status: 400, error: 'Datos de confirmación inválidos' };
   }
 
   try {
@@ -388,8 +388,8 @@ export async function finalizeReservationPayment(input: {
         ok: false,
         status: 202,
         pending: true,
-        error: 'Pago pendiente de confirmacion',
-        message: 'Pago recibido, en espera de confirmacion final.',
+        error: 'Pago pendiente de confirmación',
+        message: 'Pago recibido, en espera de confirmación final.',
       };
     }
 

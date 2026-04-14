@@ -678,13 +678,13 @@ export default function TourDetailPage() {
               <div className="mt-5 grid gap-3 sm:grid-cols-2">
                 {getDurationLabel(tour.durationDays) !== "A confirmar" && (
                   <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-                    <p className="text-[11px] font-extrabold uppercase tracking-wide text-slate-500">Duracion</p>
+                    <p className="text-[11px] font-extrabold uppercase tracking-wide text-slate-500">Duración</p>
                     <p className="mt-1 text-sm font-semibold text-slate-900">{getDurationLabel(tour.durationDays)}</p>
                   </div>
                 )}
                 {tour.guideType && (
                   <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-                    <p className="text-[11px] font-extrabold uppercase tracking-wide text-slate-500">Guia</p>
+                    <p className="text-[11px] font-extrabold uppercase tracking-wide text-slate-500">Guía</p>
                     <p className="mt-1 text-sm font-semibold text-slate-900">{tour.guideType}</p>
                   </div>
                 )}
@@ -696,13 +696,13 @@ export default function TourDetailPage() {
                 )}
                 {tour.groups && (
                   <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-                    <p className="text-[11px] font-extrabold uppercase tracking-wide text-slate-500">Tamano de grupo</p>
+                    <p className="text-[11px] font-extrabold uppercase tracking-wide text-slate-500">Tamaño de grupo</p>
                     <p className="mt-1 text-sm font-semibold text-slate-900">{tour.groups}</p>
                   </div>
                 )}
                 {[tour.zone, tour.country].filter(Boolean).length > 0 && (
                   <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-                    <p className="text-[11px] font-extrabold uppercase tracking-wide text-slate-500">Ubicacion del tour</p>
+                    <p className="text-[11px] font-extrabold uppercase tracking-wide text-slate-500">Ubicación del tour</p>
                     <p className="mt-1 text-sm font-semibold text-slate-900">{[tour.zone, tour.country].filter(Boolean).join(", ")}</p>
                   </div>
                 )}
@@ -895,7 +895,7 @@ export default function TourDetailPage() {
                 <p className="mt-2 text-[11px] text-slate-500">
                   {calendarHasOpenAvailability
                     ? "Modo abierto: puedes seleccionar cualquier fecha desde hoy."
-                    : "Solo se habilitan dias con disponibilidad."}
+                    : "Solo se habilitan días con disponibilidad."}
                 </p>
               </>
             ) : (
@@ -909,7 +909,7 @@ export default function TourDetailPage() {
               >
                 Reservar ahora
               </a>
-              <p className="mt-3 text-xs text-slate-500">Reserva flexible y confirmacion por correo en minutos.</p>
+              <p className="mt-3 text-xs text-slate-500">Reserva flexible y confirmación por correo en minutos.</p>
             </>
           ) : (
             <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">

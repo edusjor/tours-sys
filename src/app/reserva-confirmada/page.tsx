@@ -33,13 +33,13 @@ export default async function ReservaConfirmadaPage({
   const isPendingValidation = status === "pending_validation";
   const title = isPendingValidation ? "Reserva Recibida" : "Reserva Confirmada";
   const subtitle = isPendingValidation
-    ? "Tu reserva quedo registrada con estado pendiente de validacion."
-    : "Tu pago fue validado y tu reserva quedo confirmada.";
+    ? "Tu reserva quedó registrada con estado pendiente de validación."
+    : "Tu pago fue validado y tu reserva quedó confirmada.";
   const summary =
     message ||
     (isPendingValidation
-      ? "Nuestro equipo validara el comprobante SINPE y te notificaremos por correo."
-      : "Te enviamos la confirmacion al correo registrado.");
+      ? "Nuestro equipo validará el comprobante SINPE y te notificaremos por correo."
+      : "Te enviamos la confirmación al correo registrado.");
   const normalizedSubtitle = normalizeComparableText(subtitle);
   const normalizedSummary = normalizeComparableText(summary);
   const shouldShowSummary = isPendingValidation && normalizedSummary.length > 0 && normalizedSummary !== normalizedSubtitle;
@@ -56,7 +56,7 @@ export default async function ReservaConfirmadaPage({
             isPendingValidation ? "bg-amber-200 text-amber-900" : "bg-emerald-200 text-emerald-900"
           }`}
         >
-          {isPendingValidation ? "Pendiente de validacion" : "Confirmada"}
+          {isPendingValidation ? "Pendiente de validación" : "Confirmada"}
         </p>
 
         <h1 className="mt-4 text-3xl font-black text-slate-900">{title}</h1>
@@ -69,7 +69,7 @@ export default async function ReservaConfirmadaPage({
             {reservationId ? `#${reservationId}` : "Por asignar"}
           </p>
           <p>
-            <span className="font-bold text-slate-900">Metodo de pago:</span>{" "}
+            <span className="font-bold text-slate-900">Método de pago:</span>{" "}
             {paymentMethod || "No indicado"}
           </p>
         </div>

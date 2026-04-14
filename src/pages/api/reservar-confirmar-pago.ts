@@ -8,7 +8,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const paymentIntentId = String(req.body?.paymentIntentId ?? '').trim();
 
   if (!Number.isFinite(reservationId) || reservationId <= 0 || !paymentIntentId) {
-    return res.status(400).json({ error: 'Datos de confirmacion invalidos' });
+    return res.status(400).json({ error: 'Datos de confirmación inválidos' });
   }
 
   const result = await finalizeReservationPayment({ paymentIntentId, reservationId });
