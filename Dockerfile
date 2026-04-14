@@ -31,4 +31,4 @@ RUN chmod +x /entrypoint.sh
 EXPOSE 3003
 
 ENTRYPOINT ["/entrypoint.sh"]
-CMD ["npm", "run", "start"]
+CMD ["node", "node_modules/next/dist/bin/next", "start", "-p", "3003"]

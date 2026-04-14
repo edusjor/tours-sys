@@ -12,8 +12,8 @@ services:
     environment:
       NODE_ENV: production
       PORT: 3003
-      RUN_DB_GENERATE: "true"
-      RUN_DB_MIGRATIONS: "true"
+      RUN_DB_GENERATE: "false"
+      RUN_DB_MIGRATIONS: "false"
       RUN_DB_PUSH: "false"
     ports:
       - "3003:3003"
