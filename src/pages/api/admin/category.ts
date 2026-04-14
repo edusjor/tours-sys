@@ -23,7 +23,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (req.method === 'POST') {
       const name = String(req.body?.name ?? '').trim();
       if (!name) {
-        return res.status(400).json({ error: 'El nombre de categoria es obligatorio' });
+        return res.status(400).json({ error: 'El nombre de categoría es obligatorio' });
       }
 
       const created = await prisma.category.create({ data: { name } });
@@ -32,13 +32,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     const id = getCategoryId(req);
     if (!Number.isFinite(id)) {
-      return res.status(400).json({ error: 'ID de categoria invalido' });
+      return res.status(400).json({ error: 'ID de categoría inválido' });
     }
 
     if (req.method === 'PUT') {
       const name = String(req.body?.name ?? '').trim();
       if (!name) {
-        return res.status(400).json({ error: 'El nombre de categoria es obligatorio' });
+        return res.status(400).json({ error: 'El nombre de categoría es obligatorio' });
       }
 
       const updated = await prisma.category.update({
@@ -51,12 +51,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     const usedByTours = await prisma.tour.count({ where: { categoryId: id } });
     if (usedByTours > 0) {
-      return res.status(400).json({ error: 'No puedes eliminar una categoria usada por tours existentes.' });
+      return res.status(400).json({ error: 'No puedes eliminar una categoría usada por tours existentes.' });
     }
 
     await prisma.category.delete({ where: { id } });
     return res.status(200).json({ ok: true, deletedId: id });
   } catch {
-    return res.status(500).json({ error: 'No se pudo procesar la categoria en la base de datos.' });
+    return res.status(500).json({ error: 'No se pudo procesar la categoría en la base de datos.' });
   }
 }

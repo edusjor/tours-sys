@@ -294,7 +294,7 @@ export default function ToursPage() {
       .catch(() => {
         setTours(localTours);
         setCategories([]);
-        setLoadError("No se pudieron cargar tours desde el servidor. Verifica la conexion con la base de datos.");
+        setLoadError("No se pudieron cargar tours desde el servidor. Verifica la conexión con la base de datos.");
       })
       .finally(() => setLoading(false));
   };
@@ -485,7 +485,7 @@ export default function ToursPage() {
     <div className="mt-4 space-y-4">
       {filterConfig.country && (
         <div className="border-b border-slate-200/80 pb-3 last:border-b-0">
-          <p className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-500">Pais</p>
+          <p className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-500">País</p>
           <select
             value={selectedCountry}
             onChange={(e) => setSelectedCountry(e.target.value)}
@@ -515,7 +515,7 @@ export default function ToursPage() {
 
       {filterConfig.category && (
         <div className="border-b border-slate-200/80 pb-3 last:border-b-0">
-          <p className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-500">Categoria</p>
+          <p className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-500">Categoría</p>
           <select
             value={selectedCategory}
             onChange={(e) => setSelectedCategory(e.target.value)}
@@ -575,7 +575,7 @@ export default function ToursPage() {
 
       {filterConfig.durationDays && (
         <div className="border-b border-slate-200/80 pb-3 last:border-b-0">
-          <p className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-500">Duracion en dias</p>
+          <p className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-500">Duración en días</p>
           <RangeSlider
             minLimit={numericRanges.minDays}
             maxLimit={numericRanges.maxDays}
@@ -583,7 +583,7 @@ export default function ToursPage() {
             valueMax={daysMax}
             onMinChange={setDaysMin}
             onMaxChange={setDaysMax}
-            formatLabel={(value) => `${value} dia(s)`}
+            formatLabel={(value) => `${value} día(s)`}
           />
         </div>
       )}
@@ -638,7 +638,7 @@ export default function ToursPage() {
             <input
               value={searchText}
               onChange={(e) => setSearchText(e.target.value)}
-              placeholder="Buscar tour por nombre, descripcion, pais o actividad"
+              placeholder="Buscar tour por nombre, descripción, país o actividad"
               className="w-full rounded-lg border border-slate-300 px-3 py-2"
             />
           </div>

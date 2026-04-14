@@ -14,7 +14,7 @@ function normalize(value: unknown): string {
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== 'POST') return res.status(405).json({ error: 'Metodo no permitido' });
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Método no permitido' });
 
   const body = (req.body || {}) as ContactPayload;
   const nombre = normalize(body.nombre);
@@ -24,7 +24,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const mensaje = normalize(body.mensaje);
 
   if (!nombre || !email || !telefono || !mensaje || !asunto) {
-    return res.status(400).json({ error: 'Nombre, email, telefono y mensaje son obligatorios.' });
+    return res.status(400).json({ error: 'Nombre, email, teléfono y mensaje son obligatorios.' });
   }
 
   const smtpHost = process.env.SMTP_HOST;
@@ -61,7 +61,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         '',
         `Nombre: ${nombre}`,
         `Correo: ${email}`,
-        `Telefono: ${telefono}`,
+        `Teléfono: ${telefono}`,
         `Asunto: ${asunto}`,
         '',
         'Mensaje:',
@@ -90,7 +90,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                     <td style="font-size:15px;color:#0f172a;"><a href="mailto:${email}" style="color:#0369a1;text-decoration:none;">${email}</a></td>
                   </tr>
                   <tr>
-                    <td style="font-size:13px;font-weight:700;color:#475569;vertical-align:top;">Telefono</td>
+                    <td style="font-size:13px;font-weight:700;color:#475569;vertical-align:top;">Teléfono</td>
                     <td style="font-size:15px;color:#0f172a;"><a href="tel:${telefono.replace(/\s+/g, '')}" style="color:#0369a1;text-decoration:none;">${telefono}</a></td>
                   </tr>
                   <tr>

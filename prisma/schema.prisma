@@ -82,6 +82,9 @@ model Reservation {
   sinpeReceiptUrl String?
   promoCode String?
   scheduleTime String?
+  packageTitle String?
+  priceBreakdown Json?
+  totalAmount Float?
   paid      Boolean  @default(false)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

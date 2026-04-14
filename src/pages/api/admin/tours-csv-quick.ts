@@ -405,9 +405,9 @@ async function importQuickCsv(csvText: string) {
   }
 
   const fallbackCategory = await prisma.category.upsert({
-    where: { name: 'Sin categoria' },
+    where: { name: 'Sin categoría' },
     update: {},
-    create: { name: 'Sin categoria' },
+    create: { name: 'Sin categoría' },
     select: { id: true },
   });
 
@@ -500,7 +500,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(200).send(csv);
     } catch (error) {
       const detail = error instanceof Error ? error.message : 'Error desconocido';
-      return res.status(500).json({ error: 'No se pudo exportar el CSV rapido.', detail });
+      return res.status(500).json({ error: 'No se pudo exportar el CSV rápido.', detail });
     }
   }
 
@@ -515,9 +515,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(200).json({ ok: true, ...summary });
     } catch (error) {
       const detail = error instanceof Error ? error.message : 'Error desconocido';
-      return res.status(500).json({ error: 'No se pudo importar el CSV rapido.', detail });
+      return res.status(500).json({ error: 'No se pudo importar el CSV rápido.', detail });
     }
   }
 
-  return res.status(405).json({ error: 'Metodo no permitido' });
+  return res.status(405).json({ error: 'Método no permitido' });
 }

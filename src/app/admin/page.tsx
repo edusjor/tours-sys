@@ -166,12 +166,12 @@ const defaultFilterConfig: FilterConfig = {
 };
 
 const filterConfigLabels: Record<keyof FilterConfig, string> = {
-  country: "Pais",
+  country: "País",
   zone: "Zona",
   price: "Precio",
-  durationDays: "Duracion (dias)",
+  durationDays: "Duración (días)",
   activityType: "Tipo de actividad",
-  category: "Categoria",
+  category: "Categoría",
   difficulty: "Dificultad",
   featured: "Destacado",
 };
@@ -1320,14 +1320,14 @@ function AdminPageContent() {
       });
 
       if (!res.ok) {
-        setLoginError("Usuario o contrasena incorrectos.");
+        setLoginError("Usuario o contraseña incorrectos.");
         return;
       }
 
       setIsAuthenticated(true);
       setLoginError("");
     } catch {
-      setLoginError("No se pudo iniciar sesion. Intenta nuevamente.");
+      setLoginError("No se pudo iniciar sesión. Intenta nuevamente.");
     }
   };
 
@@ -1359,7 +1359,7 @@ function AdminPageContent() {
       const res = await fetch("/api/admin/media");
       if (res.status === 401) {
         setIsAuthenticated(false);
-        setFeedback({ type: "error", message: "Sesion expirada. Inicia sesion nuevamente." });
+        setFeedback({ type: "error", message: "Sesión expirada. Inicia sesión nuevamente." });
         return;
       }
 
@@ -1401,14 +1401,14 @@ function AdminPageContent() {
 
       if (res.status === 401) {
         setIsAuthenticated(false);
-        setFeedback({ type: "error", message: "Sesion expirada. Inicia sesion nuevamente." });
+        setFeedback({ type: "error", message: "Sesión expirada. Inicia sesión nuevamente." });
         return;
       }
 
       if (!res.ok) {
         const errorData = await res.json().catch(() => null);
         const detail = typeof errorData?.detail === "string" ? ` (${errorData.detail})` : "";
-        setFeedback({ type: "error", message: `${errorData?.error || "No se pudieron subir las imagenes."}${detail}` });
+        setFeedback({ type: "error", message: `${errorData?.error || "No se pudieron subir las imágenes."}${detail}` });
         return;
       }
 
@@ -1418,14 +1418,14 @@ function AdminPageContent() {
         : [];
 
       if (!urls.length) {
-        setFeedback({ type: "error", message: "No se recibieron URLs validas de imagen." });
+        setFeedback({ type: "error", message: "No se recibieron URLs válidas de imagen." });
         return;
       }
 
       addImageUrlsToTour(urls);
-      setFeedback({ type: "success", message: `Se subieron ${urls.length} imagenes a /uploads/tours.` });
+      setFeedback({ type: "success", message: `Se subieron ${urls.length} imágenes a /uploads/tours.` });
     } catch {
-      setFeedback({ type: "error", message: "Error de conexion al subir imagenes." });
+      setFeedback({ type: "error", message: "Error de conexión al subir imágenes." });
     } finally {
       setIsGalleryUploading(false);
     }
@@ -1892,11 +1892,11 @@ function AdminPageContent() {
 
     const text = await file.text();
     if (!text.trim()) {
-      setFeedback({ type: "error", message: "El archivo CSV rapido esta vacio." });
+      setFeedback({ type: "error", message: "El archivo CSV rápido está vacío." });
       return;
     }
 
-    setFeedback({ type: "success", message: "Importando CSV rapido..." });
+    setFeedback({ type: "success", message: "Importando CSV rápido..." });
 
     try {
       const res = await fetch("/api/admin/tours-csv-quick", {
@@ -1907,17 +1907,17 @@ function AdminPageContent() {
 
       const payload = await res.json().catch(() => null);
       if (!res.ok) {
-        setFeedback({ type: "error", message: payload?.error || "No se pudo importar el CSV rapido." });
+        setFeedback({ type: "error", message: payload?.error || "No se pudo importar el CSV rápido." });
         return;
       }
 
       await loadData();
       setFeedback({
         type: "success",
-        message: `CSV rapido importado: ${Number(payload?.created ?? 0)} creados, ${Number(payload?.updated ?? 0)} actualizados${Number(payload?.skipped ?? 0) > 0 ? `, ${Number(payload?.skipped ?? 0)} omitidos` : ""}.`,
+        message: `CSV rápido importado: ${Number(payload?.created ?? 0)} creados, ${Number(payload?.updated ?? 0)} actualizados${Number(payload?.skipped ?? 0) > 0 ? `, ${Number(payload?.skipped ?? 0)} omitidos` : ""}.`,
       });
     } catch {
-      setFeedback({ type: "error", message: "Error de red al importar CSV rapido." });
+      setFeedback({ type: "error", message: "Error de red al importar CSV rápido." });
     } finally {
       if (quickCsvInputRef.current) quickCsvInputRef.current.value = "";
     }
@@ -1928,16 +1928,16 @@ function AdminPageContent() {
       const res = await fetch("/api/admin/tours-csv-quick");
       if (!res.ok) {
         const payload = await res.json().catch(() => null);
-        setFeedback({ type: "error", message: payload?.error || "No se pudo exportar el CSV rapido." });
+        setFeedback({ type: "error", message: payload?.error || "No se pudo exportar el CSV rápido." });
         return;
       }
 
       const csv = await res.text();
       const timestamp = getCsvTimestamp();
       downloadCsv(csv, `tours-quick-format-${timestamp}.csv`);
-      setFeedback({ type: "success", message: "CSV rapido exportado correctamente." });
+      setFeedback({ type: "success", message: "CSV rápido exportado correctamente." });
     } catch {
-      setFeedback({ type: "error", message: "Error de red al exportar CSV rapido." });
+      setFeedback({ type: "error", message: "Error de red al exportar CSV rápido." });
     }
   };
 
@@ -2002,7 +2002,7 @@ function AdminPageContent() {
     } catch {
       setFeedback({
         type: "error",
-        message: "No se pudo guardar el tour localmente. Intenta con imagenes mas ligeras.",
+        message: "No se pudo guardar el tour localmente. Intenta con imágenes más ligeras.",
       });
       return false;
     }
@@ -2015,7 +2015,7 @@ function AdminPageContent() {
       notifyToursSync();
       return true;
     } catch {
-      setFeedback({ type: "error", message: "No se pudieron guardar las categorias localmente." });
+      setFeedback({ type: "error", message: "No se pudieron guardar las categorías localmente." });
       return false;
     }
   };
@@ -2026,7 +2026,7 @@ function AdminPageContent() {
     const orderedImageList = orderImagesWithFeatured(imageList, featuredImageUrl);
 
     const category = categories.find((c) => c.id === categoryId);
-    const payloadCategory = category ? { id: category.id, name: category.name } : { id: 0, name: "Sin categoria" };
+    const payloadCategory = category ? { id: category.id, name: category.name } : { id: 0, name: "Sin categoría" };
 
     const normalizedTourPackages = ensureSingleBaseAcrossEditorPackages(tourPackages);
 
@@ -2121,13 +2121,13 @@ function AdminPageContent() {
 
           if (res.status === 401) {
             setIsAuthenticated(false);
-            setFeedback({ type: "error", message: "Sesion expirada. Inicia sesion nuevamente." });
+            setFeedback({ type: "error", message: "Sesión expirada. Inicia sesión nuevamente." });
             return false;
           }
 
           if (!res.ok) {
             if (res.status === 413) {
-              setFeedback({ type: "error", message: "Las imagenes del tour exceden el limite permitido. Reduce cantidad o tamano de imagenes." });
+              setFeedback({ type: "error", message: "Las imágenes del tour exceden el límite permitido. Reduce cantidad o tamaño de imágenes." });
               return false;
             }
             setFeedback({ type: "error", message: "No se pudo actualizar el tour en la base de datos." });
@@ -2137,7 +2137,7 @@ function AdminPageContent() {
           const savedTour = await res.json().catch(() => null);
           updatedTours = updatedTours.map((tour) => (tour.id === editingTourId ? { ...tour, ...payload, ...(savedTour || {}) } : tour));
         } catch {
-          setFeedback({ type: "error", message: "Error de conexion al actualizar el tour en la base de datos." });
+          setFeedback({ type: "error", message: "Error de conexión al actualizar el tour en la base de datos." });
           return false;
         }
         setFeedback({ type: "success", message: "Tour actualizado correctamente." });
@@ -2180,7 +2180,7 @@ function AdminPageContent() {
           });
           if (res.status === 401) {
             setIsAuthenticated(false);
-            setFeedback({ type: "error", message: "Sesion expirada. Inicia sesion nuevamente." });
+            setFeedback({ type: "error", message: "Sesión expirada. Inicia sesión nuevamente." });
             return false;
           }
 
@@ -2190,14 +2190,14 @@ function AdminPageContent() {
             createdTour = created;
           } else {
             if (res.status === 413) {
-              setFeedback({ type: "error", message: "Las imagenes del tour exceden el limite permitido. Reduce cantidad o tamano de imagenes." });
+              setFeedback({ type: "error", message: "Las imágenes del tour exceden el límite permitido. Reduce cantidad o tamaño de imágenes." });
               return false;
             }
             setFeedback({ type: "error", message: "No se pudo crear el tour en la base de datos." });
             return false;
           }
         } catch {
-          setFeedback({ type: "error", message: "Error de conexion al crear el tour en la base de datos." });
+          setFeedback({ type: "error", message: "Error de conexión al crear el tour en la base de datos." });
           return false;
         }
 
@@ -2341,7 +2341,7 @@ function AdminPageContent() {
 
       if (res.status === 401) {
         setIsAuthenticated(false);
-        setFeedback({ type: "error", message: "Sesion expirada. Inicia sesion nuevamente." });
+        setFeedback({ type: "error", message: "Sesión expirada. Inicia sesión nuevamente." });
         return;
       }
 
@@ -2356,12 +2356,12 @@ function AdminPageContent() {
       if (!saved) return;
       setFeedback({ type: "success", message: "Estado actualizado." });
     } catch {
-      setFeedback({ type: "error", message: "Error de conexion al actualizar el estado del tour." });
+      setFeedback({ type: "error", message: "Error de conexión al actualizar el estado del tour." });
     }
   };
 
   const handleDeleteTour = async (tourId: number) => {
-    const confirmDelete = window.confirm("Este tour se movera a la papelera. Deseas continuar?");
+    const confirmDelete = window.confirm("Este tour se moverá a la papelera. ¿Deseas continuar?");
     if (!confirmDelete) return;
 
     try {
@@ -2379,7 +2379,7 @@ function AdminPageContent() {
 
       if (res.status === 401) {
         setIsAuthenticated(false);
-        setFeedback({ type: "error", message: "Sesion expirada. Inicia sesion nuevamente." });
+        setFeedback({ type: "error", message: "Sesión expirada. Inicia sesión nuevamente." });
         return;
       }
 
@@ -2397,12 +2397,12 @@ function AdminPageContent() {
       }
       setFeedback({ type: "success", message: "Tour enviado a papelera." });
     } catch {
-      setFeedback({ type: "error", message: "Error de conexion al mover el tour a papelera." });
+      setFeedback({ type: "error", message: "Error de conexión al mover el tour a papelera." });
     }
   };
 
   const handleRestoreTour = async (tourId: number) => {
-    const confirmRestore = window.confirm("Se reactivara este tour y volvera a estar visible. Deseas continuar?");
+    const confirmRestore = window.confirm("Se reactivará este tour y volverá a estar visible. ¿Deseas continuar?");
     if (!confirmRestore) return;
 
     try {
@@ -2419,7 +2419,7 @@ function AdminPageContent() {
 
       if (res.status === 401) {
         setIsAuthenticated(false);
-        setFeedback({ type: "error", message: "Sesion expirada. Inicia sesion nuevamente." });
+        setFeedback({ type: "error", message: "Sesión expirada. Inicia sesión nuevamente." });
         return;
       }
 
@@ -2432,12 +2432,12 @@ function AdminPageContent() {
       await loadData();
       setFeedback({ type: "success", message: "Tour reactivado correctamente." });
     } catch {
-      setFeedback({ type: "error", message: "Error de conexion al restaurar el tour." });
+      setFeedback({ type: "error", message: "Error de conexión al restaurar el tour." });
     }
   };
 
   const handlePermanentDeleteTour = async (tourId: number) => {
-    const confirmDelete = window.confirm("Esta accion eliminara el tour de forma permanente. Deseas continuar?");
+    const confirmDelete = window.confirm("Esta acción eliminará el tour de forma permanente. ¿Deseas continuar?");
     if (!confirmDelete) return;
 
     try {
@@ -2445,7 +2445,7 @@ function AdminPageContent() {
 
       if (res.status === 401) {
         setIsAuthenticated(false);
-        setFeedback({ type: "error", message: "Sesion expirada. Inicia sesion nuevamente." });
+        setFeedback({ type: "error", message: "Sesión expirada. Inicia sesión nuevamente." });
         return;
       }
 
@@ -2463,13 +2463,13 @@ function AdminPageContent() {
       }
       setFeedback({ type: "success", message: "Tour eliminado permanentemente." });
     } catch {
-      setFeedback({ type: "error", message: "Error de conexion al eliminar el tour permanentemente." });
+      setFeedback({ type: "error", message: "Error de conexión al eliminar el tour permanentemente." });
     }
   };
 
   const handleAddCategory = async () => {
     if (!newCategoryName.trim()) {
-      setFeedback({ type: "error", message: "El nombre de categoria es obligatorio." });
+      setFeedback({ type: "error", message: "El nombre de categoría es obligatorio." });
       return;
     }
 
@@ -2482,20 +2482,20 @@ function AdminPageContent() {
 
       if (res.status === 401) {
         setIsAuthenticated(false);
-        setFeedback({ type: "error", message: "Sesion expirada. Inicia sesion nuevamente." });
+        setFeedback({ type: "error", message: "Sesión expirada. Inicia sesión nuevamente." });
         return;
       }
 
       if (!res.ok) {
         const errorData = await res.json().catch(() => null);
-        setFeedback({ type: "error", message: errorData?.error || "No se pudo crear la categoria." });
+        setFeedback({ type: "error", message: errorData?.error || "No se pudo crear la categoría." });
         return;
       }
 
       const created = (await res.json()) as Category;
       const normalizedCreated = normalizeCategory(created as CategoryInput);
       if (!normalizedCreated) {
-        setFeedback({ type: "error", message: "La API devolvio una categoria invalida." });
+        setFeedback({ type: "error", message: "La API devolvió una categoría inválida." });
         return;
       }
 
@@ -2505,16 +2505,16 @@ function AdminPageContent() {
       setNewCategoryName("");
       setNewCategoryDescription("");
       setCategoryId(normalizedCreated.id);
-      setFeedback({ type: "success", message: "Categoria creada." });
+      setFeedback({ type: "success", message: "Categoría creada." });
     } catch {
-      setFeedback({ type: "error", message: "Error de conexion al crear la categoria." });
+      setFeedback({ type: "error", message: "Error de conexión al crear la categoría." });
     }
   };
 
   const handleAddCategoryInline = async () => {
     const normalizedName = inlineCategoryName.trim();
     if (!normalizedName) {
-      setFeedback({ type: "error", message: "Ingresa un nombre de categoria." });
+      setFeedback({ type: "error", message: "Ingresa un nombre de categoría." });
       return;
     }
 
@@ -2522,7 +2522,7 @@ function AdminPageContent() {
     if (existing) {
       setCategoryId(existing.id);
       setInlineCategoryName("");
-      setFeedback({ type: "success", message: "Categoria existente seleccionada." });
+      setFeedback({ type: "success", message: "Categoría existente seleccionada." });
       return;
     }
 
@@ -2535,20 +2535,20 @@ function AdminPageContent() {
 
       if (res.status === 401) {
         setIsAuthenticated(false);
-        setFeedback({ type: "error", message: "Sesion expirada. Inicia sesion nuevamente." });
+        setFeedback({ type: "error", message: "Sesión expirada. Inicia sesión nuevamente." });
         return;
       }
 
       if (!res.ok) {
         const errorData = await res.json().catch(() => null);
-        setFeedback({ type: "error", message: errorData?.error || "No se pudo crear la categoria." });
+        setFeedback({ type: "error", message: errorData?.error || "No se pudo crear la categoría." });
         return;
       }
 
       const created = (await res.json()) as Category;
       const normalizedCreated = normalizeCategory(created as CategoryInput);
       if (!normalizedCreated) {
-        setFeedback({ type: "error", message: "La API devolvio una categoria invalida." });
+        setFeedback({ type: "error", message: "La API devolvió una categoría inválida." });
         return;
       }
 
@@ -2558,9 +2558,9 @@ function AdminPageContent() {
 
       setCategoryId(normalizedCreated.id);
       setInlineCategoryName("");
-      setFeedback({ type: "success", message: "Categoria creada y seleccionada." });
+      setFeedback({ type: "success", message: "Categoría creada y seleccionada." });
     } catch {
-      setFeedback({ type: "error", message: "Error de conexion al crear la categoria." });
+      setFeedback({ type: "error", message: "Error de conexión al crear la categoría." });
     }
   };
 
@@ -2574,7 +2574,7 @@ function AdminPageContent() {
     if (!editingCategoryId) return;
     if (isSavingCategoryEdit) return;
     if (!editingCategoryName.trim()) {
-      setFeedback({ type: "error", message: "El nombre de categoria es obligatorio." });
+      setFeedback({ type: "error", message: "El nombre de categoría es obligatorio." });
       return;
     }
 
@@ -2600,13 +2600,13 @@ function AdminPageContent() {
 
         if (res.status === 401) {
           setIsAuthenticated(false);
-          setFeedback({ type: "error", message: "Sesion expirada. Inicia sesion nuevamente." });
+          setFeedback({ type: "error", message: "Sesión expirada. Inicia sesión nuevamente." });
           return;
         }
 
         if (!res.ok) {
           const errorData = await res.json().catch(() => null);
-          setFeedback({ type: "error", message: errorData?.error || "No se pudo actualizar la categoria." });
+          setFeedback({ type: "error", message: errorData?.error || "No se pudo actualizar la categoría." });
           return;
         }
 
@@ -2614,14 +2614,14 @@ function AdminPageContent() {
         const toursSaved = saveToursLocal(nextTours);
         if (!categoriesSaved || !toursSaved) return;
       } catch {
-        setFeedback({ type: "error", message: "Error de conexion al actualizar la categoria." });
+        setFeedback({ type: "error", message: "Error de conexión al actualizar la categoría." });
         return;
       }
 
       setEditingCategoryId(null);
       setEditingCategoryName("");
       setEditingCategoryDescription("");
-      setFeedback({ type: "success", message: "Categoria actualizada." });
+      setFeedback({ type: "success", message: "Categoría actualizada." });
     } finally {
       setIsSavingCategoryEdit(false);
     }
@@ -2630,7 +2630,7 @@ function AdminPageContent() {
   const handleDeleteCategory = async (categoryIdToDelete: number) => {
     const usedByTours = allTours.some((tour) => tour.category?.id === categoryIdToDelete);
     if (usedByTours) {
-      setFeedback({ type: "error", message: "No puedes eliminar una categoria usada por tours existentes." });
+      setFeedback({ type: "error", message: "No puedes eliminar una categoría usada por tours existentes." });
       return;
     }
 
@@ -2639,13 +2639,13 @@ function AdminPageContent() {
 
       if (res.status === 401) {
         setIsAuthenticated(false);
-        setFeedback({ type: "error", message: "Sesion expirada. Inicia sesion nuevamente." });
+        setFeedback({ type: "error", message: "Sesión expirada. Inicia sesión nuevamente." });
         return;
       }
 
       if (!res.ok) {
         const errorData = await res.json().catch(() => null);
-        setFeedback({ type: "error", message: errorData?.error || "No se pudo eliminar la categoria." });
+        setFeedback({ type: "error", message: errorData?.error || "No se pudo eliminar la categoría." });
         return;
       }
 
@@ -2654,9 +2654,9 @@ function AdminPageContent() {
       if (!saved) return;
 
       if (categoryId === categoryIdToDelete) setCategoryId(nextCategories[0]?.id ?? null);
-      setFeedback({ type: "success", message: "Categoria eliminada." });
+      setFeedback({ type: "success", message: "Categoría eliminada." });
     } catch {
-      setFeedback({ type: "error", message: "Error de conexion al eliminar la categoria." });
+      setFeedback({ type: "error", message: "Error de conexión al eliminar la categoría." });
     }
   };
 
@@ -2666,7 +2666,7 @@ function AdminPageContent() {
     try {
       localStorage.setItem(FILTER_CONFIG_KEY, JSON.stringify(filterConfig));
       await new Promise((resolve) => setTimeout(resolve, 500));
-      setFeedback({ type: "success", message: "Configuracion de filtros guardada." });
+      setFeedback({ type: "success", message: "Configuración de filtros guardada." });
     } finally {
       setIsSavingFilterConfig(false);
     }
@@ -2750,7 +2750,7 @@ function AdminPageContent() {
     return (
       <section className="mx-auto max-w-md px-4 py-16">
         <article className="rounded-3xl border border-slate-200 bg-white p-6 shadow-lg shadow-slate-300/40">
-          <p className="text-sm font-semibold text-slate-600">Verificando sesion de administrador...</p>
+          <p className="text-sm font-semibold text-slate-600">Verificando sesión de administrador...</p>
         </article>
       </section>
     );
@@ -2761,7 +2761,7 @@ function AdminPageContent() {
       <section className="mx-auto max-w-md px-4 py-16">
         <article className="rounded-3xl border border-slate-200 bg-white p-6 shadow-lg shadow-slate-300/40">
           <h1 className="text-2xl font-extrabold text-slate-900">Ingreso admin</h1>
-          <p className="mt-2 text-sm text-slate-600">Accede para gestionar tours, categorias y filtros visibles.</p>
+          <p className="mt-2 text-sm text-slate-600">Accede para gestionar tours, categorías y filtros visibles.</p>
 
           <form className="mt-5 space-y-3" onSubmit={handleLogin}>
             <label className="block text-sm font-bold text-slate-700">
@@ -2769,8 +2769,8 @@ function AdminPageContent() {
               <input className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2" placeholder="Usuario" value={loginUser} onChange={(e) => setLoginUser(e.target.value)} />
             </label>
             <label className="block text-sm font-bold text-slate-700">
-              Contrasena
-              <input type="password" className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2" placeholder="Contrasena" value={loginPass} onChange={(e) => setLoginPass(e.target.value)} />
+              Contraseña
+              <input type="password" className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2" placeholder="Contraseña" value={loginPass} onChange={(e) => setLoginPass(e.target.value)} />
             </label>
             <button type="submit" className="w-full rounded-xl bg-emerald-700 px-4 py-2 font-bold text-white hover:bg-emerald-600">
               Entrar al panel
@@ -2788,15 +2788,15 @@ function AdminPageContent() {
     <section className="mx-auto max-w-7xl px-4 py-10">
       <div className="mb-6 flex flex-col gap-4 rounded-3xl bg-gradient-to-r from-emerald-900 via-emerald-700 to-teal-600 p-6 text-white md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="text-3xl font-extrabold">Panel de administracion</h1>
+          <h1 className="text-3xl font-extrabold">Panel de administración</h1>
           <p className="mt-1 text-sm text-emerald-100">
             {isEditorRoute
               ? "Editor de tours en pantalla completa para trabajar sin distracciones."
-              : "Administra tours, categorias, filtros y recursos desde un solo lugar."}
+              : "Administra tours, categorías, filtros y recursos desde un solo lugar."}
           </p>
         </div>
         <button type="button" onClick={handleLogout} className="rounded-xl bg-white/20 px-4 py-2 text-sm font-bold hover:bg-white/30">
-          Cerrar sesion
+          Cerrar sesión
         </button>
       </div>
 
@@ -2810,8 +2810,8 @@ function AdminPageContent() {
       <article className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
         <div className="flex flex-col gap-3">
           <div>
-            <h2 className="text-xl font-extrabold text-slate-900">Gestion de tours</h2>
-            <p className="mt-1 text-sm text-slate-600">Lista compacta para administrar tus tours rapidamente.</p>
+            <h2 className="text-xl font-extrabold text-slate-900">Gestión de tours</h2>
+            <p className="mt-1 text-sm text-slate-600">Lista compacta para administrar tus tours rápidamente.</p>
           </div>
 
           <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-3">
@@ -2819,7 +2819,7 @@ function AdminPageContent() {
               <input
                 value={searchTour}
                 onChange={(e) => setSearchTour(e.target.value)}
-                placeholder="Buscar por nombre, pais o actividad"
+                placeholder="Buscar por nombre, país o actividad"
                 className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm sm:max-w-xl"
               />
               <div className="flex items-center gap-2">
@@ -2873,7 +2873,7 @@ function AdminPageContent() {
                 Filtros visibles
               </button>
               <button type="button" onClick={() => setIsCategoryManagerOpen(true)} className="whitespace-nowrap rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 md:text-sm">
-                Categorias
+                Categorías
               </button>
             </div>
           </div>
@@ -2915,7 +2915,7 @@ function AdminPageContent() {
             Mostrando {tabTours.length === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1} - {Math.min(currentPage * itemsPerPage, tabTours.length)} de {tabTours.length} tours
           </p>
           <div className="flex items-center gap-2 text-sm">
-            <span className="font-semibold text-slate-600">Tours por pagina</span>
+            <span className="font-semibold text-slate-600">Tours por página</span>
             <select
               value={itemsPerPage}
               onChange={(e) => setItemsPerPage(Number(e.target.value))}
@@ -2938,14 +2938,14 @@ function AdminPageContent() {
                     type="checkbox"
                     checked={isCurrentPageFullySelected}
                     onChange={(e) => handleToggleSelectPageTours(e.target.checked)}
-                    aria-label="Seleccionar tours de la pagina"
+                    aria-label="Seleccionar tours de la página"
                   />
                 </th>
                 <th className="px-3 py-3">Tour</th>
-                <th className="px-3 py-3">Categoria</th>
+                <th className="px-3 py-3">Categoría</th>
                 <th className="px-3 py-3">{activeTab === "PAPELERA" ? "Eliminado" : "Estado"}</th>
                 <th className="px-3 py-3">Precio</th>
-                <th className="px-3 py-3">Pais</th>
+                <th className="px-3 py-3">País</th>
                 <th className="px-3 py-3">Zona</th>
                 <th className="px-3 py-3">Actividad</th>
                 <th className="px-3 py-3">Creado</th>
@@ -2978,7 +2978,7 @@ function AdminPageContent() {
                       </div>
                     </div>
                   </td>
-                  <td className="px-3 py-3 text-slate-700">{tour.category?.name ?? "Sin categoria"}</td>
+                  <td className="px-3 py-3 text-slate-700">{tour.category?.name ?? "Sin categoría"}</td>
                   <td className="px-3 py-3">
                     {activeTab === "PAPELERA" ? (
                       <span className="text-xs text-slate-600">{tour.deletedAt ? new Date(tour.deletedAt).toLocaleString() : "-"}</span>
@@ -3027,7 +3027,7 @@ function AdminPageContent() {
               {paginatedTours.length === 0 && (
                 <tr>
                   <td colSpan={10} className="px-3 py-5 text-center text-slate-500">
-                    No hay tours para mostrar en esta pestana.
+                    No hay tours para mostrar en esta pestaña.
                   </td>
                 </tr>
               )}
@@ -3045,7 +3045,7 @@ function AdminPageContent() {
             Anterior
           </button>
           <span className="text-sm font-semibold text-slate-600">
-            Pagina {currentPage} de {totalPages}
+            Página {currentPage} de {totalPages}
           </span>
           <button
             type="button"
@@ -3092,7 +3092,7 @@ function AdminPageContent() {
                 <div className="grid gap-3">
                   <label className="block text-sm font-bold text-slate-700">
                     Titulo
-                    <input className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2" placeholder="Titulo" value={title} onChange={(e) => setTitle(e.target.value)} required />
+                    <input className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2" placeholder="Título" value={title} onChange={(e) => setTitle(e.target.value)} required />
                   </label>
                   <label className="block text-sm font-bold text-slate-700">
                     Link del tour
@@ -3107,13 +3107,13 @@ function AdminPageContent() {
                     </div>
                     <span className="mt-1 block text-xs font-semibold text-slate-500">
                       {status === "BORRADOR"
-                        ? "En borrador se actualiza automaticamente al cambiar el titulo. Tambien puedes editarlo manualmente."
-                        : "Cuando el tour esta activo o no activo, este link solo cambia de forma manual."}
+                        ? "En borrador se actualiza automáticamente al cambiar el título. También puedes editarlo manualmente."
+                        : "Cuando el tour está activo o no activo, este link solo cambia de forma manual."}
                     </span>
                   </label>
                   <label className="block text-sm font-bold text-slate-700">
-                    Descripcion
-                    <textarea className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2" placeholder="Descripcion" rows={4} value={description} onChange={(e) => setDescription(e.target.value)} required />
+                    Descripción
+                    <textarea className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2" placeholder="Descripción" rows={4} value={description} onChange={(e) => setDescription(e.target.value)} required />
                   </label>
                 </div>
               </section>
@@ -3133,7 +3133,7 @@ function AdminPageContent() {
                       </button>
                     </div>
                     <p className="mt-1 text-sm text-slate-600">
-                      Si no agregas paquetes ni precios, el tour se guardara solo informativo (sin opcion de reserva).
+                      Si no agregas paquetes ni precios, el tour se guardará solo informativo (sin opción de reserva).
                     </p>
                     <div className="mt-3 flex flex-wrap items-center gap-2">
                       <button
@@ -3141,7 +3141,7 @@ function AdminPageContent() {
                         onClick={() => setPackageOpenMode("multiple")}
                         className={`rounded-lg px-3 py-1.5 text-xs font-semibold ${packageOpenMode === "multiple" ? "bg-white text-emerald-700" : "bg-white/60 text-slate-700"}`}
                       >
-                        Multiples abiertos
+                        Múltiples abiertos
                       </button>
                       <button
                         type="button"
@@ -3195,7 +3195,7 @@ function AdminPageContent() {
                           {isExpanded && (
                             <div className="space-y-3 px-4 py-4">
                               <div className="flex items-center justify-between gap-2 rounded-xl bg-slate-50 px-3 py-2 ring-1 ring-slate-200/70">
-                                <p className="text-sm font-extrabold text-slate-800">Configuracion del paquete</p>
+                                <p className="text-sm font-extrabold text-slate-800">Configuración del paquete</p>
                                 <button
                                   type="button"
                                   onClick={() => handleRemoveTourPackage(pkg.id)}
@@ -3207,7 +3207,7 @@ function AdminPageContent() {
 
                               <div className="grid gap-2 md:grid-cols-2">
                                 <label className="text-xs font-semibold text-slate-600">
-                                  Titulo del paquete
+                                  Título del paquete
                                   <input
                                     className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-800"
                                     value={pkg.title}
@@ -3216,12 +3216,12 @@ function AdminPageContent() {
                                   />
                                 </label>
                                 <label className="text-xs font-semibold text-slate-600">
-                                  Descripcion (opcional)
+                                  Descripción (opcional)
                                   <input
                                     className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-800"
                                     value={pkg.description}
                                     onChange={(e) => handlePackageMetaChange(pkg.id, "description", e.target.value)}
-                                    placeholder="Descripcion corta del paquete"
+                                    placeholder="Descripción corta del paquete"
                                   />
                                 </label>
                               </div>
@@ -3307,8 +3307,8 @@ function AdminPageContent() {
               <details className="overflow-hidden rounded-2xl bg-white ring-1 ring-slate-200/70">
                 <summary className="cursor-pointer bg-slate-50 px-4 py-3 text-sm font-bold uppercase tracking-wide text-slate-700">Galeria</summary>
                 <div className="mt-3 px-4 pb-4">
-                  <p className="text-xs font-bold uppercase tracking-wide text-slate-500">Imagenes del tour</p>
-                  <p className="mt-1 text-xs text-slate-600">Arrastra imagenes aqui o usa el boton para seleccionarlas desde tu computadora.</p>
+                  <p className="text-xs font-bold uppercase tracking-wide text-slate-500">Imágenes del tour</p>
+                  <p className="mt-1 text-xs text-slate-600">Arrastra imágenes aquí o usa el botón para seleccionarlas desde tu computadora.</p>
 
                   <input
                     ref={galleryInputRef}
@@ -3340,9 +3340,9 @@ function AdminPageContent() {
                     className={`mt-2 rounded-xl border-2 border-dashed px-4 py-6 text-center transition ${isGalleryDragActive ? "border-emerald-400 bg-emerald-50" : "border-slate-300 bg-slate-50/70 hover:border-emerald-300"} ${isGalleryUploading ? "cursor-not-allowed opacity-70" : ""}`}
                   >
                     <p className="text-sm font-semibold text-slate-700">
-                      {isGalleryUploading ? "Subiendo imagenes..." : "Haz clic aqui para seleccionar imagenes"}
+                      {isGalleryUploading ? "Subiendo imágenes..." : "Haz clic aquí para seleccionar imágenes"}
                     </p>
-                    <p className="mt-1 text-xs text-slate-500">Tambien puedes arrastrarlas y soltarlas en esta zona.</p>
+                    <p className="mt-1 text-xs text-slate-500">También puedes arrastrarlas y soltarlas en esta zona.</p>
                     {isGalleryUploading && <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-emerald-100"><span className="block h-full w-full animate-pulse bg-emerald-500" /></div>}
                   </div>
 
@@ -3353,7 +3353,7 @@ function AdminPageContent() {
                       disabled={isGalleryUploading}
                       className="rounded-lg border border-emerald-300 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700 hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-60"
                     >
-                      {isGalleryUploading ? "Subiendo..." : "Seleccionar imagenes"}
+                      {isGalleryUploading ? "Subiendo..." : "Seleccionar imágenes"}
                     </button>
                     <button
                       type="button"
@@ -3370,7 +3370,7 @@ function AdminPageContent() {
                       disabled={imageList.length === 0 || isGalleryUploading}
                       className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
                     >
-                      Dejar sin imagenes
+                      Dejar sin imágenes
                     </button>
                     <span className="text-xs text-slate-500">{imageList.length} imagen(es) cargada(s)</span>
                   </div>
@@ -3378,7 +3378,7 @@ function AdminPageContent() {
                   {isMediaPickerOpen && (
                     <div className="mt-3 rounded-xl border border-cyan-200 bg-cyan-50/50 p-3">
                       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                        <p className="text-sm font-bold text-cyan-900">Biblioteca de medios (imagenes activas)</p>
+                        <p className="text-sm font-bold text-cyan-900">Biblioteca de medios (imágenes activas)</p>
                         <div className="flex items-center gap-2">
                           <button
                             type="button"
@@ -3413,9 +3413,9 @@ function AdminPageContent() {
 
                       <div className="mt-2 max-h-72 overflow-y-auto rounded-lg border border-cyan-100 bg-white p-2">
                         {isMediaPickerLoading ? (
-                          <p className="p-2 text-sm font-semibold text-slate-600">Cargando imagenes...</p>
+                          <p className="p-2 text-sm font-semibold text-slate-600">Cargando imágenes...</p>
                         ) : mediaPickerVisibleItems.length === 0 ? (
-                          <p className="p-2 text-sm text-slate-500">No hay imagenes activas en la biblioteca.</p>
+                          <p className="p-2 text-sm text-slate-500">No hay imágenes activas en la biblioteca.</p>
                         ) : (
                           <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
                             {mediaPickerVisibleItems.map((item) => {
@@ -3477,7 +3477,7 @@ function AdminPageContent() {
 
                   {imageList.length === 0 && (
                     <p className="mt-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600">
-                      Este tour se guardara sin imagenes. Puedes agregar una despues si lo deseas.
+                      Este tour se guardará sin imágenes. Puedes agregar una después si lo deseas.
                     </p>
                   )}
                 </div>
@@ -3487,11 +3487,11 @@ function AdminPageContent() {
                 <summary className="cursor-pointer bg-slate-50 px-4 py-3 text-sm font-bold text-slate-800">Contenido del tour</summary>
                 <div className="mt-3 grid gap-3 px-4 pb-4">
                 <label className="text-sm font-bold text-slate-700">
-                  Lo que esta incluido
+                  Lo que está incluido
                   <textarea
                     className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2"
                     rows={3}
-                    placeholder="Un item por linea"
+                    placeholder="Un ítem por línea"
                     value={includedText}
                     onChange={(e) => setIncludedText(e.target.value)}
                   />
@@ -3502,7 +3502,7 @@ function AdminPageContent() {
                   <textarea
                     className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2"
                     rows={3}
-                    placeholder="Una recomendacion por linea"
+                    placeholder="Una recomendación por línea"
                     value={recommendationsText}
                     onChange={(e) => setRecommendationsText(e.target.value)}
                   />
@@ -3579,12 +3579,12 @@ function AdminPageContent() {
                         </button>
                       </div>
                     ))}
-                    {faqsList.length === 0 && <p className="text-xs text-slate-500">Aun no has agregado preguntas frecuentes.</p>}
+                    {faqsList.length === 0 && <p className="text-xs text-slate-500">Aún no has agregado preguntas frecuentes.</p>}
                   </div>
 
                   {isFaqBulkOpen && (
                     <div className="mt-3 rounded-xl bg-slate-100/80 p-3 ring-1 ring-slate-200/70">
-                      <p className="mb-2 text-xs font-semibold text-slate-600">Formato por linea: Pregunta | Respuesta</p>
+                      <p className="mb-2 text-xs font-semibold text-slate-600">Formato por línea: Pregunta | Respuesta</p>
                       <textarea
                         className="w-full rounded-xl border border-slate-300 px-3 py-2"
                         rows={7}
@@ -3617,7 +3617,7 @@ function AdminPageContent() {
                 <summary className="cursor-pointer bg-slate-50 px-4 py-3 text-sm font-bold text-slate-800">Fechas disponibles</summary>
                 <div className="mt-3 px-4 pb-4">
                 <p className="text-sm font-bold text-slate-700">Fechas disponibles</p>
-                <p className="text-xs text-slate-500">Puedes activar modo abierto para permitir cualquier dia o definir fechas especificas con horarios opcionales.</p>
+                <p className="text-xs text-slate-500">Puedes activar modo abierto para permitir cualquier día o definir fechas específicas con horarios opcionales.</p>
 
                 <div className="mt-3 grid gap-2 md:grid-cols-2">
                   <button
@@ -3629,7 +3629,7 @@ function AdminPageContent() {
                         : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
                     }`}
                   >
-                    Dias especificos
+                    Días específicos
                   </button>
                   <button
                     type="button"
@@ -3640,7 +3640,7 @@ function AdminPageContent() {
                         : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
                     }`}
                   >
-                    Abierto (todos los dias)
+                    Abierto (todos los días)
                   </button>
                 </div>
 
@@ -3968,12 +3968,12 @@ function AdminPageContent() {
                 </select>
               </label>
               <label className="mt-3 block text-sm font-bold text-slate-700">
-                Minimo de personas
+                Mínimo de personas
                 <input
                   type="number"
                   min={1}
                   className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2"
-                  placeholder="Minimo de personas"
+                  placeholder="Mínimo de personas"
                   value={minPeople}
                   onChange={(e) => setMinPeople(e.target.value === "" ? "" : Number(e.target.value))}
                   required
@@ -4008,15 +4008,15 @@ function AdminPageContent() {
             </section>
 
             <section className="rounded-xl bg-slate-50/80 p-4 ring-1 ring-slate-200/70">
-              <p className="mb-4 inline-flex rounded-md bg-sky-100 px-2.5 py-1 text-xs font-extrabold uppercase tracking-wide text-sky-800">Categoria</p>
+              <p className="mb-4 inline-flex rounded-md bg-sky-100 px-2.5 py-1 text-xs font-extrabold uppercase tracking-wide text-sky-800">Categoría</p>
               <label className="block text-sm font-bold text-slate-700">
-                Categoria
+                Categoría
                 <select
                   className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2"
                   value={categoryId ?? ""}
                   onChange={(e) => setCategoryId(e.target.value === "" ? null : Number(e.target.value))}
                 >
-                  <option value="">Sin categoria</option>
+                  <option value="">Sin categoría</option>
                   {validCategories.map((cat) => (
                     <option key={cat.id} value={cat.id}>
                       {cat.name}
@@ -4024,11 +4024,11 @@ function AdminPageContent() {
                   ))}
                 </select>
               </label>
-              <label className="mt-3 block text-sm font-bold text-slate-700">Crear categoria rapida</label>
+              <label className="mt-3 block text-sm font-bold text-slate-700">Crear categoría rápida</label>
               <div className="mt-1 flex gap-2">
                 <input
                   className="w-full rounded-xl border border-slate-300 px-3 py-2"
-                  placeholder="Crear categoria rapida"
+                  placeholder="Crear categoría rápida"
                   value={inlineCategoryName}
                   onChange={(e) => setInlineCategoryName(e.target.value)}
                 />
@@ -4041,7 +4041,7 @@ function AdminPageContent() {
                 onClick={() => setIsCategoryManagerOpen(true)}
                 className="mt-3 w-full rounded-xl border border-slate-300 px-3 py-2 text-xs font-bold text-slate-700 hover:bg-white"
               >
-                Gestionar categorias
+                Gestionar categorías
               </button>
             </section>
 
@@ -4049,14 +4049,14 @@ function AdminPageContent() {
               <p className="mb-4 inline-flex rounded-md bg-amber-100 px-2.5 py-1 text-xs font-extrabold uppercase tracking-wide text-amber-800">Detalles adicionales</p>
               <div className="space-y-3">
                 <label className="block text-sm font-bold text-slate-700">
-                  Pais
-                  <input className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2" placeholder="Pais (opcional)" value={country} onChange={(e) => setCountry(e.target.value)} />
+                  País
+                  <input className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2" placeholder="País (opcional)" value={country} onChange={(e) => setCountry(e.target.value)} />
                 </label>
                 <label className="block text-sm font-bold text-slate-700">
                   Zona
                   <input
                     className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2"
-                    placeholder="Zona (opcional, puede existir sin pais)"
+                    placeholder="Zona (opcional, puede existir sin país)"
                     value={zone}
                     onChange={(e) => setZone(e.target.value)}
                   />
@@ -4075,16 +4075,16 @@ function AdminPageContent() {
                   <input className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2" placeholder="Tipo de actividad" value={activityType} onChange={(e) => setActivityType(e.target.value)} />
                 </label>
                 <label className="block text-sm font-bold text-slate-700">
-                  Duracion en dias
-                  <input type="number" min={0} className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2" placeholder="Duracion en dias" value={durationDays} onChange={(e) => setDurationDays(e.target.value === "" ? "" : Number(e.target.value))} />
+                  Duración en días
+                  <input type="number" min={0} className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2" placeholder="Duración en días" value={durationDays} onChange={(e) => setDurationDays(e.target.value === "" ? "" : Number(e.target.value))} />
                 </label>
                 <label className="block text-sm font-bold text-slate-700">
                   Dificultad
                   <input className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2" placeholder="Dificultad" value={difficulty} onChange={(e) => setDifficulty(e.target.value)} />
                 </label>
                 <label className="block text-sm font-bold text-slate-700">
-                  Tipo de guia
-                  <input className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2" placeholder="Tipo de guia" value={guideType} onChange={(e) => setGuideType(e.target.value)} />
+                  Tipo de guía
+                  <input className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2" placeholder="Tipo de guía" value={guideType} onChange={(e) => setGuideType(e.target.value)} />
                 </label>
                 <label className="block text-sm font-bold text-slate-700">
                   Transporte
@@ -4154,8 +4154,8 @@ function AdminPageContent() {
           <article className="w-full max-w-2xl rounded-2xl bg-white p-6 shadow-2xl">
             <div className="mb-4 flex items-center justify-between">
               <div>
-                <h2 className="text-xl font-extrabold text-slate-900">Categorias</h2>
-                <p className="text-sm text-slate-500">Seccion compacta para gestionar categorias.</p>
+                <h2 className="text-xl font-extrabold text-slate-900">Categorías</h2>
+                <p className="text-sm text-slate-500">Sección compacta para gestionar categorías.</p>
               </div>
               <button type="button" onClick={() => setIsCategoryManagerOpen(false)} className="rounded-lg border border-slate-300 px-3 py-1 text-xl font-bold leading-none text-slate-700">
                 X
@@ -4164,8 +4164,8 @@ function AdminPageContent() {
 
             <div className="flex w-full gap-2">
               <label className="w-full text-sm font-bold text-slate-700">
-                Nueva categoria
-                <input className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2" placeholder="Nueva categoria" value={newCategoryName} onChange={(e) => setNewCategoryName(e.target.value)} />
+                Nueva categoría
+                <input className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2" placeholder="Nueva categoría" value={newCategoryName} onChange={(e) => setNewCategoryName(e.target.value)} />
               </label>
               <button type="button" onClick={handleAddCategory} className="rounded-xl bg-emerald-700 px-3 py-2 text-sm font-bold text-white hover:bg-emerald-600">
                 Agregar
@@ -4181,13 +4181,13 @@ function AdminPageContent() {
                         className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
                         value={editingCategoryName}
                         onChange={(e) => setEditingCategoryName(e.target.value)}
-                        placeholder="Nombre de categoria"
+                        placeholder="Nombre de categoría"
                       />
                       <input
                         className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
                         value={editingCategoryDescription}
                         onChange={(e) => setEditingCategoryDescription(e.target.value)}
-                        placeholder="Descripcion (opcional)"
+                        placeholder="Descripción (opcional)"
                       />
                       <div className="flex justify-end gap-2">
                         <button
@@ -4244,7 +4244,7 @@ function AdminPageContent() {
                   )}
                 </div>
               ))}
-              {categories.length === 0 && <p className="text-sm text-slate-500">No hay categorias registradas.</p>}
+              {categories.length === 0 && <p className="text-sm text-slate-500">No hay categorías registradas.</p>}
             </div>
           </article>
         </div>

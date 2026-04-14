@@ -78,9 +78,9 @@ export default function RootLayout({
               <p className="mb-3 text-xs font-bold uppercase tracking-[0.2em] text-slate-400">Legal</p>
               <nav className="grid gap-2 text-sm font-semibold">
                 <Link href="/legal/aviso-legal">Aviso legal</Link>
-                <Link href="/legal/terminos-y-condiciones-generales">Terminos y condiciones generales</Link>
-                <Link href="/legal/politica-de-privacidad">Politica de privacidad</Link>
-                <Link href="/legal/informacion-de-cookies">Informacion de cookies</Link>
+                <Link href="/legal/terminos-y-condiciones-generales">Términos y condiciones generales</Link>
+                <Link href="/legal/politica-de-privacidad">Política de privacidad</Link>
+                <Link href="/legal/informacion-de-cookies">Información de cookies</Link>
               </nav>
             </div>
             <p className="text-xs text-slate-400 md:col-span-3">© 2026 Guapiles Linea Tours. Todos los derechos reservados.</p>

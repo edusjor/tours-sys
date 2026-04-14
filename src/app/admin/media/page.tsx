@@ -82,7 +82,7 @@ export default function AdminMediaPage() {
       const res = await fetch("/api/admin/media");
       if (res.status === 401) {
         setIsAuthenticated(false);
-        setFeedback({ type: "error", message: "Sesion expirada. Inicia sesion nuevamente." });
+        setFeedback({ type: "error", message: "Sesión expirada. Inicia sesión nuevamente." });
         setItems([]);
         return;
       }
@@ -175,10 +175,10 @@ export default function AdminMediaPage() {
 
     const confirmMessage =
       action === "trash"
-        ? `Mover ${selectedInCurrentStatus.length} elemento(s) a papelera?`
+        ? `¿Mover ${selectedInCurrentStatus.length} elemento(s) a papelera?`
         : action === "restore"
-          ? `Restaurar ${selectedInCurrentStatus.length} elemento(s)?`
-          : `Eliminar permanentemente ${selectedInCurrentStatus.length} elemento(s)? Esta accion no se puede deshacer.`;
+          ? `¿Restaurar ${selectedInCurrentStatus.length} elemento(s)?`
+          : `¿Eliminar permanentemente ${selectedInCurrentStatus.length} elemento(s)? Esta acción no se puede deshacer.`;
 
     const accepted = window.confirm(confirmMessage);
     if (!accepted) return;
@@ -195,13 +195,13 @@ export default function AdminMediaPage() {
 
       if (res.status === 401) {
         setIsAuthenticated(false);
-        setFeedback({ type: "error", message: "Sesion expirada. Inicia sesion nuevamente." });
+        setFeedback({ type: "error", message: "Sesión expirada. Inicia sesión nuevamente." });
         return;
       }
 
       if (!res.ok) {
         const payload = await res.json().catch(() => null);
-        setFeedback({ type: "error", message: payload?.error || "No se pudo completar la accion." });
+        setFeedback({ type: "error", message: payload?.error || "No se pudo completar la acción." });
         return;
       }
 
@@ -226,7 +226,7 @@ export default function AdminMediaPage() {
     return (
       <section className="mx-auto max-w-4xl px-4 py-10">
         <article className="rounded-2xl border border-slate-200 bg-white p-6">
-          <p className="text-sm font-semibold text-slate-600">Verificando sesion...</p>
+          <p className="text-sm font-semibold text-slate-600">Verificando sesión...</p>
         </article>
       </section>
     );
@@ -236,8 +236,8 @@ export default function AdminMediaPage() {
     return (
       <section className="mx-auto max-w-4xl px-4 py-10">
         <article className="rounded-2xl border border-rose-200 bg-rose-50 p-6">
-          <h1 className="text-2xl font-extrabold text-rose-900">Sesion no valida</h1>
-          <p className="mt-2 text-sm font-semibold text-rose-700">Debes iniciar sesion como administrador para gestionar medios.</p>
+          <h1 className="text-2xl font-extrabold text-rose-900">Sesión no válida</h1>
+          <p className="mt-2 text-sm font-semibold text-rose-700">Debes iniciar sesión como administrador para gestionar medios.</p>
           <Link href="/admin" className="mt-4 inline-flex rounded-lg bg-rose-700 px-4 py-2 text-sm font-bold text-white hover:bg-rose-600">
             Ir al login admin
           </Link>
@@ -252,7 +252,7 @@ export default function AdminMediaPage() {
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h1 className="text-3xl font-extrabold">Biblioteca de medios</h1>
-            <p className="mt-1 text-sm text-emerald-100">Gestiona imagenes y otros archivos, con papelera y control de uso por tour.</p>
+            <p className="mt-1 text-sm text-emerald-100">Gestiona imágenes y otros archivos, con papelera y control de uso por tour.</p>
           </div>
           <Link href="/admin" className="rounded-xl bg-white/20 px-4 py-2 text-sm font-bold hover:bg-white/30">
             Volver al panel

@@ -295,12 +295,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   if (typeof email === 'string' && typeof emailConfirm === 'string' && emailConfirm.trim() && email.trim() !== emailConfirm.trim()) {
-    return res.status(400).json({ error: 'El correo y su confirmacion no coinciden' });
+    return res.status(400).json({ error: 'El correo y su confirmación no coinciden' });
   }
 
   const normalizedPaymentMethod = normalizePaymentMethod(paymentMethod);
   if (!normalizedPaymentMethod) {
-    return res.status(400).json({ error: 'Metodo de pago invalido. Usa tarjeta (ONVO) o SINPE Movil.' });
+    return res.status(400).json({ error: 'Método de pago inválido. Usa tarjeta (ONVO) o SINPE Móvil.' });
   }
 
   const normalizedSinpeReceiptUrl = String(sinpeReceiptUrl ?? '').trim();
@@ -380,7 +380,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         if (parsedPeople < minimumPeople) {
           return {
             ok: false as const,
-            error: `Debes reservar minimo ${minimumPeople} persona${minimumPeople === 1 ? '' : 's'}.`,
+            error: `Debes reservar mínimo ${minimumPeople} persona${minimumPeople === 1 ? '' : 's'}.`,
           };
         }
 
@@ -410,7 +410,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           }
         } else {
           if (!selectedDateKey) {
-            return { ok: false as const, error: 'Debes seleccionar una fecha valida' };
+            return { ok: false as const, error: 'Debes seleccionar una fecha válida' };
           }
 
           const dateStart = new Date(`${selectedDateKey}T00:00:00.000Z`);
@@ -444,7 +444,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
         const scheduleTimeNormalized = normalizeTime24(scheduleTime);
         if (allowedTimes.length > 0 && (!scheduleTimeNormalized || !allowedTimes.includes(scheduleTimeNormalized))) {
-          return { ok: false as const, error: 'El horario seleccionado no esta disponible para esa fecha' };
+          return { ok: false as const, error: 'El horario seleccionado no está disponible para esa fecha' };
         }
 
         const activeCardHoldCutoff = getCardHoldCutoffDate();
@@ -530,7 +530,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         requiresPayment: false,
         reservationStatus: 'PENDING_VALIDATION',
         reservationId: result.reservationId,
-        message: 'Reserva recibida con comprobante SINPE. Queda pendiente de validacion por administracion.',
+        message: 'Reserva recibida con comprobante SINPE. Queda pendiente de validación por administración.',
       });
     }
 

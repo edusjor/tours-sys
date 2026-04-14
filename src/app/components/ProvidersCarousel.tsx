@@ -23,7 +23,7 @@ export default function ProvidersCarousel({ logos }: ProvidersCarouselProps) {
               <p className="text-xs font-black uppercase tracking-[0.18em] text-emerald-700">Alianzas</p>
               <h2 className="mt-1 text-2xl font-extrabold text-slate-900 md:text-3xl">Nuestros proveedores</h2>
             </div>
-            <p className="text-sm font-semibold text-slate-500">Mas de 35 aliados turisticos</p>
+            <p className="text-sm font-semibold text-slate-500">Más de 35 aliados turísticos</p>
           </div>
 
           <div className="provider-tape" aria-label="Carrusel de proveedores">

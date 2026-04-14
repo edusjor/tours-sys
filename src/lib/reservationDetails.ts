@@ -1,4 +1,3 @@
-import { Prisma } from '@prisma/client';
 import { prisma } from './prisma';
 
 type PriceBreakdownItem = {
@@ -14,17 +13,6 @@ export type ReservationCheckoutDetails = {
   priceBreakdown: PriceBreakdownItem[];
   totalAmount: number | null;
 };
-
-let schemaEnsured = false;
-
-async function ensureReservationDetailColumns(): Promise<void> {
-  if (schemaEnsured) return;
-
-  await prisma.$executeRawUnsafe('ALTER TABLE "Reservation" ADD COLUMN IF NOT EXISTS "packageTitle" TEXT');
-  await prisma.$executeRawUnsafe('ALTER TABLE "Reservation" ADD COLUMN IF NOT EXISTS "priceBreakdown" JSONB');
-  await prisma.$executeRawUnsafe('ALTER TABLE "Reservation" ADD COLUMN IF NOT EXISTS "totalAmount" DOUBLE PRECISION');
-  schemaEnsured = true;
-}
 
 function normalizePriceBreakdown(input: unknown): PriceBreakdownItem[] {
   if (!Array.isArray(input)) return [];
@@ -62,37 +50,32 @@ export async function saveReservationCheckoutDetails(input: {
   priceBreakdown: PriceBreakdownItem[];
   totalAmount: number;
 }): Promise<void> {
-  await ensureReservationDetailColumns();
-
   const reservationId = Number(input.reservationId);
   if (!Number.isFinite(reservationId) || reservationId <= 0) return;
 
-  await prisma.$executeRaw`
-    UPDATE "Reservation"
-    SET
-      "packageTitle" = ${input.packageTitle ? String(input.packageTitle).trim() : null},
-      "priceBreakdown" = ${JSON.stringify(input.priceBreakdown)}::jsonb,
-      "totalAmount" = ${Number.isFinite(input.totalAmount) ? input.totalAmount : null}
-    WHERE "id" = ${reservationId}
-  `;
+  await prisma.reservation.update({
+    where: { id: reservationId },
+    data: {
+      packageTitle: input.packageTitle ? String(input.packageTitle).trim() : null,
+      priceBreakdown: input.priceBreakdown,
+      totalAmount: Number.isFinite(input.totalAmount) ? input.totalAmount : null,
+    },
+  });
 }
 
 export async function getReservationCheckoutDetailsByIds(reservationIds: number[]): Promise<Map<number, ReservationCheckoutDetails>> {
-  await ensureReservationDetailColumns();
-
   const safeIds = reservationIds.filter((item) => Number.isFinite(item) && item > 0);
   if (safeIds.length === 0) return new Map();
 
-  const rows = await prisma.$queryRaw<Array<{
-    id: number;
-    packageTitle: string | null;
-    priceBreakdown: unknown;
-    totalAmount: number | null;
-  }>>`
-    SELECT "id", "packageTitle", "priceBreakdown", "totalAmount"
-    FROM "Reservation"
-    WHERE "id" IN (${Prisma.join(safeIds)})
-  `;
+  const rows = await prisma.reservation.findMany({
+    where: { id: { in: safeIds } },
+    select: {
+      id: true,
+      packageTitle: true,
+      priceBreakdown: true,
+      totalAmount: true,
+    },
+  });
 
   const map = new Map<number, ReservationCheckoutDetails>();
   rows.forEach((row) => {

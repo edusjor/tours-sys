@@ -54,7 +54,7 @@ export default function ContactUnifiedForm({
       setEmail("");
       setMensaje("");
     } catch {
-      setStatus("No se pudo enviar tu consulta por un error de conexion.");
+      setStatus("No se pudo enviar tu consulta por un error de conexión.");
     } finally {
       setIsSubmitting(false);
     }
@@ -87,14 +87,14 @@ export default function ContactUnifiedForm({
 
         <div className="grid gap-2 md:col-span-2 sm:grid-cols-[1fr_1.8fr]">
           <label className="block">
-            <span className="mb-1 block text-sm font-semibold text-slate-700">Codigo de pais</span>
+            <span className="mb-1 block text-sm font-semibold text-slate-700">Código de país</span>
             <select
               className="w-full rounded-lg border border-slate-300 px-3 py-2"
               value={phoneCountryDialCode}
               onChange={(e) => setPhoneCountryDialCode(e.target.value)}
               required
             >
-              <option value="">Seleccion</option>
+              <option value="">Selección</option>
               {phoneCountryOptions.map((option) => (
                 <option key={`${option.code}-${option.dialCode}`} value={option.dialCode}>
                   {option.name} ({option.dialCode})
@@ -104,11 +104,11 @@ export default function ContactUnifiedForm({
           </label>
 
           <label className="block">
-            <span className="mb-1 block text-sm font-semibold text-slate-700">Telefono</span>
+            <span className="mb-1 block text-sm font-semibold text-slate-700">Teléfono</span>
             <input
               type="text"
               className="w-full rounded-lg border border-slate-300 px-3 py-2"
-              placeholder="Numero"
+              placeholder="Número"
               value={telefono}
               onChange={(e) => setTelefono(e.target.value)}
               required

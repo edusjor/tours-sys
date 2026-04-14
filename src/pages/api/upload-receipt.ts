@@ -51,7 +51,7 @@ async function moveFileWithFallback(sourcePath: string, destinationPath: string)
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Metodo no permitido' });
+    return res.status(405).json({ error: 'Método no permitido' });
   }
 
   try {
@@ -59,7 +59,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const file = (Array.isArray(files.receipt) ? files.receipt[0] : files.receipt) as FormidableFile | undefined;
 
     if (!file?.filepath) {
-      return res.status(400).json({ error: 'Debes subir una imagen valida del comprobante.' });
+      return res.status(400).json({ error: 'Debes subir una imagen válida del comprobante.' });
     }
 
     const uploadDir = path.join(process.cwd(), 'uploads', 'receipts');

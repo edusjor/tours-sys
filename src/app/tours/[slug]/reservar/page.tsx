@@ -577,10 +577,10 @@ function ReservarPageContent({
           setLoadError("");
           return;
         }
-        setLoadError("No se encontro informacion del tour solicitado en el servidor.");
+        setLoadError("No se encontró información del tour solicitado en el servidor.");
       })
       .catch(() => {
-        setLoadError("No se pudo cargar la informacion del tour desde el servidor.");
+        setLoadError("No se pudo cargar la información del tour desde el servidor.");
       });
   }, [normalizedDateFromQuery, todayDateKey, tourSlug]);
 
@@ -691,7 +691,7 @@ function ReservarPageContent({
   const exceedsMaximumPeople = maximumPeoplePerReservation !== null && totalPeople > maximumPeoplePerReservation;
   const maxPeopleExceededMessage =
     maximumPeoplePerReservation !== null
-      ? `El cupo maximo por compra para esta fecha es de ${maximumPeoplePerReservation} persona${maximumPeoplePerReservation === 1 ? "" : "s"}. Si necesitas un grupo personalizado, contactanos para ayudarte a coordinarlo.`
+      ? `El cupo máximo por compra para esta fecha es de ${maximumPeoplePerReservation} persona${maximumPeoplePerReservation === 1 ? "" : "s"}. Si necesitas un grupo personalizado, contáctanos para ayudarte a coordinarlo.`
       : "";
 
   const openScheduleSlots = useMemo(
@@ -848,7 +848,7 @@ function ReservarPageContent({
         message:
         hasNoRemainingTimeToday
           ? "Ya no hay horarios disponibles para hoy. Elige otra fecha para continuar."
-          : `Completa primero el paso 1 (fecha, horario y minimo ${minimumPeople} persona${minimumPeople === 1 ? "" : "s"}).`,
+          : `Completa primero el paso 1 (fecha, horario y mínimo ${minimumPeople} persona${minimumPeople === 1 ? "" : "s"}).`,
       });
       return;
     }
@@ -867,7 +867,7 @@ function ReservarPageContent({
         message:
         hasNoRemainingTimeToday
           ? "Ya no hay horarios disponibles para hoy. Elige otra fecha para continuar."
-          : `Completa primero el paso 1 (fecha, horario y minimo ${minimumPeople} persona${minimumPeople === 1 ? "" : "s"}).`,
+          : `Completa primero el paso 1 (fecha, horario y mínimo ${minimumPeople} persona${minimumPeople === 1 ? "" : "s"}).`,
       });
       return;
     }
@@ -926,7 +926,7 @@ function ReservarPageContent({
       }
 
       if (confirmRes.status === 202) {
-        setStatus("Pago recibido. Esperando confirmacion final...");
+        setStatus("Pago recibido. Esperando confirmación final...");
         await new Promise((resolve) => setTimeout(resolve, delayMs));
         continue;
       }
@@ -941,7 +941,7 @@ function ReservarPageContent({
 
     return {
       ok: false,
-      message: "Pago recibido, pero la confirmacion esta tardando mas de lo esperado. Te avisaremos por correo al confirmarse.",
+      message: "Pago recibido, pero la confirmación está tardando más de lo esperado. Te avisaremos por correo al confirmarse.",
     };
   };
 
@@ -965,7 +965,7 @@ function ReservarPageContent({
     }
 
     if (people < minimumPeople) {
-      setStatus(`Este tour requiere minimo ${minimumPeople} persona${minimumPeople === 1 ? "" : "s"}.`);
+      setStatus(`Este tour requiere mínimo ${minimumPeople} persona${minimumPeople === 1 ? "" : "s"}.`);
       return;
     }
 
@@ -1009,7 +1009,7 @@ function ReservarPageContent({
 
           uploadedSinpeReceiptUrl = String(uploadPayload?.url ?? "").trim();
           if (!uploadedSinpeReceiptUrl) {
-            setStatus("No se recibio URL valida del comprobante SINPE.");
+            setStatus("No se recibió una URL válida del comprobante SINPE.");
             return;
           }
 
@@ -1023,10 +1023,10 @@ function ReservarPageContent({
     try {
       setIsCreatingPayment(true);
       setIsConfirmingReservation(false);
-      setStatus(isSinpeMobileMethod ? "Validando reserva SINPE..." : "Preparando tu reserva y creando la sesion de pago...");
+      setStatus(isSinpeMobileMethod ? "Validando reserva SINPE..." : "Preparando tu reserva y creando la sesión de pago...");
 
       if (!tour) {
-        setStatus("No se encontro la informacion del tour. Recarga la pagina e intenta nuevamente.");
+        setStatus("No se encontró la información del tour. Recarga la página e intenta nuevamente.");
         return;
       }
 
@@ -1103,7 +1103,7 @@ function ReservarPageContent({
 
       await loadOnvoScript();
       if (!window.onvo?.pay) {
-        setStatus("No se pudo inicializar ONVO. Recarga la pagina e intenta nuevamente.");
+        setStatus("No se pudo inicializar ONVO. Recarga la página e intenta nuevamente.");
         return;
       }
 
@@ -1144,7 +1144,7 @@ function ReservarPageContent({
               message: confirmation.message,
             });
           } catch {
-            setStatus("Pago recibido, pero no se pudo validar la reserva por un error de conexion.");
+            setStatus("Pago recibido, pero no se pudo validar la reserva por un error de conexión.");
             setIsConfirmingReservation(false);
           }
         },
@@ -1153,7 +1153,7 @@ function ReservarPageContent({
       onvoCheckout.render("#onvo-checkout-container");
       setStatus("Completa tu pago en el formulario seguro de ONVO para finalizar la reserva.");
     } catch {
-      setStatus("No se pudo confirmar la reserva por un error de conexion.");
+      setStatus("No se pudo confirmar la reserva por un error de conexión.");
     } finally {
       setIsCreatingPayment(false);
     }
@@ -1367,12 +1367,12 @@ function ReservarPageContent({
               <p className="mt-1 text-xs text-slate-600">Puedes ajustar paquete y cantidades directamente en checkout.</p>
               {maximumPeoplePerReservation !== null ? (
                 <p className="mt-2 text-xs font-semibold text-slate-600">
-                  Cupo maximo por compra para esta fecha: {maximumPeoplePerReservation} persona{maximumPeoplePerReservation === 1 ? "" : "s"}.
+                  Cupo máximo por compra para esta fecha: {maximumPeoplePerReservation} persona{maximumPeoplePerReservation === 1 ? "" : "s"}.
                 </p>
               ) : null}
               {!meetsMinimumPeople && (
                 <p className="mt-2 text-xs font-bold text-rose-700">
-                  Debes seleccionar minimo {minimumPeople} persona{minimumPeople === 1 ? "" : "s"} en precios.
+                  Debes seleccionar mínimo {minimumPeople} persona{minimumPeople === 1 ? "" : "s"} en precios.
                 </p>
               )}
               {exceedsMaximumPeople ? (
@@ -1436,7 +1436,7 @@ function ReservarPageContent({
               disabled={!hasSelectionStepCompleted || isRedirectingToConfirmation}
               className="mt-4 w-full rounded-lg bg-emerald-700 px-4 py-3 font-extrabold text-white transition hover:bg-emerald-600 disabled:cursor-not-allowed disabled:bg-slate-300"
             >
-              Ir a informacion de contacto
+              Ir a información de contacto
             </button>
 
             {stepError?.step === "seleccion" ? (
@@ -1481,11 +1481,11 @@ function ReservarPageContent({
                   />
                 </div>
                 <div className="md:col-span-2">
-                  <label className="mb-1 block text-sm font-semibold text-slate-700">Correo electronico</label>
+                  <label className="mb-1 block text-sm font-semibold text-slate-700">Correo electrónico</label>
                   <input
                     type="email"
                     className="h-12 w-full rounded-lg border border-slate-300 px-3"
-                    placeholder="Correo electronico"
+                    placeholder="Correo electrónico"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     disabled={!meetsMinimumPeople || isRedirectingToConfirmation}
@@ -1493,14 +1493,14 @@ function ReservarPageContent({
                 </div>
                 <div className="md:col-span-2 grid gap-2 sm:grid-cols-[1.2fr_1.8fr]">
                   <div>
-                    <label className="mb-1 block text-sm font-semibold text-slate-700">Codigo de pais</label>
+                    <label className="mb-1 block text-sm font-semibold text-slate-700">Código de país</label>
                     <select
                       className="h-12 w-full rounded-lg border border-slate-300 bg-white px-3"
                       value={phoneCountryDialCode}
                       onChange={(e) => setPhoneCountryDialCode(e.target.value)}
                       disabled={!meetsMinimumPeople || isRedirectingToConfirmation}
                     >
-                      <option value="">Selecciona un pais</option>
+                      <option value="">Selecciona un país</option>
                       {phoneCountryOptions.map((option) => (
                         <option key={`${option.code}-${option.dialCode}`} value={option.dialCode}>
                           {option.name} ({option.dialCode})
@@ -1509,10 +1509,10 @@ function ReservarPageContent({
                     </select>
                   </div>
                   <div>
-                    <label className="mb-1 block text-sm font-semibold text-slate-700">Telefono</label>
+                    <label className="mb-1 block text-sm font-semibold text-slate-700">Teléfono</label>
                     <input
                       className="h-12 w-full rounded-lg border border-slate-300 px-3"
-                      placeholder="Telefono"
+                      placeholder="Teléfono"
                       value={phone}
                       onChange={(e) => setPhone(e.target.value)}
                       disabled={!meetsMinimumPeople || isRedirectingToConfirmation}
@@ -1548,7 +1548,7 @@ function ReservarPageContent({
 
           <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
             <div className="flex items-center justify-between">
-              <h2 className="text-xl font-extrabold text-slate-900">Paso 3: Metodo de pago</h2>
+              <h2 className="text-xl font-extrabold text-slate-900">Paso 3: Método de pago</h2>
               <button
                 type="button"
                 className={`rounded-full px-3 py-1 text-xs font-bold ${step === "pago" ? "bg-emerald-700 text-white" : "bg-slate-100 text-slate-600"}`}

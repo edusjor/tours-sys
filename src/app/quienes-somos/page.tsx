@@ -27,19 +27,19 @@ const VALORES = [
   },
   {
     title: "Respeto",
-    text: "Valoramos tu tiempo y tu inversion con procesos ordenados y atencion puntual.",
+    text: "Valoramos tu tiempo y tu inversión con procesos ordenados y atención puntual.",
   },
   {
     title: "Honradez",
-    text: "Cumplimos lo que prometemos y respaldamos cada reserva con gestion profesional.",
+    text: "Cumplimos lo que prometemos y respaldamos cada reserva con gestión profesional.",
   },
   {
-    title: "Empatia",
-    text: "Escuchamos tu contexto y adaptamos cada recomendacion a tu momento de vida.",
+    title: "Empatía",
+    text: "Escuchamos tu contexto y adaptamos cada recomendación a tu momento de vida.",
   },
   {
     title: "Solidaridad",
-    text: "Creamos experiencias grupales donde cada persona se siente acompanada desde el inicio.",
+    text: "Creamos experiencias grupales donde cada persona se siente acompañada desde el inicio.",
   },
 ];
 
@@ -56,7 +56,7 @@ export default function QuienesSomos() {
           <p className="text-xs font-extrabold uppercase tracking-[0.22em] text-cyan-100">Linea Tours</p>
           <h1 className="mt-2 text-4xl font-black md:text-6xl">Sobre Nosotros</h1>
           <p className="mt-3 max-w-2xl text-sm font-semibold text-cyan-50 md:text-base">
-            Creamos viajes bien estructurados para que vivas Costa Rica con tranquilidad, comodidad y emocion real.
+            Creamos viajes bien estructurados para que vivas Costa Rica con tranquilidad, comodidad y emoción real.
           </p>
         </div>
       </div>
@@ -73,14 +73,14 @@ export default function QuienesSomos() {
 
           <div className="p-6 md:p-8 lg:p-10">
             <p className="text-xs font-black uppercase tracking-[0.2em] text-emerald-700">Nuestra identidad</p>
-            <h2 className="mt-3 text-3xl font-black text-slate-900 md:text-4xl">Quienes Somos</h2>
+            <h2 className="mt-3 text-3xl font-black text-slate-900 md:text-4xl">Quiénes Somos</h2>
             <p className="mt-5 leading-relaxed text-slate-600">
               Somos una agencia enfocada en convertir cada viaje en una experiencia bien cuidada, segura y memorable.
-              Disenamos rutas con estructura profesional para que disfrutes sin preocupaciones.
+              Diseñamos rutas con estructura profesional para que disfrutes sin preocupaciones.
             </p>
             <p className="mt-4 leading-relaxed text-slate-600">
-              Desde la primera consulta hasta el regreso a casa, trabajamos con acompanamiento real, informacion clara y
-              atencion personalizada para que tomes decisiones con confianza.
+              Desde la primera consulta hasta el regreso a casa, trabajamos con acompañamiento real, información clara y
+              atención personalizada para que tomes decisiones con confianza.
             </p>
 
             <div className="mt-7 grid gap-3 sm:grid-cols-2">
