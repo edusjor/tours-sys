@@ -9,6 +9,11 @@ type LinkedTour = {
   title: string;
 };
 
+type NonTourUsage = {
+  href: string;
+  label: string;
+};
+
 type MediaStatus = 'active' | 'trash';
 
 type MediaItem = {
@@ -22,6 +27,7 @@ type MediaItem = {
   updatedAt: string;
   isImage: boolean;
   linkedTours: LinkedTour[];
+  nonTourUsages: NonTourUsage[];
 };
 
 type TrashManifest = Record<
@@ -114,6 +120,90 @@ function getUploadRelPathFromTourImage(value: string): string | null {
   return rel;
 }
 
+function getRouteFromAppFile(relativeAppFilePath: string): string | null {
+  const normalized = toPosix(relativeAppFilePath);
+  if (normalized === 'page.tsx') return '/';
+  if (normalized === 'layout.tsx') return '/';
+
+  if (!normalized.endsWith('/page.tsx')) return null;
+  const routePath = normalized.slice(0, -'/page.tsx'.length);
+  if (!routePath) return '/';
+  return `/${routePath}`;
+}
+
+function getUsageLabel(href: string): string {
+  if (href === '/') return 'Inicio';
+  return href;
+}
+
+function addUsageRouteToMap(map: Map<string, Set<string>>, key: string, href: string): void {
+  const current = map.get(key) || new Set<string>();
+  current.add(href);
+  map.set(key, current);
+}
+
+async function buildAppUploadUsageMap(): Promise<Map<string, Set<string>>> {
+  const appRoot = path.join(process.cwd(), 'src', 'app');
+  const relFiles = await walkFiles(appRoot);
+  const usageMap = new Map<string, Set<string>>();
+
+  for (const relFile of relFiles) {
+    if (!/\.(ts|tsx|js|jsx|mdx)$/i.test(relFile)) continue;
+
+    const route = getRouteFromAppFile(relFile);
+    if (!route) continue;
+
+    let content = '';
+    try {
+      content = await fs.readFile(path.join(appRoot, relFile), 'utf8');
+    } catch {
+      continue;
+    }
+
+    const staticUploadMatches = content.match(/\/uploads\/[^\s"'`)}\]]+/g) || [];
+    for (const match of staticUploadMatches) {
+      const cleaned = match.replace(/[),.;!?]+$/g, '');
+      addUsageRouteToMap(usageMap, cleaned, route);
+    }
+
+    const dynamicPrefixMatches = content.match(/\/uploads\/[a-zA-Z0-9._-]+\//g) || [];
+    for (const prefix of dynamicPrefixMatches) {
+      addUsageRouteToMap(usageMap, `prefix:${prefix}`, route);
+    }
+  }
+
+  return usageMap;
+}
+
+function buildNonTourUsages(relPath: string, usageMap: Map<string, Set<string>>): NonTourUsage[] {
+  const safeRelPath = toPosix(relPath);
+  const encodedRelPath = safeRelPath
+    .split('/')
+    .map((segment) => encodeURIComponent(segment))
+    .join('/');
+
+  const staticCandidates = [`/uploads/${safeRelPath}`, `/uploads/${encodedRelPath}`];
+  const routes = new Set<string>();
+
+  for (const candidate of staticCandidates) {
+    const matchedRoutes = usageMap.get(candidate);
+    if (!matchedRoutes) continue;
+    matchedRoutes.forEach((href) => routes.add(href));
+  }
+
+  const firstFolder = safeRelPath.split('/')[0] || '';
+  if (firstFolder) {
+    const prefixRoutes = usageMap.get(`prefix:/uploads/${firstFolder}/`);
+    if (prefixRoutes) {
+      prefixRoutes.forEach((href) => routes.add(href));
+    }
+  }
+
+  return Array.from(routes)
+    .sort((a, b) => a.localeCompare(b, 'es'))
+    .map((href) => ({ href, label: getUsageLabel(href) }));
+}
+
 async function buildLinkedToursMap(): Promise<Map<string, LinkedTour[]>> {
   const tours = await prisma.tour.findMany({
     select: {
@@ -138,7 +228,7 @@ async function buildLinkedToursMap(): Promise<Map<string, LinkedTour[]>> {
   return map;
 }
 
-async function buildActiveItems(linkedToursMap: Map<string, LinkedTour[]>): Promise<MediaItem[]> {
+async function buildActiveItems(linkedToursMap: Map<string, LinkedTour[]>, appUsageMap: Map<string, Set<string>>): Promise<MediaItem[]> {
   const allRelPaths = await walkFiles(UPLOADS_ROOT);
   const activeRelPaths = allRelPaths.filter((relPath) => relPath !== '.trash/manifest.json' && !relPath.startsWith('.trash/'));
 
@@ -166,6 +256,7 @@ async function buildActiveItems(linkedToursMap: Map<string, LinkedTour[]>): Prom
       updatedAt: stats.mtime.toISOString(),
       isImage: isImageFile(name),
       linkedTours: linkedToursMap.get(relPath) || [],
+      nonTourUsages: buildNonTourUsages(relPath, appUsageMap),
     });
   }
 
@@ -200,6 +291,7 @@ async function buildTrashItems(manifest: TrashManifest): Promise<MediaItem[]> {
       updatedAt: trashedAt || stats.mtime.toISOString(),
       isImage: isImageFile(name),
       linkedTours: [],
+      nonTourUsages: [],
     });
   }
 
@@ -244,8 +336,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     try {
       const linkedMap = await buildLinkedToursMap();
       const manifest = await readTrashManifest();
+      const appUsageMap = await buildAppUploadUsageMap();
       const [activeItems, trashItems] = await Promise.all([
-        buildActiveItems(linkedMap),
+        buildActiveItems(linkedMap, appUsageMap),
         buildTrashItems(manifest),
       ]);
 

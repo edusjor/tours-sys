@@ -8,6 +8,11 @@ type LinkedTour = {
   title: string;
 };
 
+type NonTourUsage = {
+  href: string;
+  label: string;
+};
+
 type MediaStatus = "active" | "trash";
 
 type MediaItem = {
@@ -21,6 +26,7 @@ type MediaItem = {
   updatedAt: string;
   isImage: boolean;
   linkedTours: LinkedTour[];
+  nonTourUsages: NonTourUsage[];
 };
 
 type ApiResponse = {
@@ -441,11 +447,25 @@ export default function AdminMediaPage() {
                     <p className="text-sm font-bold text-slate-900">{item.name}</p>
                     <p className="text-xs text-slate-500">/{item.relativePath}</p>
                     {item.status === "active" ? (
-                      <p className={`mt-1 text-xs font-semibold ${item.linkedTours.length ? "text-emerald-700" : "text-amber-700"}`}>
-                        {item.linkedTours.length
-                          ? `Ligado a: ${item.linkedTours.map((tour) => tour.title).join(", ")}`
-                          : "No ligado a ningun tour"}
-                      </p>
+                      item.linkedTours.length ? (
+                        <p className="mt-1 text-xs font-semibold text-emerald-700">
+                          {`Ligado a: ${item.linkedTours.map((tour) => tour.title).join(", ")}`}
+                        </p>
+                      ) : item.nonTourUsages.length ? (
+                        <div className="mt-1 flex flex-wrap items-center gap-1 text-xs font-semibold text-cyan-700">
+                          <span>No ligado a ningun tour. En uso en:</span>
+                          {item.nonTourUsages.map((usage, index) => (
+                            <React.Fragment key={`${item.id}-usage-${usage.href}`}>
+                              <a href={usage.href} target="_blank" rel="noreferrer" className="underline decoration-cyan-400 underline-offset-2 hover:text-cyan-800">
+                                {usage.label}
+                              </a>
+                              {index < item.nonTourUsages.length - 1 && <span className="text-cyan-500">,</span>}
+                            </React.Fragment>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="mt-1 text-xs font-semibold text-amber-700">No ligado a ningun tour</p>
+                      )
                     ) : (
                       <p className="mt-1 text-xs font-semibold text-slate-500">En papelera</p>
                     )}
@@ -495,9 +515,13 @@ export default function AdminMediaPage() {
                       <p className="truncate text-[11px] text-slate-500">/{item.relativePath}</p>
                       <p className="text-[11px] font-semibold text-slate-600">{formatBytes(item.size)} · {formatDate(item.updatedAt)}</p>
                       {item.status === "active" && (
-                        <p className={`text-[11px] font-semibold ${item.linkedTours.length ? "text-emerald-700" : "text-amber-700"}`}>
-                          {item.linkedTours.length ? `Ligado (${item.linkedTours.length})` : "No ligado"}
-                        </p>
+                        item.linkedTours.length ? (
+                          <p className="text-[11px] font-semibold text-emerald-700">{`Ligado (${item.linkedTours.length})`}</p>
+                        ) : item.nonTourUsages.length ? (
+                          <p className="text-[11px] font-semibold text-cyan-700">{`En uso en: ${item.nonTourUsages.map((usage) => usage.label).join(", ")}`}</p>
+                        ) : (
+                          <p className="text-[11px] font-semibold text-amber-700">No ligado</p>
+                        )
                       )}
                     </div>
                   </article>
