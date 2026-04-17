@@ -520,7 +520,7 @@ export default async function Home() {
             <article className="rounded-2xl border border-white/20 bg-white/10 p-6 backdrop-blur-sm">
               <h3 className="text-2xl font-extrabold">Canales de atención</h3>
               <div className="mt-4 space-y-3 text-sm font-semibold text-emerald-50">
-                <p className="flex items-center gap-2"><PhoneIcon /> +506 6015 9782 / +506 7154 6738</p>
+                <p className="flex items-center gap-2"><PhoneIcon /> +506 6015-9782 / +506 7154-6738</p>
                 <p className="flex items-center gap-2"><MailIcon /> atencionalcliente@guapileslineatours.com</p>
                 <p className="flex items-center gap-2"><ClockIcon /> Lunes a Viernes, 8:00 am a 5:00 pm</p>
                 <p className="flex items-center gap-2"><MapPinIcon /> Costa Rica, Limon, Pococi, La Colonia</p>
@@ -530,7 +530,7 @@ export default async function Home() {
             <article className="rounded-2xl border border-white/20 bg-white/10 p-6 backdrop-blur-sm">
               <h3 className="text-2xl font-extrabold">Contáctanos por WhatsApp</h3>
               <p className="mt-3 text-emerald-50">
-                Escríbenos al +506 6015 9782 y te ayudamos a elegir tour, fechas y método de pago en minutos.
+                Escríbenos al +506 6015-9782 y te ayudamos a elegir tour, fechas y método de pago en minutos.
               </p>
               <a
                 href="https://wa.me/50660159782"
