@@ -120,13 +120,14 @@ function getUploadRelPathFromTourImage(value: string): string | null {
   return rel;
 }
 
-function getRouteFromAppFile(relativeAppFilePath: string): string | null {
+function getRouteFromAppLikeFile(relativeAppFilePath: string): string | null {
   const normalized = toPosix(relativeAppFilePath);
-  if (normalized === 'page.tsx') return '/';
-  if (normalized === 'layout.tsx') return '/';
+  if (/^(page|layout)\.(tsx|ts|jsx|js|mjs|cjs|mdx)$/i.test(normalized)) return '/';
 
-  if (!normalized.endsWith('/page.tsx')) return null;
-  const routePath = normalized.slice(0, -'/page.tsx'.length);
+  const match = normalized.match(/^(.*)\/(page|layout)\.(tsx|ts|jsx|js|mjs|cjs|mdx)$/i);
+  if (!match) return null;
+
+  const routePath = match[1] || '';
   if (!routePath) return '/';
   return `/${routePath}`;
 }
@@ -142,33 +143,54 @@ function addUsageRouteToMap(map: Map<string, Set<string>>, key: string, href: st
   map.set(key, current);
 }
 
+function getKnownUsageRoutesByPath(relPath: string): string[] {
+  const safeRelPath = toPosix(relPath);
+  const firstFolder = safeRelPath.split('/')[0] || '';
+  const routes = new Set<string>();
+
+  // En Home se listan logos dinámicamente desde /uploads/proveedores.
+  if (firstFolder === 'proveedores') {
+    routes.add('/');
+  }
+
+  return Array.from(routes);
+}
+
 async function buildAppUploadUsageMap(): Promise<Map<string, Set<string>>> {
-  const appRoot = path.join(process.cwd(), 'src', 'app');
-  const relFiles = await walkFiles(appRoot);
   const usageMap = new Map<string, Set<string>>();
+  const appRoots = [
+    path.join(process.cwd(), 'src', 'app'),
+    path.join(process.cwd(), '.next', 'server', 'app'),
+    path.join(process.cwd(), '.next', 'standalone', '.next', 'server', 'app'),
+  ];
 
-  for (const relFile of relFiles) {
-    if (!/\.(ts|tsx|js|jsx|mdx)$/i.test(relFile)) continue;
+  for (const appRoot of appRoots) {
+    const relFiles = await walkFiles(appRoot);
+    if (!relFiles.length) continue;
 
-    const route = getRouteFromAppFile(relFile);
-    if (!route) continue;
+    for (const relFile of relFiles) {
+      if (!/\.(ts|tsx|js|jsx|mjs|cjs|mdx)$/i.test(relFile)) continue;
 
-    let content = '';
-    try {
-      content = await fs.readFile(path.join(appRoot, relFile), 'utf8');
-    } catch {
-      continue;
-    }
+      const route = getRouteFromAppLikeFile(relFile);
+      if (!route) continue;
 
-    const staticUploadMatches = content.match(/\/uploads\/[^\s"'`)}\]]+/g) || [];
-    for (const match of staticUploadMatches) {
-      const cleaned = match.replace(/[),.;!?]+$/g, '');
-      addUsageRouteToMap(usageMap, cleaned, route);
-    }
+      let content = '';
+      try {
+        content = await fs.readFile(path.join(appRoot, relFile), 'utf8');
+      } catch {
+        continue;
+      }
 
-    const dynamicPrefixMatches = content.match(/\/uploads\/[a-zA-Z0-9._-]+\//g) || [];
-    for (const prefix of dynamicPrefixMatches) {
-      addUsageRouteToMap(usageMap, `prefix:${prefix}`, route);
+      const staticUploadMatches = content.match(/\/uploads\/[^\s"'`)}\]]+/g) || [];
+      for (const match of staticUploadMatches) {
+        const cleaned = match.replace(/[),.;!?]+$/g, '');
+        addUsageRouteToMap(usageMap, cleaned, route);
+      }
+
+      const dynamicPrefixMatches = content.match(/\/uploads\/[a-zA-Z0-9._-]+\//g) || [];
+      for (const prefix of dynamicPrefixMatches) {
+        addUsageRouteToMap(usageMap, `prefix:${prefix}`, route);
+      }
     }
   }
 
@@ -198,6 +220,9 @@ function buildNonTourUsages(relPath: string, usageMap: Map<string, Set<string>>)
       prefixRoutes.forEach((href) => routes.add(href));
     }
   }
+
+  const knownRoutes = getKnownUsageRoutesByPath(safeRelPath);
+  knownRoutes.forEach((href) => routes.add(href));
 
   return Array.from(routes)
     .sort((a, b) => a.localeCompare(b, 'es'))
