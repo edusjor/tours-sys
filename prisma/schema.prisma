@@ -40,6 +40,7 @@ model Tour {
   guideType   String?
   transport   String?
   groups      String?
+  tourType    String?
   story       String[] @default([])
   includedItems String[] @default([])
   recommendations String[] @default([])

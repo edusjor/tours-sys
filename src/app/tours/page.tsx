@@ -35,6 +35,7 @@ interface Tour {
   durationDays?: number;
   activityType?: string;
   difficulty?: string;
+  tourType?: "PRIVADO" | "GRUPAL" | null;
   featured?: boolean;
 }
 
@@ -51,6 +52,7 @@ interface FilterConfig {
   activityType: boolean;
   category: boolean;
   difficulty: boolean;
+  tourType: boolean;
   featured: boolean;
 }
 
@@ -66,6 +68,7 @@ const defaultFilterConfig: FilterConfig = {
   activityType: true,
   category: true,
   difficulty: true,
+  tourType: true,
   featured: true,
 };
 
@@ -257,6 +260,7 @@ export default function ToursPage() {
   const [selectedActivity, setSelectedActivity] = useState("Todos");
   const [selectedCategory, setSelectedCategory] = useState("Todos");
   const [selectedDifficulty, setSelectedDifficulty] = useState("Todos");
+  const [selectedTourType, setSelectedTourType] = useState("Todos");
   const [onlyFeatured, setOnlyFeatured] = useState(false);
 
   const [priceMin, setPriceMin] = useState(0);
@@ -392,6 +396,7 @@ export default function ToursPage() {
   }, [tours]);
 
   const categoryOptions = useMemo(() => ["Todos", ...categories.map((item) => item.name)], [categories]);
+  const tourTypeOptions = ["Todos", "Privados", "Grupales"];
 
   const filteredTours = useMemo(() => {
     const search = searchText.trim().toLowerCase();
@@ -435,6 +440,11 @@ export default function ToursPage() {
         }
       }
 
+      if (filterConfig.tourType && selectedTourType !== "Todos") {
+        if (selectedTourType === "Privados" && tour.tourType !== "PRIVADO") return false;
+        if (selectedTourType === "Grupales" && tour.tourType !== "GRUPAL") return false;
+      }
+
       if (filterConfig.featured && onlyFeatured && !tour.featured) return false;
 
       if (filterConfig.price) {
@@ -460,6 +470,7 @@ export default function ToursPage() {
     selectedActivity,
     selectedCategory,
     selectedDifficulty,
+    selectedTourType,
     onlyFeatured,
     priceMin,
     priceMax,
@@ -474,6 +485,7 @@ export default function ToursPage() {
     setSelectedActivity("Todos");
     setSelectedCategory("Todos");
     setSelectedDifficulty("Todos");
+    setSelectedTourType("Todos");
     setOnlyFeatured(false);
     setPriceMin(numericRanges.minPrice);
     setPriceMax(numericRanges.maxPrice);
@@ -553,6 +565,21 @@ export default function ToursPage() {
           >
             {difficulties.map((difficulty) => (
               <option key={difficulty}>{difficulty}</option>
+            ))}
+          </select>
+        </div>
+      )}
+
+      {filterConfig.tourType && (
+        <div className="border-b border-slate-200/80 pb-3 last:border-b-0">
+          <p className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-500">Tipo de tour</p>
+          <select
+            value={selectedTourType}
+            onChange={(e) => setSelectedTourType(e.target.value)}
+            className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition focus:border-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-100"
+          >
+            {tourTypeOptions.map((type) => (
+              <option key={type}>{type}</option>
             ))}
           </select>
         </div>

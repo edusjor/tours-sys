@@ -36,6 +36,7 @@ interface TourEditorState {
   durationDays: number | "";
   activityType: string;
   difficulty: string;
+  tourType: "" | "PRIVADO" | "GRUPAL";
   guideType: string;
   transport: string;
   groups: string;
@@ -113,6 +114,7 @@ interface TourAdminView {
   durationDays?: number;
   activityType?: string;
   difficulty?: string;
+  tourType?: "PRIVADO" | "GRUPAL" | null;
   guideType?: string;
   transport?: string;
   groups?: string;
@@ -145,6 +147,7 @@ interface FilterConfig {
   price: boolean;
   durationDays: boolean;
   activityType: boolean;
+  tourType: boolean;
   category: boolean;
   difficulty: boolean;
   featured: boolean;
@@ -160,6 +163,7 @@ const defaultFilterConfig: FilterConfig = {
   price: true,
   durationDays: true,
   activityType: true,
+  tourType: true,
   category: true,
   difficulty: true,
   featured: true,
@@ -171,6 +175,7 @@ const filterConfigLabels: Record<keyof FilterConfig, string> = {
   price: "Precio",
   durationDays: "Duración (días)",
   activityType: "Tipo de actividad",
+  tourType: "Tipo de tour",
   category: "Categoría",
   difficulty: "Dificultad",
   featured: "Destacado",
@@ -718,6 +723,7 @@ function buildToursCsv(tours: TourAdminView[]): string {
     "zone",
     "durationDays",
     "activityType",
+    "tourType",
     "difficulty",
     "guideType",
     "transport",
@@ -748,6 +754,7 @@ function buildToursCsv(tours: TourAdminView[]): string {
       tour.zone ?? "",
       Number.isFinite(Number(tour.durationDays)) ? String(Number(tour.durationDays)) : "",
       tour.activityType ?? "",
+      tour.tourType ?? "",
       tour.difficulty ?? "",
       tour.guideType ?? "",
       tour.transport ?? "",
@@ -867,6 +874,7 @@ function parseToursCsv(text: string): Partial<TourAdminView>[] {
       zone: get("zone"),
       durationDays: Number(get("durationdays")) || undefined,
       activityType: get("activitytype"),
+      tourType: get("tourtype") === "PRIVADO" || get("tourtype") === "GRUPAL" ? (get("tourtype") as "PRIVADO" | "GRUPAL") : null,
       difficulty: get("difficulty"),
       guideType: get("guidetype"),
       transport: get("transport"),
@@ -991,6 +999,7 @@ function AdminPageContent() {
   const [durationDays, setDurationDays] = useState<number | "">("");
   const [activityType, setActivityType] = useState("");
   const [difficulty, setDifficulty] = useState("");
+  const [tourType, setTourType] = useState<"" | "PRIVADO" | "GRUPAL">("");
   const [guideType, setGuideType] = useState("");
   const [transport, setTransport] = useState("");
   const [groups, setGroups] = useState("");
@@ -1107,6 +1116,7 @@ function AdminPageContent() {
     durationDays: "",
     activityType: "",
     difficulty: "",
+    tourType: "",
     guideType: "",
     transport: "",
     groups: "",
@@ -1136,6 +1146,7 @@ function AdminPageContent() {
     setDurationDays(state.durationDays);
     setActivityType(state.activityType);
     setDifficulty(state.difficulty);
+    setTourType(state.tourType);
     setGuideType(state.guideType);
     setTransport(state.transport);
     setGroups(state.groups);
@@ -1179,6 +1190,7 @@ function AdminPageContent() {
     durationDays,
     activityType,
     difficulty,
+    tourType,
     guideType,
     transport,
     groups,
@@ -1270,6 +1282,7 @@ function AdminPageContent() {
                 country: tour.country ?? "",
                 zone: tour.zone ?? "",
                 activityType: tour.activityType ?? "",
+                tourType: tour.tourType === "PRIVADO" || tour.tourType === "GRUPAL" ? tour.tourType : null,
                 difficulty: tour.difficulty ?? "",
                 durationDays: tour.durationDays ?? undefined,
                 availability: applyDateSchedulesToAvailability(normalizedAvailability, normalizedAvailabilityConfig.dateSchedules),
@@ -1507,6 +1520,7 @@ function AdminPageContent() {
     setZone("");
     setDurationDays("");
     setActivityType("");
+    setTourType("");
     setDifficulty("");
     setGuideType("");
     setTransport("");
@@ -1822,6 +1836,7 @@ function AdminPageContent() {
             zone: tour.zone,
             durationDays: tour.durationDays,
             activityType: tour.activityType,
+            tourType: tour.tourType,
             difficulty: tour.difficulty,
             guideType: tour.guideType,
             transport: tour.transport,
@@ -2069,6 +2084,7 @@ function AdminPageContent() {
       departurePoint: departurePoint || undefined,
       durationDays: durationDays === "" ? undefined : Number(durationDays),
       activityType: activityType || undefined,
+      tourType: tourType || null,
       difficulty: difficulty || undefined,
       guideType: guideType || undefined,
       transport: transport || undefined,
@@ -2102,6 +2118,7 @@ function AdminPageContent() {
               departurePoint: payload.departurePoint,
               durationDays: payload.durationDays,
               activityType: payload.activityType,
+              tourType: payload.tourType,
               difficulty: payload.difficulty,
               guideType: payload.guideType,
               transport: payload.transport,
@@ -2162,6 +2179,7 @@ function AdminPageContent() {
               departurePoint: payload.departurePoint,
               durationDays: payload.durationDays,
               activityType: payload.activityType,
+              tourType: payload.tourType,
               difficulty: payload.difficulty,
               guideType: payload.guideType,
               transport: payload.transport,
@@ -2245,6 +2263,7 @@ function AdminPageContent() {
     setDeparturePoint(tour.departurePoint || "");
     setDurationDays(typeof tour.durationDays === "number" ? tour.durationDays : "");
     setActivityType(tour.activityType || "");
+    setTourType(tour.tourType === "PRIVADO" || tour.tourType === "GRUPAL" ? tour.tourType : "");
     setDifficulty(tour.difficulty || "");
     setGuideType(tour.guideType || "");
     setTransport(tour.transport || "");
@@ -2288,6 +2307,7 @@ function AdminPageContent() {
       departurePoint: tour.departurePoint || "",
       durationDays: typeof tour.durationDays === "number" ? tour.durationDays : "",
       activityType: tour.activityType || "",
+      tourType: tour.tourType === "PRIVADO" || tour.tourType === "GRUPAL" ? tour.tourType : "",
       difficulty: tour.difficulty || "",
       guideType: tour.guideType || "",
       transport: tour.transport || "",
@@ -4073,6 +4093,18 @@ function AdminPageContent() {
                 <label className="block text-sm font-bold text-slate-700">
                   Tipo de actividad
                   <input className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2" placeholder="Tipo de actividad" value={activityType} onChange={(e) => setActivityType(e.target.value)} />
+                </label>
+                <label className="block text-sm font-bold text-slate-700">
+                  Tipo de tour
+                  <select
+                    className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2"
+                    value={tourType}
+                    onChange={(e) => setTourType((e.target.value as "" | "PRIVADO" | "GRUPAL") || "")}
+                  >
+                    <option value="">Todos (sin tipo)</option>
+                    <option value="PRIVADO">Privado</option>
+                    <option value="GRUPAL">Grupal</option>
+                  </select>
                 </label>
                 <label className="block text-sm font-bold text-slate-700">
                   Duración en días

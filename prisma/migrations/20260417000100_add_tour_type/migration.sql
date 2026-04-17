@@ -1,0 +1,2 @@
+ALTER TABLE "Tour"
+ADD COLUMN "tourType" TEXT;

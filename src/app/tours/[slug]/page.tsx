@@ -501,8 +501,7 @@ export default function TourDetailPage() {
 
   const imagesForView = useMemo(() => {
     if (!imagePool.length) return [];
-    if (imagePool.length >= 3) return imagePool;
-    return [...imagePool, ...imagePool, ...imagePool].slice(0, 3);
+    return imagePool;
   }, [imagePool]);
 
   useEffect(() => {
@@ -559,6 +558,7 @@ export default function TourDetailPage() {
 
   const sideTopIndex = slideNext(galleryMainIndex);
   const sideBottomIndex = slideNext(sideTopIndex);
+  const galleryImageCount = imagesForView.length;
 
   const routeParam = buildTourRouteParam(tour);
   const reserveHref = `/tours/${encodeURIComponent(routeParam)}/reservar${selectedPackage ? `?package=${encodeURIComponent(selectedPackage.id)}${selectedAvailabilityDate ? `&date=${encodeURIComponent(selectedAvailabilityDate)}` : ""}` : selectedAvailabilityDate ? `?date=${encodeURIComponent(selectedAvailabilityDate)}` : ""}`;
@@ -578,7 +578,7 @@ export default function TourDetailPage() {
           <div className="max-w-3xl p-1 md:p-2">
             <div className="mb-3 flex flex-wrap gap-2 text-xs font-bold uppercase tracking-wide">
               <span className="rounded-full border border-white/35 bg-white/12 px-3 py-1 text-white">{tour.category?.name ?? "Tour"}</span>
-              {getDurationLabel(tour.durationDays) && (
+              {getDurationLabel(tour.durationDays) !== "A confirmar" && (
                 <span className="rounded-full border border-white/35 bg-white/12 px-3 py-1 text-white">{getDurationLabel(tour.durationDays)}</span>
               )}
             </div>
@@ -622,7 +622,7 @@ export default function TourDetailPage() {
       <div className="mx-auto max-w-6xl px-4 pb-8 pt-6">
       <div className="grid gap-6 lg:grid-cols-[2fr_1fr]">
         <div>
-          <div className="grid gap-3 md:grid-cols-[1.35fr_1fr]">
+          {galleryImageCount === 1 && (
             <div className="relative overflow-hidden rounded-xl border border-slate-200 bg-white">
               <img
                 src={imagesForView[galleryMainIndex]}
@@ -630,45 +630,98 @@ export default function TourDetailPage() {
                 className="h-[420px] w-full cursor-zoom-in object-cover"
                 onClick={() => setLightboxIndex(galleryMainIndex)}
               />
-              <div className="absolute inset-x-0 bottom-0 flex items-center justify-between bg-gradient-to-t from-slate-900/65 to-transparent p-3">
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    className="rounded-md bg-white/90 px-2 py-1 text-xs font-bold text-slate-800"
-                    onClick={() => setGalleryMainIndex((prev) => slideBack(prev))}
-                  >
-                    Prev
-                  </button>
-                  <button
-                    type="button"
-                    className="rounded-md bg-white/90 px-2 py-1 text-xs font-bold text-slate-800"
-                    onClick={() => setGalleryMainIndex((prev) => slideNext(prev))}
-                  >
-                    Next
-                  </button>
+            </div>
+          )}
+
+          {galleryImageCount === 2 && (
+            <div className="grid gap-3 md:grid-cols-2">
+              <div className="relative overflow-hidden rounded-xl border border-slate-200 bg-white">
+                <img
+                  src={imagesForView[galleryMainIndex]}
+                  alt={tour.title}
+                  className="h-[420px] w-full cursor-zoom-in object-cover"
+                  onClick={() => setLightboxIndex(galleryMainIndex)}
+                />
+                <div className="absolute inset-x-0 bottom-0 flex items-center justify-between bg-gradient-to-t from-slate-900/65 to-transparent p-3">
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      className="rounded-md bg-white/90 px-2 py-1 text-xs font-bold text-slate-800"
+                      onClick={() => setGalleryMainIndex((prev) => slideBack(prev))}
+                    >
+                      Prev
+                    </button>
+                    <button
+                      type="button"
+                      className="rounded-md bg-white/90 px-2 py-1 text-xs font-bold text-slate-800"
+                      onClick={() => setGalleryMainIndex((prev) => slideNext(prev))}
+                    >
+                      Next
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <div className="grid gap-3">
               <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
                 <img
                   src={imagesForView[sideTopIndex]}
                   alt={`${tour.title} preview 1`}
-                  className="h-[203px] w-full cursor-zoom-in object-cover"
+                  className="h-[420px] w-full cursor-zoom-in object-cover"
                   onClick={() => setLightboxIndex(sideTopIndex)}
                 />
               </div>
-              <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
+            </div>
+          )}
+
+          {galleryImageCount >= 3 && (
+            <div className="grid gap-3 md:grid-cols-[1.35fr_1fr]">
+              <div className="relative overflow-hidden rounded-xl border border-slate-200 bg-white">
                 <img
-                  src={imagesForView[sideBottomIndex]}
-                  alt={`${tour.title} preview 2`}
-                  className="h-[203px] w-full cursor-zoom-in object-cover"
-                  onClick={() => setLightboxIndex(sideBottomIndex)}
+                  src={imagesForView[galleryMainIndex]}
+                  alt={tour.title}
+                  className="h-[420px] w-full cursor-zoom-in object-cover"
+                  onClick={() => setLightboxIndex(galleryMainIndex)}
                 />
+                <div className="absolute inset-x-0 bottom-0 flex items-center justify-between bg-gradient-to-t from-slate-900/65 to-transparent p-3">
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      className="rounded-md bg-white/90 px-2 py-1 text-xs font-bold text-slate-800"
+                      onClick={() => setGalleryMainIndex((prev) => slideBack(prev))}
+                    >
+                      Prev
+                    </button>
+                    <button
+                      type="button"
+                      className="rounded-md bg-white/90 px-2 py-1 text-xs font-bold text-slate-800"
+                      onClick={() => setGalleryMainIndex((prev) => slideNext(prev))}
+                    >
+                      Next
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid gap-3">
+                <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
+                  <img
+                    src={imagesForView[sideTopIndex]}
+                    alt={`${tour.title} preview 1`}
+                    className="h-[203px] w-full cursor-zoom-in object-cover"
+                    onClick={() => setLightboxIndex(sideTopIndex)}
+                  />
+                </div>
+                <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
+                  <img
+                    src={imagesForView[sideBottomIndex]}
+                    alt={`${tour.title} preview 2`}
+                    className="h-[203px] w-full cursor-zoom-in object-cover"
+                    onClick={() => setLightboxIndex(sideBottomIndex)}
+                  />
+                </div>
               </div>
             </div>
-          </div>
+          )}
 
           <article className="mt-7 rounded-2xl border border-white/70 bg-white/95 p-5 shadow-[0_8px_30px_rgba(15,23,42,0.07)] backdrop-blur-sm">
             <h2 className="text-2xl font-extrabold text-slate-900">Detalles generales</h2>

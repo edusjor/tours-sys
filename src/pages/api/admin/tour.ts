@@ -12,6 +12,8 @@ export const config = {
 
 const validStatuses = ['ACTIVO', 'NO_ACTIVO', 'BORRADOR'] as const;
 type ValidStatus = (typeof validStatuses)[number];
+const validTourTypes = ['PRIVADO', 'GRUPAL'] as const;
+type ValidTourType = (typeof validTourTypes)[number];
 
 type SlugDatabase = {
   tour: {
@@ -22,6 +24,13 @@ type SlugDatabase = {
 function toValidStatus(value: unknown): ValidStatus | null {
   if (typeof value !== 'string') return null;
   return validStatuses.includes(value as ValidStatus) ? (value as ValidStatus) : null;
+}
+
+function toValidTourType(value: unknown): ValidTourType | null {
+  if (value === null || value === undefined) return null;
+  const normalized = String(value).trim().toUpperCase();
+  if (!normalized) return null;
+  return validTourTypes.includes(normalized as ValidTourType) ? (normalized as ValidTourType) : null;
 }
 
 function slugifyTourValue(value: unknown): string {
@@ -329,6 +338,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const durationHours = Number.isFinite(Number(req.body?.durationHours)) ? Number(req.body.durationHours) : null;
   const activityType = typeof req.body?.activityType === 'string' && req.body.activityType.trim() ? req.body.activityType.trim() : null;
   const difficulty = typeof req.body?.difficulty === 'string' && req.body.difficulty.trim() ? req.body.difficulty.trim() : null;
+  const tourType = toValidTourType(req.body?.tourType);
   const rating = Number.isFinite(Number(req.body?.rating)) ? Number(req.body.rating) : null;
   const reviews = Number.isFinite(Number(req.body?.reviews)) ? Number(req.body.reviews) : null;
   const guideType = typeof req.body?.guideType === 'string' && req.body.guideType.trim() ? req.body.guideType.trim() : null;
@@ -428,6 +438,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           durationHours: durationHours ?? undefined,
           activityType: activityType ?? undefined,
           difficulty: difficulty ?? undefined,
+          tourType: tourType ?? undefined,
           rating: rating ?? undefined,
           reviews: reviews ?? undefined,
           guideType: guideType ?? undefined,
@@ -557,6 +568,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         durationHours,
         activityType,
         difficulty,
+        tourType,
         rating,
         reviews,
         guideType,
@@ -586,6 +598,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         if (isUnknownArgumentError(error, 'departurePoint')) unsupportedFields.push('departurePoint');
         if (isUnknownArgumentError(error, 'tourPackages')) unsupportedFields.push('tourPackages');
         if (isUnknownArgumentError(error, 'availabilityConfig')) unsupportedFields.push('availabilityConfig');
+        if (isUnknownArgumentError(error, 'tourType')) unsupportedFields.push('tourType');
 
         if (!unsupportedFields.length) throw error;
 
@@ -635,6 +648,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (isUnknownArgumentError(error, 'availabilityConfig')) {
       return res.status(500).json({
         error: 'El servidor no reconoce availabilityConfig. Reinicia el servidor y sincroniza Prisma.',
+      });
+    }
+
+    if (isUnknownArgumentError(error, 'tourType')) {
+      return res.status(500).json({
+        error: 'El servidor no reconoce tourType. Reinicia el servidor y sincroniza Prisma.',
       });
     }
 
