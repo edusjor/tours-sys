@@ -326,7 +326,7 @@ function normalizeOpenScheduleConfig(input: unknown): OpenScheduleConfig {
   const parsedInterval = Number(source.intervalMinutes);
 
   return {
-    maxPeople: Number.isFinite(parsedMaxPeople) && parsedMaxPeople > 0 ? Math.floor(parsedMaxPeople) : defaultOpenSchedule.maxPeople,
+    maxPeople: Number.isFinite(parsedMaxPeople) && parsedMaxPeople >= 0 ? Math.floor(parsedMaxPeople) : defaultOpenSchedule.maxPeople,
     startTime: normalizeTime24(String(source.startTime ?? defaultOpenSchedule.startTime)) ?? defaultOpenSchedule.startTime,
     endTime: normalizeTime24(String(source.endTime ?? defaultOpenSchedule.endTime)) ?? defaultOpenSchedule.endTime,
     intervalMinutes: Number.isFinite(parsedInterval) && parsedInterval > 0 ? Math.floor(parsedInterval) : defaultOpenSchedule.intervalMinutes,
@@ -922,11 +922,11 @@ function sanitizeAvailabilityItems(items: unknown): AvailabilityItem[] {
       return {
         id: Number.isFinite(idRaw) ? idRaw : index + 1,
         date,
-        maxPeople: Number.isFinite(maxPeople) && maxPeople > 0 ? Math.floor(maxPeople) : 0,
+        maxPeople: Number.isFinite(maxPeople) && maxPeople >= 0 ? Math.floor(maxPeople) : 0,
         timeSlots: normalizeTimeSlots(source?.timeSlots),
       } satisfies AvailabilityItem;
     })
-    .filter((item) => item.date && item.maxPeople > 0)
+    .filter((item) => item.date && item.maxPeople >= 0)
     .sort((a, b) => a.date.localeCompare(b.date));
 }
 
@@ -1020,6 +1020,8 @@ function AdminPageContent() {
   const [availabilityDateInput, setAvailabilityDateInput] = useState("");
   const [availabilityMaxPeopleInput, setAvailabilityMaxPeopleInput] = useState<number | "">(8);
   const [availabilityUseCustomTimesInput, setAvailabilityUseCustomTimesInput] = useState(false);
+  const [availabilityNoScheduleInput, setAvailabilityNoScheduleInput] = useState(false);
+  const [availabilityUnlimitedCapacityInput, setAvailabilityUnlimitedCapacityInput] = useState(false);
   const [availabilityCustomTimesInput, setAvailabilityCustomTimesInput] = useState("");
   const [availabilityStartTimeInput, setAvailabilityStartTimeInput] = useState("08:00");
   const [availabilityEndTimeInput, setAvailabilityEndTimeInput] = useState("17:00");
@@ -1058,6 +1060,9 @@ function AdminPageContent() {
   const [isSavingTour, setIsSavingTour] = useState(false);
   const [isSavingFilterConfig, setIsSavingFilterConfig] = useState(false);
   const [isSavingCategoryEdit, setIsSavingCategoryEdit] = useState(false);
+  const [exchangeRateInput, setExchangeRateInput] = useState<number | "">("");
+  const [savedExchangeRate, setSavedExchangeRate] = useState<number | null>(null);
+  const [isSavingExchangeRate, setIsSavingExchangeRate] = useState(false);
 
   const previewSpecificSlots = useMemo(() => {
     if (availabilityUseCustomTimesInput) return parseCustomTimeSlots(availabilityCustomTimesInput);
@@ -1071,12 +1076,13 @@ function AdminPageContent() {
   const previewOpenSlots = useMemo(() => buildTimeSlotsFromSchedule(openSchedule), [openSchedule]);
 
   const hasSpecificScheduleConfigured = useMemo(() => {
+    if (availabilityNoScheduleInput) return true;
     if (availabilityUseCustomTimesInput) {
       return parseCustomTimeSlots(availabilityCustomTimesInput).length > 0;
     }
 
     return availabilityIntervalInput !== "" && previewSpecificSlots.length > 0;
-  }, [availabilityCustomTimesInput, availabilityIntervalInput, availabilityUseCustomTimesInput, previewSpecificSlots]);
+  }, [availabilityCustomTimesInput, availabilityIntervalInput, availabilityNoScheduleInput, availabilityUseCustomTimesInput, previewSpecificSlots]);
 
   const mediaPickerVisibleItems = useMemo(() => {
     const query = mediaPickerSearch.trim().toLowerCase();
@@ -1164,6 +1170,8 @@ function AdminPageContent() {
     setAvailabilityDateInput("");
     setAvailabilityMaxPeopleInput(8);
     setAvailabilityUseCustomTimesInput(false);
+    setAvailabilityNoScheduleInput(false);
+    setAvailabilityUnlimitedCapacityInput(false);
     setAvailabilityCustomTimesInput("");
     setAvailabilityStartTimeInput("08:00");
     setAvailabilityEndTimeInput("17:00");
@@ -1316,6 +1324,72 @@ function AdminPageContent() {
     if (!isAuthenticated) return;
     loadData();
   }, [isAuthenticated, loadData]);
+
+  const loadExchangeRate = useCallback(async () => {
+    try {
+      const res = await fetch("/api/admin/exchange-rate");
+      if (res.status === 401) {
+        setIsAuthenticated(false);
+        return;
+      }
+
+      if (!res.ok) return;
+
+      const payload = await res.json().catch(() => null);
+      const nextRate = Number(payload?.usdToCrc);
+      if (!Number.isFinite(nextRate) || nextRate <= 0) return;
+
+      setExchangeRateInput(nextRate);
+      setSavedExchangeRate(nextRate);
+    } catch {
+      // Ignore loading errors here to avoid blocking admin UI.
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    void loadExchangeRate();
+  }, [isAuthenticated, loadExchangeRate]);
+
+  const handleSaveExchangeRate = async () => {
+    const parsedRate = Number(exchangeRateInput);
+    if (!Number.isFinite(parsedRate) || parsedRate <= 0) {
+      setFeedback({ type: "error", message: "Ingresa un tipo de cambio válido mayor a 0." });
+      return;
+    }
+
+    setIsSavingExchangeRate(true);
+    try {
+      const res = await fetch("/api/admin/exchange-rate", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ usdToCrc: parsedRate }),
+      });
+
+      if (res.status === 401) {
+        setIsAuthenticated(false);
+        return;
+      }
+
+      const payload = await res.json().catch(() => null);
+      if (!res.ok) {
+        setFeedback({ type: "error", message: payload?.error || "No se pudo guardar el tipo de cambio." });
+        return;
+      }
+
+      const nextRate = Number(payload?.usdToCrc);
+      if (Number.isFinite(nextRate) && nextRate > 0) {
+        setExchangeRateInput(nextRate);
+        setSavedExchangeRate(nextRate);
+      }
+
+      setFeedback({ type: "success", message: "Tipo de cambio actualizado correctamente." });
+    } catch {
+      setFeedback({ type: "error", message: "Error de conexión al guardar el tipo de cambio." });
+    } finally {
+      setIsSavingExchangeRate(false);
+    }
+  };
 
   const effectiveSelectedTourIds = useMemo(
     () => selectedTourIds.filter((id) => allTours.some((tour) => tour.id === id)),
@@ -1541,6 +1615,8 @@ function AdminPageContent() {
     setAvailabilityDateInput("");
     setAvailabilityMaxPeopleInput(8);
     setAvailabilityUseCustomTimesInput(false);
+    setAvailabilityNoScheduleInput(false);
+    setAvailabilityUnlimitedCapacityInput(false);
     setAvailabilityCustomTimesInput("");
     setAvailabilityStartTimeInput("08:00");
     setAvailabilityEndTimeInput("17:00");
@@ -1717,15 +1793,17 @@ function AdminPageContent() {
       return;
     }
 
-    const maxPeople = Number(availabilityMaxPeopleInput || 0);
-    if (!Number.isFinite(maxPeople) || maxPeople <= 0) {
+    const maxPeople = availabilityUnlimitedCapacityInput
+      ? 0
+      : Number(availabilityMaxPeopleInput || 0);
+    if (!availabilityUnlimitedCapacityInput && (!Number.isFinite(maxPeople) || maxPeople <= 0)) {
       setFeedback({ type: "error", message: "Ingresa un cupo valido para la fecha." });
       return;
     }
 
     const isoDate = new Date(`${availabilityDateInput}T09:00:00.000Z`).toISOString();
     const keyDate = isoDate.slice(0, 10);
-    const nextTimeSlots = previewSpecificSlots;
+    const nextTimeSlots = availabilityNoScheduleInput ? [] : previewSpecificSlots;
 
     const existing = availabilityList.find((item) => item.date.slice(0, 10) === keyDate);
     if (existing) {
@@ -1735,6 +1813,8 @@ function AdminPageContent() {
       setAvailabilityDateInput("");
       setAvailabilityMaxPeopleInput(8);
       setAvailabilityUseCustomTimesInput(false);
+      setAvailabilityNoScheduleInput(false);
+      setAvailabilityUnlimitedCapacityInput(false);
       setAvailabilityCustomTimesInput("");
       setAvailabilityIntervalInput("");
       setSpecificManualHourInput("08");
@@ -1749,6 +1829,8 @@ function AdminPageContent() {
     setAvailabilityDateInput("");
     setAvailabilityMaxPeopleInput(8);
     setAvailabilityUseCustomTimesInput(false);
+    setAvailabilityNoScheduleInput(false);
+    setAvailabilityUnlimitedCapacityInput(false);
     setAvailabilityCustomTimesInput("");
     setAvailabilityIntervalInput("");
     setSpecificManualHourInput("08");
@@ -2896,6 +2978,35 @@ function AdminPageContent() {
                 Categorías
               </button>
             </div>
+
+            <div className="mt-3 rounded-xl border border-cyan-200 bg-cyan-50/70 p-3">
+              <p className="text-sm font-bold text-cyan-900">Tipo de cambio (USD - CRC)</p>
+              <p className="mt-1 text-xs text-slate-600">Este valor se usa para calcular automáticamente el monto SINPE en colones durante el checkout.</p>
+              <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-center">
+                <label className="text-xs font-semibold text-slate-700">
+                  1 USD =
+                  <input
+                    type="number"
+                    min={1}
+                    step="0.01"
+                    value={exchangeRateInput}
+                    onChange={(e) => setExchangeRateInput(e.target.value === "" ? "" : Number(e.target.value))}
+                    className="ml-2 w-40 rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-sm"
+                    placeholder="Ej: 520"
+                  />
+                  <span className="ml-2">CRC</span>
+                </label>
+                <button
+                  type="button"
+                  onClick={() => void handleSaveExchangeRate()}
+                  disabled={isSavingExchangeRate}
+                  className="w-fit rounded-lg border border-cyan-300 bg-white px-3 py-1.5 text-xs font-bold text-cyan-800 hover:bg-cyan-100 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {isSavingExchangeRate ? "Guardando..." : "Guardar tipo de cambio"}
+                </button>
+                {savedExchangeRate !== null ? <p className="text-xs font-semibold text-cyan-800">Actual: {savedExchangeRate.toFixed(2)} CRC</p> : null}
+              </div>
+            </div>
           </div>
         </div>
 
@@ -3673,13 +3784,13 @@ function AdminPageContent() {
                         Cupo por tour
                         <input
                           type="number"
-                          min={1}
+                          min={0}
                           className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2"
                           value={openSchedule.maxPeople}
                           onChange={(e) =>
                             setOpenSchedule((prev) => ({
                               ...prev,
-                              maxPeople: e.target.value === "" ? 1 : Math.max(1, Number(e.target.value) || 1),
+                              maxPeople: e.target.value === "" ? defaultOpenSchedule.maxPeople : Math.max(0, Number(e.target.value) || 0),
                             }))
                           }
                         />
@@ -3779,6 +3890,7 @@ function AdminPageContent() {
                     )}
 
                     <p className="mt-2 text-xs text-slate-600">
+                      {openSchedule.maxPeople <= 0 ? "Cupo abierto activado. " : ""}
                       Horarios activos: {previewOpenSlots.length ? previewOpenSlots.map((slot) => formatTimeLabel(slot)).join(", ") : "Sin horarios"}
                     </p>
                   </div>
@@ -3794,12 +3906,22 @@ function AdminPageContent() {
                         <input
                           type="checkbox"
                           checked={availabilityUseCustomTimesInput}
+                          disabled={availabilityNoScheduleInput}
                           onChange={(e) => setAvailabilityUseCustomTimesInput(e.target.checked)}
                         />
                         Ingresar horarios manualmente
                       </label>
 
-                      {availabilityUseCustomTimesInput ? (
+                      <label className="mt-2 flex items-center gap-2 text-xs font-semibold text-slate-700">
+                        <input
+                          type="checkbox"
+                          checked={availabilityNoScheduleInput}
+                          onChange={(e) => setAvailabilityNoScheduleInput(e.target.checked)}
+                        />
+                        Sin horario definido (Por coordinar)
+                      </label>
+
+                      {!availabilityNoScheduleInput && availabilityUseCustomTimesInput ? (
                         <div className="mt-2 rounded-xl bg-white p-3 ring-1 ring-slate-200/70">
                           <p className="text-xs font-bold text-slate-700">Horarios manuales</p>
                           <div className="mt-2 grid gap-2 md:grid-cols-[1fr_1fr_auto]">
@@ -3850,7 +3972,7 @@ function AdminPageContent() {
                             )}
                           </div>
                         </div>
-                      ) : (
+                      ) : !availabilityNoScheduleInput ? (
                         <div className="mt-2 grid gap-2 md:grid-cols-3">
                           <label className="block text-xs font-bold text-slate-700">
                             Desde
@@ -3884,10 +4006,10 @@ function AdminPageContent() {
                             </select>
                           </label>
                         </div>
-                      )}
+                      ) : null}
 
                       <p className="mt-2 text-xs text-slate-600">
-                        Vista previa: {previewSpecificSlots.length ? previewSpecificSlots.map((slot) => formatTimeLabel(slot)).join(", ") : "Sin horarios"}
+                        Vista previa: {availabilityNoScheduleInput ? "Sin horario fijo (Por coordinar)" : previewSpecificSlots.length ? previewSpecificSlots.map((slot) => formatTimeLabel(slot)).join(", ") : "Sin horarios"}
                       </p>
                     </div>
 
@@ -3909,9 +4031,18 @@ function AdminPageContent() {
                           min={1}
                           className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2"
                           value={availabilityMaxPeopleInput}
+                          disabled={availabilityUnlimitedCapacityInput}
                           onChange={(e) => setAvailabilityMaxPeopleInput(e.target.value === "" ? "" : Number(e.target.value))}
                           placeholder="Cupo por tour"
                         />
+                      </label>
+                      <label className="md:col-span-2 flex items-center gap-2 text-xs font-semibold text-slate-700">
+                        <input
+                          type="checkbox"
+                          checked={availabilityUnlimitedCapacityInput}
+                          onChange={(e) => setAvailabilityUnlimitedCapacityInput(e.target.checked)}
+                        />
+                        Cupo abierto (sin limite especifico)
                       </label>
                       <button
                         type="button"
@@ -3931,7 +4062,7 @@ function AdminPageContent() {
                           <div key={`${item.id}-${item.date}`} className="flex items-center justify-between rounded-xl bg-white px-3 py-2 ring-1 ring-slate-200/70">
                             <div>
                               <p className="text-sm text-slate-700">
-                                {new Date(item.date).toLocaleDateString("es-ES")} | Cupo: {item.maxPeople}
+                                {new Date(item.date).toLocaleDateString("es-ES")} | Cupo: {item.maxPeople > 0 ? item.maxPeople : "Abierto"}
                               </p>
                               <p className="text-xs text-slate-500">
                                 Horarios: {normalizeTimeSlots(item.timeSlots).length ? normalizeTimeSlots(item.timeSlots).map((slot) => formatTimeLabel(slot)).join(", ") : "Sin horario fijo"}

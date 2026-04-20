@@ -141,7 +141,7 @@ function normalizeAvailabilityConfig(input: unknown): AvailabilityConfig {
   return {
     mode: source.mode === 'OPEN' ? 'OPEN' : 'SPECIFIC',
     openSchedule: {
-      maxPeople: Number.isFinite(Number(openSource.maxPeople)) && Number(openSource.maxPeople) > 0 ? Math.floor(Number(openSource.maxPeople)) : 10,
+      maxPeople: Number.isFinite(Number(openSource.maxPeople)) && Number(openSource.maxPeople) >= 0 ? Math.floor(Number(openSource.maxPeople)) : 10,
       startTime: normalizeTime24(openSource.startTime) ?? '08:00',
       endTime: normalizeTime24(openSource.endTime) ?? '17:00',
       intervalMinutes:
@@ -438,7 +438,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           }
         }
 
-        if (!targetDate || maxPeople <= 0) {
+        if (!targetDate || maxPeople < 0) {
           return { ok: false as const, error: 'No hay disponibilidad' };
         }
 
@@ -447,33 +447,35 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           return { ok: false as const, error: 'El horario seleccionado no está disponible para esa fecha' };
         }
 
-        const activeCardHoldCutoff = getCardHoldCutoffDate();
-        const reservationAggregate = await tx.reservation.aggregate({
-          _sum: { people: true },
-          where: {
-            tourId: parsedTourId,
-            date: targetDate,
-            OR: [
-              { paid: true },
-              {
-                paid: false,
-                paymentMethod: CARD_PAYMENT_METHOD,
-                createdAt: {
-                  gte: activeCardHoldCutoff,
+        if (maxPeople > 0) {
+          const activeCardHoldCutoff = getCardHoldCutoffDate();
+          const reservationAggregate = await tx.reservation.aggregate({
+            _sum: { people: true },
+            where: {
+              tourId: parsedTourId,
+              date: targetDate,
+              OR: [
+                { paid: true },
+                {
+                  paid: false,
+                  paymentMethod: CARD_PAYMENT_METHOD,
+                  createdAt: {
+                    gte: activeCardHoldCutoff,
+                  },
                 },
-              },
-            ],
-          },
-        });
+              ],
+            },
+          });
 
-        const reservedPeople = reservationAggregate._sum.people ?? 0;
-        const remaining = maxPeople - reservedPeople;
+          const reservedPeople = reservationAggregate._sum.people ?? 0;
+          const remaining = maxPeople - reservedPeople;
 
-        if (parsedPeople > remaining) {
-          return {
-            ok: false as const,
-            error: remaining > 0 ? `No hay disponibilidad suficiente. Cupos restantes: ${remaining}` : 'No hay disponibilidad',
-          };
+          if (parsedPeople > remaining) {
+            return {
+              ok: false as const,
+              error: remaining > 0 ? `No hay disponibilidad suficiente. Cupos restantes: ${remaining}` : 'No hay disponibilidad',
+            };
+          }
         }
 
         const reservation = await tx.reservation.create({

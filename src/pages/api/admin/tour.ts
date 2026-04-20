@@ -185,7 +185,7 @@ function normalizeAvailabilityConfigInput(input: unknown): NormalizedAvailabilit
   return {
     mode: source.mode === 'OPEN' ? 'OPEN' : 'SPECIFIC',
     openSchedule: {
-      maxPeople: Number.isFinite(openMaxPeople) && openMaxPeople > 0 ? Math.floor(openMaxPeople) : 10,
+      maxPeople: Number.isFinite(openMaxPeople) && openMaxPeople >= 0 ? Math.floor(openMaxPeople) : 10,
       startTime: normalizeTime24(openRaw.startTime) ?? '08:00',
       endTime: normalizeTime24(openRaw.endTime) ?? '17:00',
       intervalMinutes: Number.isFinite(openInterval) && openInterval > 0 ? Math.floor(openInterval) : 30,
@@ -409,7 +409,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           date: item?.date ? new Date(item.date) : null,
           maxPeople: Number(item?.maxPeople ?? 0),
         }))
-        .filter((item: { date: Date | null; maxPeople: number }) => item.date && item.maxPeople > 0)
+        .filter((item: { date: Date | null; maxPeople: number }) => item.date && item.maxPeople >= 0)
         .map((item: { date: Date | null; maxPeople: number }) => ({
           date: item.date as Date,
           maxPeople: item.maxPeople,

@@ -28,6 +28,8 @@ declare global {
 }
 
 const ONVO_SDK_URL = "https://sdk.onvopay.com/sdk.js";
+const DEFAULT_USD_TO_CRC_EXCHANGE_RATE = 520;
+const SINPE_PHONE_NUMBER = "6015 9782";
 let onvoScriptPromise: Promise<void> | null = null;
 
 function loadOnvoScript(): Promise<void> {
@@ -239,7 +241,7 @@ function normalizeAvailabilityConfig(input: unknown): AvailabilityConfig {
   return {
     mode: rawMode === "OPEN" ? "OPEN" : "SPECIFIC",
     openSchedule: {
-      maxPeople: Number.isFinite(Number(openSource.maxPeople)) && Number(openSource.maxPeople) > 0 ? Math.floor(Number(openSource.maxPeople)) : 10,
+      maxPeople: Number.isFinite(Number(openSource.maxPeople)) && Number(openSource.maxPeople) >= 0 ? Math.floor(Number(openSource.maxPeople)) : 10,
       startTime: normalizeTime24(openSource.startTime) ?? "08:00",
       endTime: normalizeTime24(openSource.endTime) ?? "17:00",
       intervalMinutes: Number.isFinite(Number(openSource.intervalMinutes)) && Number(openSource.intervalMinutes) > 0 ? Math.floor(Number(openSource.intervalMinutes)) : 30,
@@ -260,11 +262,11 @@ function sanitizeAvailabilityItems(items: unknown): Availability[] {
       return {
         id: Number.isFinite(id) ? id : 0,
         date: String(source?.date ?? ""),
-        maxPeople: Number.isFinite(maxPeople) ? maxPeople : 0,
+        maxPeople: Number.isFinite(maxPeople) && maxPeople >= 0 ? maxPeople : 0,
         timeSlots: normalizeTimeSlots(source?.timeSlots),
       } satisfies Availability;
     })
-    .filter((item) => item.date && item.maxPeople > 0)
+    .filter((item) => item.date && item.maxPeople >= 0)
     .sort((a, b) => a.date.localeCompare(b.date));
 }
 
@@ -283,6 +285,14 @@ function formatCurrencyUSD(value: number) {
     style: "currency",
     currency: "USD",
     maximumFractionDigits: 2,
+  }).format(value);
+}
+
+function formatCurrencyCRC(value: number) {
+  return new Intl.NumberFormat("es-CR", {
+    style: "currency",
+    currency: "CRC",
+    maximumFractionDigits: 0,
   }).format(value);
 }
 
@@ -515,8 +525,22 @@ function ReservarPageContent({
   const [status, setStatus] = useState("");
   const [stepError, setStepError] = useState<{ step: "seleccion" | "contacto" | "pago"; message: string } | null>(null);
   const [remainingSeconds, setRemainingSeconds] = useState(15 * 60);
+  const [usdToCrcExchangeRate, setUsdToCrcExchangeRate] = useState(DEFAULT_USD_TO_CRC_EXCHANGE_RATE);
   const todayDateKey = toDateKey(new Date());
   const normalizedDateFromQuery = normalizeDateKeyInput(dateFromQuery);
+
+  useEffect(() => {
+    fetch("/api/exchange-rate")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((payload) => {
+        const nextRate = Number(payload?.usdToCrc);
+        if (!Number.isFinite(nextRate) || nextRate <= 0) return;
+        setUsdToCrcExchangeRate(nextRate);
+      })
+      .catch(() => {
+        // Keep default fallback rate if request fails.
+      });
+  }, []);
 
   useEffect(() => {
     setHydrated(true);
@@ -654,6 +678,7 @@ function ReservarPageContent({
   );
   const serviceFee = useMemo(() => subtotal * 0.06, [subtotal]);
   const total = useMemo(() => subtotal + serviceFee, [subtotal, serviceFee]);
+  const sinpeTotalCrc = useMemo(() => Math.round(total * usdToCrcExchangeRate), [total, usdToCrcExchangeRate]);
 
   const activeSelectedDateKey =
     selectedDateKey ?? (availability[0] ? String(availability[0].date).slice(0, 10) : availabilityConfig.mode === "OPEN" ? toDateKey(new Date()) : null);
@@ -687,7 +712,7 @@ function ReservarPageContent({
     return null;
   }, [activeSelectedDateKey, availability, availabilityByDateKey, availabilityConfig]);
 
-  const maximumPeoplePerReservation = selectedDate?.maxPeople ?? null;
+  const maximumPeoplePerReservation = selectedDate && selectedDate.maxPeople > 0 ? selectedDate.maxPeople : null;
   const exceedsMaximumPeople = maximumPeoplePerReservation !== null && totalPeople > maximumPeoplePerReservation;
   const maxPeopleExceededMessage =
     maximumPeoplePerReservation !== null
@@ -1311,9 +1336,13 @@ function ReservarPageContent({
                   const tooltip = isPastDay
                     ? "No disponible. Solo se permiten fechas desde hoy."
                     : available
-                    ? `${available.maxPeople} lugares max.`
+                    ? available.maxPeople > 0
+                      ? `${available.maxPeople} lugares max.`
+                      : "Cupo abierto"
                     : calendarHasOpenAvailability
-                      ? `Modo abierto: ${openMaxLabel} lugares max.`
+                      ? openMaxLabel > 0
+                        ? `Modo abierto: ${openMaxLabel} lugares max.`
+                        : "Modo abierto: cupo abierto"
                       : "No disponible";
 
                   return (
@@ -1581,10 +1610,13 @@ function ReservarPageContent({
                   <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
                     <p className="text-sm font-extrabold text-amber-900">Pago por SINPE Movil</p>
                     <p className="mt-1 text-sm text-amber-900">
-                      Envia el total de la orden a <span className="font-extrabold">8888-9999</span> y sube el comprobante para completar la reserva.
+                      Envia el total de la orden a <span className="font-extrabold">{SINPE_PHONE_NUMBER}</span> y sube el comprobante para completar la reserva.
                     </p>
                     <p className="mt-1 text-sm font-semibold text-slate-800">
-                      Total a transferir: <span className="font-extrabold text-emerald-800">{formatCurrencyUSD(total)}</span>
+                      Total a transferir: <span className="font-extrabold text-emerald-800">{formatCurrencyCRC(sinpeTotalCrc)}</span>
+                    </p>
+                    <p className="mt-1 text-xs text-slate-600">
+                      Cálculo: {formatCurrencyUSD(total)} x {usdToCrcExchangeRate.toFixed(2)} = {formatCurrencyCRC(sinpeTotalCrc)}
                     </p>
                     <div className="mt-3">
                       <label className="mb-1 block text-xs font-bold uppercase tracking-wide text-slate-600">Subir comprobante</label>

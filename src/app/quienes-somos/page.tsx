@@ -7,16 +7,17 @@ const NOSOTROS_IMAGES = {
 
 
   galeria: [
-    "https://commons.wikimedia.org/wiki/Special:FilePath/CostaRica_Arenal_Volcano_(pixinn.net).jpg",
-    "https://commons.wikimedia.org/wiki/Special:FilePath/Parque_Nacional_Manuel_Antonio_02.jpg",
-    "https://commons.wikimedia.org/wiki/Special:FilePath/IMGbeachmanuelantonio.jpg",
-    "https://commons.wikimedia.org/wiki/Special:FilePath/Tortuguero_boat_trip.JPG",
-    "https://commons.wikimedia.org/wiki/Special:FilePath/TortugueroBeach.jpg",
-    "https://commons.wikimedia.org/wiki/Special:FilePath/Tortuguero_Palm_Forests.JPG",
-    "https://commons.wikimedia.org/wiki/Special:FilePath/TortugueroPark.jpg",
-    "https://commons.wikimedia.org/wiki/Special:FilePath/Costa_rica_santa_elena_skywalk.jpg",
-    "https://commons.wikimedia.org/wiki/Special:FilePath/Panorama4_Poas_volcano_crater.jpg",
-    "https://images.unsplash.com/photo-1509233725247-49e657c54213?auto=format&fit=crop&w=1200&q=80",
+    "https://guapileslineatours.com/uploads/tours/tour-1775843908586-625868277.webp",
+    "https://guapileslineatours.com/uploads/tours/selva-verde_5.webp",
+    "https://guapileslineatours.com/uploads/tours/selva-verde_26.webp",
+    "https://guapileslineatours.com/uploads/tours/selva-verde_14.webp",
+    "https://guapileslineatours.com/uploads/tours/selva-verde_27.webp",
+    "https://guapileslineatours.com/uploads/tours/tour-1775843908620-723920976.webp",
+    "https://guapileslineatours.com/uploads/tours/tour-1775843908626-875603055.webp",
+    "https://guapileslineatours.com/uploads/tours/tour-1775844685647-365194821.webp",
+    "https://guapileslineatours.com/uploads/tours/kayak_lago_arenal_3.webp",
+    "https://guapileslineatours.com/uploads/tours/el-tigre-waterfall-hiking-2.webp",
+
   ],
 };
 

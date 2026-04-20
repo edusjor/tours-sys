@@ -421,7 +421,7 @@ export default async function Home() {
             </div>
           </div>
           <img
-            src="https://images.unsplash.com/photo-1659120409178-afa7c3630bb4?auto=format&fit=crop&w=1000&q=80"
+            src="https://guapileslineatours.com/uploads/tours/tour-1775843908592-908009937.webp"
             alt="Guía local de turismo"
             className="h-72 w-full rounded-2xl object-cover shadow-xl"
           />
