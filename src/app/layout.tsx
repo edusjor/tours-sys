@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import Script from "next/script";
 import { Nunito, Kaushan_Script } from "next/font/google";
 import SiteHeader from "./components/SiteHeader";
 import "./globals.css";
@@ -54,6 +55,18 @@ export default function RootLayout({
   return (
     <html lang="es">
       <head>
+        <Script
+          src="https://www.googletagmanager.com/gtag/js?id=G-QBXGEYZE9E"
+          strategy="afterInteractive"
+        />
+        <Script id="google-analytics" strategy="afterInteractive">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'G-QBXGEYZE9E');
+          `}
+        </Script>
         <script dangerouslySetInnerHTML={{ __html: performancePolyfill }} />
       </head>
       <body className={`${nunito.variable} ${kaushan.variable} min-h-screen bg-slate-100 text-slate-900`}>
