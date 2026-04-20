@@ -5,7 +5,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: tours-app
+    container_name: tours-sys-guapiles-lineatours-container
     restart: unless-stopped
     env_file:
       - .env
