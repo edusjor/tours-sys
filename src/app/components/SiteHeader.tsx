@@ -36,10 +36,10 @@ export default function SiteHeader() {
     <header className="site-header">
       <div className="relative mx-auto w-full max-w-6xl px-4 py-4">
         <div className="flex items-center justify-between gap-4">
-          <Link href="/" aria-label="Guapiles Linea Tours" className="inline-flex items-center">
+          <Link href="/" aria-label="Guápiles Linea Tours" className="inline-flex items-center">
             <img
               src="https://guapileslineatours.com/uploads/site/logo-guapiles-linea-tours.png"
-              alt="Guapiles Linea Tours"
+              alt="Guápiles Linea Tours"
               className="h-12 w-auto max-w-[180px] object-contain md:h-14 md:max-w-[220px]"
               loading="eager"
             />
@@ -65,7 +65,7 @@ export default function SiteHeader() {
               type="button"
               onClick={() => setIsOpen((value) => !value)}
               className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/30 bg-white/10 text-slate-100 transition hover:bg-white/20 md:hidden"
-              aria-label={isOpen ? "Cerrar menu principal" : "Abrir menu principal"}
+              aria-label={isOpen ? "Cerrar menú principal" : "Abrir menú principal"}
               aria-expanded={isOpen}
               aria-controls="mobile-main-menu"
             >

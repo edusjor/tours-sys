@@ -11,10 +11,10 @@ export type LegalPageConfig = {
 
 export function buildLegalMetadata(config: LegalPageConfig): Metadata {
   return {
-    title: `${config.title} | Guapiles Linea Tours`,
+    title: `${config.title} | Guápiles Linea Tours`,
     description:
       config.description ??
-      `Consulta ${config.title.toLowerCase()} de Guapiles Linea Tours.`,
+      `Consulta ${config.title.toLowerCase()} de Guápiles Linea Tours.`,
   };
 }
 
@@ -78,7 +78,7 @@ export default async function LegalDocumentEmbed({ title, sourceUrl, description
   return (
     <section className="mx-auto w-full max-w-6xl px-4 py-10">
       <div className="mb-6 rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
-        <p className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-700">Menu legal</p>
+        <p className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-700">Menú legal</p>
         <h1 className="mt-2 text-3xl font-extrabold text-slate-900">{title}</h1>
         {description ? <p className="mt-3 text-sm text-slate-600">{description}</p> : null}
       </div>

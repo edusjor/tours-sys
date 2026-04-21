@@ -21,26 +21,26 @@ const BRAND_LOGO_URL = "https://guapileslineatours.com/uploads/site/logo-guapile
 
 export const metadata: Metadata = {
   title: {
-    default: "Guapiles Linea Tours | Agencia de Viajes en Costa Rica",
-    template: "%s | Guapiles Linea Tours",
+    default: "Guápiles Linea Tours | Agencia de Viajes en Costa Rica",
+    template: "%s | Guápiles Linea Tours",
   },
   description:
     "Agencia de viajes en Guápiles, Costa Rica. Tours nacionales e internacionales, turismo rural, playa y aventura con atención personalizada. Reserva fácil y segura.",
   keywords: [
     "tours Costa Rica",
-    "agencia de viajes Guapiles",
+    "agencia de viajes Guápiles",
     "turismo rural Costa Rica",
     "tours nacionales Costa Rica",
     "Linea Tours",
-    "Guapiles Linea Tours",
+    "Guápiles Linea Tours",
     "tours Limón",
     "viajes Costa Rica",
   ],
   openGraph: {
     type: "website",
     locale: "es_CR",
-    siteName: "Guapiles Linea Tours",
-    title: "Guapiles Linea Tours | Agencia de Viajes en Costa Rica",
+    siteName: "Guápiles Linea Tours",
+    title: "Guápiles Linea Tours | Agencia de Viajes en Costa Rica",
     description:
       "Tours nacionales e internacionales desde Guápiles. Turismo rural, playa y aventura con acompañamiento real desde el primer contacto.",
     images: [{ url: "https://guapileslineatours.com/uploads/site/logo-guapiles-linea-tours.png" }],
@@ -100,17 +100,17 @@ export default function RootLayout({
         <footer className="mt-12 bg-slate-900 py-10 text-slate-200">
           <div className="mx-auto grid w-full max-w-6xl gap-8 px-4 md:grid-cols-3 md:items-start">
             <div>
-              <Link href="/" aria-label="Guapiles Linea Tours" className="inline-flex items-center">
+              <Link href="/" aria-label="Guápiles Linea Tours" className="inline-flex items-center">
                 <img
                   src={BRAND_LOGO_URL}
-                  alt="Guapiles Linea Tours"
+                  alt="Guápiles Linea Tours"
                   className="h-16 w-auto max-w-[260px] object-contain"
                   loading="lazy"
                 />
               </Link>
             </div>
             <div>
-              <p className="mb-3 text-xs font-bold uppercase tracking-[0.2em] text-slate-400">Menu</p>
+              <p className="mb-3 text-xs font-bold uppercase tracking-[0.2em] text-slate-400">Menú</p>
               <nav className="grid gap-2 text-sm font-semibold">
                 <Link href="/">Inicio</Link>
                 <Link href="/tours">Tours</Link>
@@ -127,7 +127,7 @@ export default function RootLayout({
                 <Link href="/legal/informacion-de-cookies">Información de cookies</Link>
               </nav>
             </div>
-            <p className="text-xs text-slate-400 md:col-span-3">© 2026 Guapiles Linea Tours. Todos los derechos reservados.</p>
+            <p className="text-xs text-slate-400 md:col-span-3">© 2026 Guápiles Linea Tours. Todos los derechos reservados.</p>
           </div>
         </footer>
       </body>

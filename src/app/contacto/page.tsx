@@ -64,7 +64,7 @@ export default function ContactoPage() {
     <div>
       <section className="jungle-band py-12 text-white">
         <div className="mx-auto max-w-6xl px-4">
-          <h1 className="text-center text-4xl font-extrabold">Contáctanos directamente</h1>
+          <h1 className="text-center text-4xl font-extrabold">Contáctanos y planifica tu aventura</h1>
           <div className="mt-8 grid gap-4 md:grid-cols-2">
             <article className="rounded-2xl border border-white/20 bg-white/10 p-6 backdrop-blur-sm">
               <h3 className="text-2xl font-extrabold">Canales de atención</h3>
@@ -115,7 +115,7 @@ export default function ContactoPage() {
                 title="Mapa de LINEA TOURS"
               />
               <div className="space-y-2 p-4 text-sm text-slate-700">
-                <p className="flex items-center gap-2"><MapPinIcon /> Guapiles, Limon, Costa Rica</p>
+                <p className="flex items-center gap-2"><MapPinIcon /> Guápiles, Limón, Costa Rica</p>
                 <p className="flex items-center gap-2"><ShieldIcon /> Operadores certificados y respaldo local</p>
                 <p className="flex items-center gap-2"><GlobeIcon /> Experiencias rurales, playa y aventura</p>
                 <Link href="/contacto" className="mt-2 inline-block font-extrabold text-emerald-700">Ver contacto completo</Link>

@@ -241,8 +241,8 @@ export default function QuienesSomos() {
 
         <div className="mt-8 grid gap-5 lg:grid-cols-2">
           <article className="rounded-3xl border border-emerald-100 bg-gradient-to-br from-emerald-50 via-white to-emerald-100/40 p-6 shadow-sm md:p-8">
-            <p className="text-xs font-black uppercase tracking-[0.18em] text-emerald-700">Mision</p>
-            <h3 className="mt-2 text-3xl font-black text-slate-900">Nuestra Mision</h3>
+            <p className="text-xs font-black uppercase tracking-[0.18em] text-emerald-700">Misión</p>
+            <h3 className="mt-2 text-3xl font-black text-slate-900">Nuestra Misión</h3>
             <p className="mt-4 leading-relaxed text-slate-600">
               Garantizar experiencias de viaje bien organizadas, seguras y memorables para que cada persona regrese con
               la tranquilidad de haber elegido correctamente.
@@ -253,14 +253,14 @@ export default function QuienesSomos() {
           </article>
 
           <article className="rounded-3xl border border-amber-100 bg-gradient-to-br from-amber-50 via-white to-orange-100/35 p-6 shadow-sm md:p-8">
-            <p className="text-xs font-black uppercase tracking-[0.18em] text-amber-700">Vision</p>
-            <h3 className="mt-2 text-3xl font-black text-slate-900">Nuestra Vision</h3>
+            <p className="text-xs font-black uppercase tracking-[0.18em] text-amber-700">Visión</p>
+            <h3 className="mt-2 text-3xl font-black text-slate-900">Nuestra Visión</h3>
             <p className="mt-4 leading-relaxed text-slate-600">
               Ser la agencia referente para quienes buscan experiencias de viaje con respaldo, calidad operativa y trato
               humano.
             </p>
             <p className="mt-3 leading-relaxed text-slate-600">
-              Queremos que cada cliente nos recuerde por la tranquilidad que sintio antes, durante y despues de viajar.
+              Queremos que cada cliente nos recuerde por la tranquilidad que sintió antes, durante y después de viajar.
             </p>
           </article>
         </div>

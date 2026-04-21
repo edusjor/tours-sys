@@ -79,7 +79,7 @@ export default async function ReservaConfirmadaPage({
             href="/tours"
             className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-bold text-white transition hover:bg-slate-800"
           >
-            Ver mas tours
+            Ver más tours
           </a>
           <a
             href="/"

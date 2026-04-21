@@ -7,7 +7,7 @@ const APPROVED_PAYMENT_STATUSES = new Set(['succeeded', 'paid', 'approved']);
 const DEFAULT_RESERVATION_ADMIN_EMAIL = 'reservaciones@guapileslineatours.com';
 const SUPPORT_EMAIL = 'atencionalcliente@guapileslineatours.com';
 const SUPPORT_WHATSAPP = '+506 7154-6738';
-const SUPPORT_LOCATION = 'Costa Rica, Limon, Pococi, La Colonia';
+const SUPPORT_LOCATION = 'Costa Rica, Limón, Pococí, La Colonia';
 
 type FinalizeReservationResult =
   | { ok: true; alreadyPaid: boolean; message: string }

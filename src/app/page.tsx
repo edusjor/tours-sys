@@ -368,7 +368,7 @@ export default async function Home() {
         </div>
         <div className="relative z-10 mx-auto max-w-6xl px-4 py-24 text-white md:py-32">
           <h1 className="mb-3 inline-block rounded-full border border-white/40 bg-white/10 px-4 py-1 text-sm font-semibold uppercase tracking-wide">
-            Guapiles Linea Tours
+            Guápiles Linea Tours
           </h1>
           <h2 className="script-title text-5xl leading-tight drop-shadow-md md:text-7xl">Descubre el turismo rural costarricense</h2>
           <p className="mt-5 max-w-2xl text-lg font-semibold text-slate-100 md:text-2xl">
@@ -439,7 +439,7 @@ export default async function Home() {
 
       <section className="bg-white py-12">
         <div className="mx-auto max-w-6xl px-4">
-          <h2 className="text-center text-4xl font-extrabold text-emerald-900">Por qué elegir Guapiles Linea Tours</h2>
+          <h2 className="text-center text-4xl font-extrabold text-emerald-900">Por qué elegir Guápiles Linea Tours</h2>
           <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
             {[
               { title: "Turismo responsable", desc: "Viajes que aportan a comunidades y tradiciones locales", icon: <GlobeIcon /> },
@@ -523,7 +523,7 @@ export default async function Home() {
                 <p className="flex items-center gap-2"><PhoneIcon /> +506 6015-9782 / +506 7154-6738</p>
                 <p className="flex items-center gap-2"><MailIcon /> atencionalcliente@guapileslineatours.com</p>
                 <p className="flex items-center gap-2"><ClockIcon /> Lunes a Viernes, 8:00 am a 5:00 pm</p>
-                <p className="flex items-center gap-2"><MapPinIcon /> Costa Rica, Limon, Pococi, La Colonia</p>
+                <p className="flex items-center gap-2"><MapPinIcon /> Costa Rica, Limón, Pococí, La Colonia</p>
               </div>
             </article>
 
@@ -566,7 +566,7 @@ export default async function Home() {
                 title="Mapa de LINEA TOURS"
               />
               <div className="space-y-2 p-4 text-sm text-slate-700">
-                <p className="flex items-center gap-2"><MapPinIcon /> Guapiles, Limon, Costa Rica</p>
+                <p className="flex items-center gap-2"><MapPinIcon /> Guápiles, Limón, Costa Rica</p>
                 <p className="flex items-center gap-2"><ShieldIcon /> Operadores certificados y respaldo local</p>
                 <p className="flex items-center gap-2"><GlobeIcon /> Experiencias rurales, playa y aventura</p>
                 <Link href="/contacto" className="mt-2 inline-block font-extrabold text-emerald-700">Ver contacto completo</Link>
