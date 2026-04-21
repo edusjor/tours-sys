@@ -17,6 +17,8 @@ const kaushan = Kaushan_Script({
   weight: ["400"],
 });
 
+const BRAND_LOGO_URL = "https://guapileslineatours.com/uploads/site/logo-guapiles-linea-tours.png";
+
 export const metadata: Metadata = {
   title: "Guapiles Linea Tours",
   description: "Sitio web de tours y aventuras en Costa Rica",
@@ -75,7 +77,14 @@ export default function RootLayout({
         <footer className="mt-12 bg-slate-900 py-10 text-slate-200">
           <div className="mx-auto grid w-full max-w-6xl gap-8 px-4 md:grid-cols-3 md:items-start">
             <div>
-              <p className="text-2xl font-extrabold text-white">Guapiles Linea Tours</p>
+              <Link href="/" aria-label="Guapiles Linea Tours" className="inline-flex items-center">
+                <img
+                  src={BRAND_LOGO_URL}
+                  alt="Guapiles Linea Tours"
+                  className="h-12 w-auto max-w-[220px] object-contain"
+                  loading="lazy"
+                />
+              </Link>
               <p className="text-sm text-slate-400">Tours de prueba para desarrollo y demostraciones.</p>
             </div>
             <div>
