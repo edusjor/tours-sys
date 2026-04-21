@@ -38,7 +38,7 @@ export default function SiteHeader() {
         <div className="flex items-center justify-between gap-4">
           <Link href="/" aria-label="Guapiles Linea Tours" className="inline-flex items-center">
             <img
-              src="https://guapileslineatours.com/wp-content/uploads/2025/11/logo-lineatours.png"
+              src="https://guapileslineatours.com/uploads/site/logo-guapiles-linea-tours.png"
               alt="Guapiles Linea Tours"
               className="h-12 w-auto max-w-[180px] object-contain md:h-14 md:max-w-[220px]"
               loading="eager"
