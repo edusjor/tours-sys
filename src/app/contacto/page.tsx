@@ -64,7 +64,7 @@ export default function ContactoPage() {
     <div>
       <section className="jungle-band py-12 text-white">
         <div className="mx-auto max-w-6xl px-4">
-          <h2 className="text-center text-4xl font-extrabold">Contáctanos directamente</h2>
+          <h1 className="text-center text-4xl font-extrabold">Contáctanos directamente</h1>
           <div className="mt-8 grid gap-4 md:grid-cols-2">
             <article className="rounded-2xl border border-white/20 bg-white/10 p-6 backdrop-blur-sm">
               <h3 className="text-2xl font-extrabold">Canales de atención</h3>

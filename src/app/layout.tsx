@@ -20,8 +20,31 @@ const kaushan = Kaushan_Script({
 const BRAND_LOGO_URL = "https://guapileslineatours.com/uploads/site/logo-guapiles-linea-tours.png";
 
 export const metadata: Metadata = {
-  title: "Guapiles Linea Tours",
-  description: "Sitio web de tours y aventuras en Costa Rica",
+  title: {
+    default: "Guapiles Linea Tours | Agencia de Viajes en Costa Rica",
+    template: "%s | Guapiles Linea Tours",
+  },
+  description:
+    "Agencia de viajes en Guápiles, Costa Rica. Tours nacionales e internacionales, turismo rural, playa y aventura con atención personalizada. Reserva fácil y segura.",
+  keywords: [
+    "tours Costa Rica",
+    "agencia de viajes Guapiles",
+    "turismo rural Costa Rica",
+    "tours nacionales Costa Rica",
+    "Linea Tours",
+    "Guapiles Linea Tours",
+    "tours Limón",
+    "viajes Costa Rica",
+  ],
+  openGraph: {
+    type: "website",
+    locale: "es_CR",
+    siteName: "Guapiles Linea Tours",
+    title: "Guapiles Linea Tours | Agencia de Viajes en Costa Rica",
+    description:
+      "Tours nacionales e internacionales desde Guápiles. Turismo rural, playa y aventura con acompañamiento real desde el primer contacto.",
+    images: [{ url: "https://guapileslineatours.com/uploads/site/logo-guapiles-linea-tours.png" }],
+  },
 };
 
 export default function RootLayout({
@@ -81,11 +104,10 @@ export default function RootLayout({
                 <img
                   src={BRAND_LOGO_URL}
                   alt="Guapiles Linea Tours"
-                  className="h-12 w-auto max-w-[220px] object-contain"
+                  className="h-16 w-auto max-w-[260px] object-contain"
                   loading="lazy"
                 />
               </Link>
-              <p className="text-sm text-slate-400">Tours de prueba para desarrollo y demostraciones.</p>
             </div>
             <div>
               <p className="mb-3 text-xs font-bold uppercase tracking-[0.2em] text-slate-400">Menu</p>

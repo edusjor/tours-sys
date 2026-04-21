@@ -1,23 +1,64 @@
+"use client";
+
+import { useState, useEffect, useCallback } from "react";
 import ValuesCompact from "../components/ValuesCompact";
 
 const NOSOTROS_IMAGES = {
   hero: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=2200&q=80",
   principal: "https://images.unsplash.com/photo-1586768019524-c6e902168263?q=80&w=1017&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-
-
-
   galeria: [
-    "https://guapileslineatours.com/uploads/tours/tour-1775843908586-625868277.webp",
-    "https://guapileslineatours.com/uploads/tours/selva-verde_5.webp",
-    "https://guapileslineatours.com/uploads/tours/selva-verde_26.webp",
-    "https://guapileslineatours.com/uploads/tours/selva-verde_14.webp",
-    "https://guapileslineatours.com/uploads/tours/selva-verde_27.webp",
-    "https://guapileslineatours.com/uploads/tours/tour-1775843908620-723920976.webp",
-    "https://guapileslineatours.com/uploads/tours/tour-1775843908626-875603055.webp",
-    "https://guapileslineatours.com/uploads/tours/tour-1775844685647-365194821.webp",
-    "https://guapileslineatours.com/uploads/tours/kayak_lago_arenal_3.webp",
-    "https://guapileslineatours.com/uploads/tours/el-tigre-waterfall-hiking-2.webp",
-
+    "/uploads/clientes/clientes-guapiles-lineatours_Cliente_1.webp",
+    "/uploads/clientes/clientes-guapiles-lineatours_Cliente_2.webp",
+    "/uploads/clientes/clientes-guapiles-lineatours_Cliente_3.webp",
+    "/uploads/clientes/clientes-guapiles-lineatours_Cliente_4.webp",
+    "/uploads/clientes/clientes-guapiles-lineatours_Cliente_5.webp",
+    "/uploads/clientes/clientes-guapiles-lineatours_Cliente_6.webp",
+    "/uploads/clientes/clientes-guapiles-lineatours_Cliente_7.webp",
+    "/uploads/clientes/clientes-guapiles-lineatours_Cliente_8.webp",
+    "/uploads/clientes/clientes-guapiles-lineatours_Cliente_9.webp",
+    "/uploads/clientes/clientes-guapiles-lineatours_IMG_9593.webp",
+    "/uploads/clientes/clientes-guapiles-lineatours_IMG_9612.webp",
+    "/uploads/clientes/clientes-guapiles-lineatours_IMG_9634.webp",
+    "/uploads/clientes/clientes-guapiles-lineatours_IMG_9655.webp",
+    "/uploads/clientes/clientes-guapiles-lineatours_IMG_9656.webp",
+    "/uploads/clientes/clientes-guapiles-lineatours_IMG_9657.webp",
+    "/uploads/clientes/clientes-guapiles-lineatours_IMG_9671.webp",
+    "/uploads/clientes/clientes-guapiles-lineatours_IMG_9682.webp",
+    "/uploads/clientes/clientes-guapiles-lineatours_IMG_9688.webp",
+    "/uploads/clientes/clientes-guapiles-lineatours_IMG_9692.webp",
+    "/uploads/clientes/clientes-guapiles-lineatours_IMG_9697.webp",
+    "/uploads/clientes/clientes-guapiles-lineatours_IMG_9698.webp",
+    "/uploads/clientes/clientes-guapiles-lineatours_IMG_9699.webp",
+    "/uploads/clientes/clientes-guapiles-lineatours_IMG_9703.webp",
+    "/uploads/clientes/clientes-guapiles-lineatours_IMG_9706.webp",
+    "/uploads/clientes/clientes-guapiles-lineatours_IMG_9723.webp",
+    "/uploads/clientes/clientes-guapiles-lineatours_IMG_9728.webp",
+    "/uploads/clientes/clientes-guapiles-lineatours_IMG_9729.webp",
+    "/uploads/clientes/clientes-guapiles-lineatours_IMG_9737.webp",
+    "/uploads/clientes/clientes-guapiles-lineatours_IMG_9738.webp",
+    "/uploads/clientes/clientes-guapiles-lineatours_IMG_9744.webp",
+    "/uploads/clientes/clientes-guapiles-lineatours_IMG_9755.webp",
+    "/uploads/clientes/clientes-guapiles-lineatours_IMG_9757.webp",
+    "/uploads/clientes/clientes-guapiles-lineatours_IMG_9764.webp",
+    "/uploads/clientes/clientes-guapiles-lineatours_photo_1.webp",
+    "/uploads/clientes/clientes-guapiles-lineatours_photo_12.webp",
+    "/uploads/clientes/clientes-guapiles-lineatours_photo_13.webp",
+    "/uploads/clientes/clientes-guapiles-lineatours_photo_18.webp",
+    "/uploads/clientes/clientes-guapiles-lineatours_photo_19.webp",
+    "/uploads/clientes/clientes-guapiles-lineatours_photo_2.webp",
+    "/uploads/clientes/clientes-guapiles-lineatours_photo_20.webp",
+    "/uploads/clientes/clientes-guapiles-lineatours_photo_22.webp",
+    "/uploads/clientes/clientes-guapiles-lineatours_photo_32.webp",
+    "/uploads/clientes/clientes-guapiles-lineatours_photo_40.webp",
+    "/uploads/clientes/clientes-guapiles-lineatours_photo_42.webp",
+    "/uploads/clientes/clientes-guapiles-lineatours_photo_43.webp",
+    "/uploads/clientes/clientes-guapiles-lineatours_photo_44.webp",
+    "/uploads/clientes/clientes-guapiles-lineatours_photo_45.webp",
+    "/uploads/clientes/clientes-guapiles-lineatours_Photo_47.webp",
+    "/uploads/clientes/clientes-guapiles-lineatours_Photo_48.webp",
+    "/uploads/clientes/clientes-guapiles-lineatours_Photo_51.webp",
+    "/uploads/clientes/clientes-guapiles-lineatours_Photo_54.webp",
+    "/uploads/clientes/clientes-guapiles-lineatours_Photo_55.webp",
   ],
 };
 
@@ -44,7 +85,108 @@ const VALORES = [
   },
 ];
 
+function GalleryLightbox({
+  images,
+  initialIndex,
+  onClose,
+}: {
+  images: string[];
+  initialIndex: number;
+  onClose: () => void;
+}) {
+  const [current, setCurrent] = useState(initialIndex);
+  const total = images.length;
+
+  const prev = useCallback(() => setCurrent((i) => (i - 1 + total) % total), [total]);
+  const next = useCallback(() => setCurrent((i) => (i + 1) % total), [total]);
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+      if (e.key === "ArrowLeft") prev();
+      if (e.key === "ArrowRight") next();
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [onClose, prev, next]);
+
+  // prevent body scroll while open
+  useEffect(() => {
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = ""; };
+  }, []);
+
+  return (
+    <div
+      className="fixed inset-0 z-[999] flex items-center justify-center bg-black/90 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      {/* close */}
+      <button
+        onClick={onClose}
+        className="absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white backdrop-blur-sm transition hover:bg-white/25"
+        aria-label="Cerrar"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+          <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+        </svg>
+      </button>
+
+      {/* prev */}
+      <button
+        onClick={(e) => { e.stopPropagation(); prev(); }}
+        className="absolute left-3 top-1/2 -translate-y-1/2 flex h-11 w-11 items-center justify-center rounded-full bg-white/10 text-white backdrop-blur-sm transition hover:bg-white/25 md:left-6"
+        aria-label="Anterior"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+          <polyline points="15 18 9 12 15 6" />
+        </svg>
+      </button>
+
+      {/* image */}
+      <div
+        className="mx-16 flex max-h-[88vh] max-w-5xl items-center justify-center"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <img
+          key={current}
+          src={images[current]}
+          alt=""
+          className="max-h-[88vh] max-w-full rounded-xl object-contain shadow-2xl"
+          style={{ animation: "fadeIn 0.2s ease" }}
+        />
+      </div>
+
+      {/* next */}
+      <button
+        onClick={(e) => { e.stopPropagation(); next(); }}
+        className="absolute right-3 top-1/2 -translate-y-1/2 flex h-11 w-11 items-center justify-center rounded-full bg-white/10 text-white backdrop-blur-sm transition hover:bg-white/25 md:right-6"
+        aria-label="Siguiente"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+          <polyline points="9 18 15 12 9 6" />
+        </svg>
+      </button>
+
+      {/* counter */}
+      <p className="absolute bottom-5 left-1/2 -translate-x-1/2 rounded-full bg-white/10 px-4 py-1 text-sm font-semibold text-white backdrop-blur-sm">
+        {current + 1} / {total}
+      </p>
+
+      <style>{`@keyframes fadeIn { from { opacity: 0; transform: scale(0.97); } to { opacity: 1; transform: scale(1); } }`}</style>
+    </div>
+  );
+}
+
+const PAGE_SIZE = 16;
+
 export default function QuienesSomos() {
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const [lightbox, setLightbox] = useState<{ open: boolean; index: number }>({ open: false, index: 0 });
+
+  const openLightbox = (index: number) => setLightbox({ open: true, index });
+  const closeLightbox = () => setLightbox({ open: false, index: 0 });
+
   return (
     <section className="relative overflow-hidden bg-[#f3f8f7] pb-16 text-slate-800 md:pb-24">
       <div className="pointer-events-none absolute -left-24 top-32 h-64 w-64 rounded-full bg-emerald-200/45 blur-3xl" />
@@ -128,28 +270,45 @@ export default function QuienesSomos() {
         <section className="mt-8 rounded-3xl border border-slate-200/80 bg-white p-6 shadow-sm md:p-8">
           <h3 className="text-center text-3xl font-black text-slate-900">Galeria</h3>
           <p className="mx-auto mt-2 max-w-2xl text-center text-sm text-slate-500 md:text-base">
-            Un vistazo a escenarios naturales y momentos que inspiran nuestros itinerarios.
+            Momentos reales con nuestros clientes en Costa Rica.
           </p>
 
-          <div className="mt-6 grid grid-cols-1 gap-3 md:grid-cols-12 md:grid-rows-2">
-            {NOSOTROS_IMAGES.galeria.map((image, idx) => {
-              const wide = idx === 0 || idx === 4;
-              return (
-                <div
-                  key={`${image}-${idx}`}
-                  className={`group overflow-hidden rounded-2xl bg-slate-200 ${wide ? "md:col-span-6" : "md:col-span-3"}`}
-                >
-                  <img
-                    src={image}
-                    alt={`Galeria sobre nosotros ${idx + 1}`}
-                    className="h-48 w-full object-cover transition-transform duration-500 group-hover:scale-105 md:h-52"
-                  />
-                </div>
-              );
-            })}
+          <div className="mt-6 columns-2 gap-3 sm:columns-3 md:columns-4">
+            {NOSOTROS_IMAGES.galeria.slice(0, visibleCount).map((image, idx) => (
+              <div
+                key={image}
+                className="group mb-3 cursor-pointer overflow-hidden rounded-xl bg-slate-100 break-inside-avoid"
+                onClick={() => openLightbox(idx)}
+              >
+                <img
+                  src={image}
+                  alt=""
+                  className="w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                />
+              </div>
+            ))}
           </div>
+
+          {visibleCount < NOSOTROS_IMAGES.galeria.length && (
+            <div className="mt-6 flex justify-center">
+              <button
+                onClick={() => setVisibleCount((v) => Math.min(v + PAGE_SIZE, NOSOTROS_IMAGES.galeria.length))}
+                className="rounded-full border border-emerald-200 bg-emerald-50 px-8 py-2.5 text-sm font-bold text-emerald-700 transition hover:bg-emerald-100 active:scale-95"
+              >
+                Ver más fotos ({NOSOTROS_IMAGES.galeria.length - visibleCount} restantes)
+              </button>
+            </div>
+          )}
         </section>
       </div>
+
+      {lightbox.open && (
+        <GalleryLightbox
+          images={NOSOTROS_IMAGES.galeria}
+          initialIndex={lightbox.index}
+          onClose={closeLightbox}
+        />
+      )}
     </section>
   );
 }

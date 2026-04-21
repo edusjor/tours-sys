@@ -627,7 +627,7 @@ export default function ToursPage() {
   return (
     <section className="mx-auto w-full max-w-7xl px-4 py-10">
       <div className="rounded-3xl bg-gradient-to-r from-emerald-900 via-emerald-700 to-teal-600 px-6 py-8 text-white">
-        <h2 className="text-4xl font-extrabold">Explora nuestros tours</h2>
+        <h1 className="text-4xl font-extrabold">Explora nuestros tours</h1>
       </div>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-[290px_1fr]">

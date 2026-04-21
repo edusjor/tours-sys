@@ -367,10 +367,10 @@ export default async function Home() {
           <div className="hero-overlay" />
         </div>
         <div className="relative z-10 mx-auto max-w-6xl px-4 py-24 text-white md:py-32">
-          <p className="mb-3 inline-block rounded-full border border-white/40 bg-white/10 px-4 py-1 text-sm font-semibold uppercase tracking-wide">
+          <h1 className="mb-3 inline-block rounded-full border border-white/40 bg-white/10 px-4 py-1 text-sm font-semibold uppercase tracking-wide">
             Guapiles Linea Tours
-          </p>
-          <h1 className="script-title text-5xl leading-tight drop-shadow-md md:text-7xl">Descubre el turismo rural costarricense</h1>
+          </h1>
+          <h2 className="script-title text-5xl leading-tight drop-shadow-md md:text-7xl">Descubre el turismo rural costarricense</h2>
           <p className="mt-5 max-w-2xl text-lg font-semibold text-slate-100 md:text-2xl">
             Experiencias únicas y auténticas dentro y fuera del país para todos los estilos de vida.
           </p>
@@ -385,7 +385,7 @@ export default async function Home() {
               href="/contacto"
               className="rounded-lg bg-amber-400 px-8 py-3 text-center text-lg font-extrabold text-slate-900 shadow-xl shadow-amber-950/25 transition hover:bg-amber-300"
             >
-              Explorar planes
+              Planea con nosotros
             </Link>
           </div>
         </div>
