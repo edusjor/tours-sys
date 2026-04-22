@@ -472,7 +472,7 @@ export default function AdminOrdersPage() {
                 >
                   Cerrar
                 </button>
-                <img src={zoomedSinpeReceiptUrl} alt="Comprobante SINPE ampliado" className="max-h-[90vh] w-full rounded-xl bg-white object-contain" />
+                <img src={zoomedSinpeReceiptUrl} alt="Comprobante SINPE ampliado" className="mx-auto max-h-[90vh] max-w-full rounded-xl object-contain" />
               </div>
             </div>
           ) : null}
