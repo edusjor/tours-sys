@@ -564,7 +564,7 @@ export default function TourDetailPage() {
   const reserveHref = `/tours/${encodeURIComponent(routeParam)}/reservar${selectedPackage ? `?package=${encodeURIComponent(selectedPackage.id)}${selectedAvailabilityDate ? `&date=${encodeURIComponent(selectedAvailabilityDate)}` : ""}` : selectedAvailabilityDate ? `?date=${encodeURIComponent(selectedAvailabilityDate)}` : ""}`;
 
   return (
-    <section className="relative overflow-hidden bg-[radial-gradient(circle_at_15%_10%,rgba(16,185,129,0.11),transparent_42%),radial-gradient(circle_at_90%_85%,rgba(245,158,11,0.12),transparent_38%),linear-gradient(180deg,#f8fbfa_0%,#ecf3f1_100%)]">
+    <section className="relative overflow-x-hidden lg:overflow-visible bg-[radial-gradient(circle_at_15%_10%,rgba(16,185,129,0.11),transparent_42%),radial-gradient(circle_at_90%_85%,rgba(245,158,11,0.12),transparent_38%),linear-gradient(180deg,#f8fbfa_0%,#ecf3f1_100%)]">
       <div
         className="relative w-full"
         style={{
@@ -620,7 +620,7 @@ export default function TourDetailPage() {
       </div>
 
       <div className="mx-auto max-w-6xl px-4 pb-8 pt-6">
-      <div className="grid gap-6 lg:grid-cols-[2fr_1fr]">
+      <div className="grid gap-6 lg:items-start lg:grid-cols-[2fr_1fr]">
         <div>
           {galleryImageCount === 1 && (
             <div className="relative overflow-hidden rounded-xl border border-slate-200 bg-white">
@@ -859,7 +859,8 @@ export default function TourDetailPage() {
           )}
         </div>
 
-        <aside className="self-start rounded-2xl border border-white/70 bg-white/95 p-5 shadow-[0_10px_35px_rgba(15,23,42,0.09)] backdrop-blur-sm lg:sticky lg:top-20 lg:max-h-[calc(100vh-6rem)] lg:overflow-y-auto">
+        <div className="self-start lg:sticky lg:top-20">
+        <aside className="h-fit rounded-2xl border border-white/70 bg-white/95 p-5 shadow-[0_10px_35px_rgba(15,23,42,0.09)] backdrop-blur-sm">
           {!isInfoOnlyTour && detailPricePreview.label ? (
             <>
               <p className="text-4xl font-black text-emerald-800">{detailPricePreview.label}</p>
@@ -973,6 +974,7 @@ export default function TourDetailPage() {
             </div>
           )}
         </aside>
+        </div>
       </div>
       </div>
 

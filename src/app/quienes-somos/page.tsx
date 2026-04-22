@@ -268,7 +268,7 @@ export default function QuienesSomos() {
         <ValuesCompact items={VALORES} />
 
         <section className="mt-8 rounded-3xl border border-slate-200/80 bg-white p-6 shadow-sm md:p-8">
-          <h3 className="text-center text-3xl font-black text-slate-900">Galeria</h3>
+          <h3 className="text-center text-3xl font-black text-slate-900">Galería</h3>
           <p className="mx-auto mt-2 max-w-2xl text-center text-sm text-slate-500 md:text-base">
             Momentos reales con nuestros clientes en Costa Rica.
           </p>

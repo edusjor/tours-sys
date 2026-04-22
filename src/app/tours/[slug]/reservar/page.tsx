@@ -1096,7 +1096,7 @@ function ReservarPageContent({
           String(payload?.message || "").trim() ||
           (isSinpeMobileMethod
             ? "Recibimos tu comprobante. Te contactaremos cuando el pago sea validado."
-            : "Reserva confirmada. Te enviamos el detalle por correo.");
+            : "Reserva confirmada. Revisa los detalles en el correo que te llegó.");
 
         if (isSinpeMobileMethod) {
           navigateToConfirmation({

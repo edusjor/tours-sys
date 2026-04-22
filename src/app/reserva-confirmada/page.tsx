@@ -39,7 +39,7 @@ export default async function ReservaConfirmadaPage({
     message ||
     (isPendingValidation
       ? "Nuestro equipo validará el comprobante SINPE y te notificaremos por correo."
-      : "Te enviamos la confirmación al correo registrado.");
+      : "Revisa los detalles de tu reserva en el correo que te llegó.");
   const normalizedSubtitle = normalizeComparableText(subtitle);
   const normalizedSummary = normalizeComparableText(summary);
   const shouldShowSummary = isPendingValidation && normalizedSummary.length > 0 && normalizedSummary !== normalizedSubtitle;
