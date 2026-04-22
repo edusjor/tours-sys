@@ -326,6 +326,9 @@ async function sendReservationPendingValidationEmail(input: {
   const packageTitleText = String(input.packageTitle ?? '').trim() || 'No indicado';
   const hasBreakdown = input.priceBreakdown.length > 0;
   const totalAmountText = formatUsd(input.totalAmount);
+  const usdToCrcRate = await getUsdToCrcExchangeRate().catch(() => DEFAULT_USD_TO_CRC_EXCHANGE_RATE);
+  const totalAmountCrc = Number.isFinite(Number(input.totalAmount)) ? Number(input.totalAmount) * usdToCrcRate : NaN;
+  const totalAmountCrcText = formatCrc(totalAmountCrc);
   const priceBreakdownText = hasBreakdown
     ? input.priceBreakdown.map((item) => `- ${item.name}: ${item.quantity}`).join('\n')
     : '- No detallado';
