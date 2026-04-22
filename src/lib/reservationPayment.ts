@@ -2,6 +2,7 @@ import nodemailer from 'nodemailer';
 import { prisma } from './prisma';
 import { getOnvoPaymentIntent } from './onvo';
 import { getReservationCheckoutDetailsById } from './reservationDetails';
+import { DEFAULT_USD_TO_CRC_EXCHANGE_RATE, getUsdToCrcExchangeRate } from './exchangeRate';
 import { phoneCountryOptions } from './phoneCountryOptions';
 
 const APPROVED_PAYMENT_STATUSES = new Set(['succeeded', 'paid', 'approved']);
@@ -9,6 +10,7 @@ const DEFAULT_RESERVATION_ADMIN_EMAIL = 'reservaciones@guapileslineatours.com';
 const SUPPORT_EMAIL = 'atencionalcliente@guapileslineatours.com';
 const SUPPORT_WHATSAPP = '+506 6015-9782';
 const SUPPORT_LOCATION = 'Costa Rica, Limón, Pococí, La Colonia';
+const SINPE_PHONE_NUMBER = '6015 9782';
 
 type FinalizeReservationResult =
   | { ok: true; alreadyPaid: boolean; message: string }
@@ -29,6 +31,15 @@ function formatUsd(value: number | null | undefined): string {
     currency: 'USD',
     maximumFractionDigits: 2,
   }).format(amount);
+}
+
+function formatCrc(value: number | null | undefined): string {
+  const amount = Number(value);
+  if (!Number.isFinite(amount) || amount <= 0) return 'N/D';
+  return `₡ ${amount.toLocaleString('en-US', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
 }
 
 function resolveCountryFromPhone(phone: string | null | undefined): string {
@@ -92,6 +103,9 @@ async function sendReservationConfirmationEmail(input: {
   const packageTitleText = String(input.packageTitle ?? '').trim() || 'No indicado';
   const hasBreakdown = input.priceBreakdown.length > 0;
   const totalAmountText = formatUsd(input.totalAmount);
+  const usdToCrcRate = await getUsdToCrcExchangeRate().catch(() => DEFAULT_USD_TO_CRC_EXCHANGE_RATE);
+  const totalAmountCrc = Number.isFinite(Number(input.totalAmount)) ? Number(input.totalAmount) * usdToCrcRate : NaN;
+  const totalAmountCrcText = formatCrc(totalAmountCrc);
   const priceBreakdownText = hasBreakdown
     ? input.priceBreakdown.map((item) => `- ${item.name}: ${item.quantity}`).join('\n')
     : '- No detallado';
@@ -326,6 +340,11 @@ async function sendReservationPendingValidationEmail(input: {
     'Estado actual: Pendiente por validar pago.',
     'Nuestro equipo revisará manualmente la transferencia y, una vez validada, te enviaremos un nuevo correo con tu reserva confirmada.',
     '',
+    'Recordatorio de pago SINPE Móvil:',
+    `Número SINPE: ${SINPE_PHONE_NUMBER}`,
+    `Total en colones por transferir: ${totalAmountCrcText}`,
+    `Detalle: Reserva #${input.reservationId}`,
+    '',
     'Resumen de la solicitud:',
     `Reserva: #${input.reservationId}`,
     `Tour: ${input.tourTitle}`,
@@ -338,7 +357,7 @@ async function sendReservationPendingValidationEmail(input: {
     `País: ${customerCountryText}`,
     `Total de la reserva: ${totalAmountText}`,
     `Paquete: ${packageTitleText}`,
-    `Detalle de selección:\n${priceBreakdownText}`,
+    `Detalle de selección (Reserva #${input.reservationId}):\n${priceBreakdownText}`,
     `Hospedaje: ${hotelText}`,
     `Método de pago: ${paymentMethodText}`,
     `Estado: Pendiente por validar`,
@@ -363,6 +382,13 @@ async function sendReservationPendingValidationEmail(input: {
           <p style="margin:0 0 16px;font-size:15px;color:#7c2d12;"><strong>Estado actual:</strong> Pendiente por validar pago.</p>
           <p style="margin:0 0 16px;font-size:14px;color:#334155;">Apenas validemos manualmente la transferencia, te enviaremos un nuevo correo con la confirmación exitosa de tu reserva.</p>
 
+          <div style="margin:0 0 16px;padding:12px;border:1px solid #fed7aa;border-radius:10px;background:#fff7ed;">
+            <p style="margin:0 0 6px;font-size:14px;font-weight:700;color:#7c2d12;">Recordatorio de pago SINPE Móvil</p>
+            <p style="margin:0;font-size:14px;color:#9a3412;"><strong>Número SINPE:</strong> ${SINPE_PHONE_NUMBER}</p>
+            <p style="margin:4px 0 0;font-size:14px;color:#9a3412;"><strong>Total en colones por transferir:</strong> ${totalAmountCrcText}</p>
+            <p style="margin:4px 0 0;font-size:14px;color:#9a3412;"><strong>Detalle:</strong> Reserva #${input.reservationId}</p>
+          </div>
+
           <table role="presentation" style="width:100%;border-collapse:separate;border-spacing:0;border:1px solid #e2e8f0;border-radius:10px;overflow:hidden;">
             <tbody>
               <tr><td style="padding:10px 12px;background:#fff7ed;border-bottom:1px solid #e2e8f0;font-weight:700;width:42%;">Reserva</td><td style="padding:10px 12px;border-bottom:1px solid #e2e8f0;">#${input.reservationId}</td></tr>
@@ -383,7 +409,7 @@ async function sendReservationPendingValidationEmail(input: {
           </table>
 
           <div style="margin-top:12px;padding:12px;border:1px solid #fed7aa;border-radius:10px;background:#fff7ed;">
-            <p style="margin:0 0 8px;font-size:14px;font-weight:700;color:#7c2d12;">Seleccion de personas / tarifas</p>
+            <p style="margin:0 0 8px;font-size:14px;font-weight:700;color:#7c2d12;">Selección de personas / tarifas (Reserva #${input.reservationId})</p>
             <ul style="margin:0;padding-left:18px;color:#9a3412;font-size:14px;">
               ${priceBreakdownHtml}
             </ul>
