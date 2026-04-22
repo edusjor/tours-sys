@@ -1,0 +1,6 @@
+CREATE TABLE IF NOT EXISTS "SystemSetting" (
+  "key" TEXT NOT NULL,
+  "number_value" DOUBLE PRECISION NOT NULL,
+  "updated_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT "SystemSetting_pkey" PRIMARY KEY ("key")
+);
