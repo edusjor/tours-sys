@@ -98,6 +98,7 @@ export default function AdminOrdersPage() {
   const [updatingReservationId, setUpdatingReservationId] = useState<number | null>(null);
   const [reservations, setReservations] = useState<ReservationItem[]>([]);
   const [activeReservation, setActiveReservation] = useState<ReservationItem | null>(null);
+  const [zoomedSinpeReceiptUrl, setZoomedSinpeReceiptUrl] = useState<string | null>(null);
 
   useEffect(() => {
     fetch("/api/admin/auth")
@@ -346,7 +347,10 @@ export default function AdminOrdersPage() {
               </div>
               <button
                 type="button"
-                onClick={() => setActiveReservation(null)}
+                onClick={() => {
+                  setZoomedSinpeReceiptUrl(null);
+                  setActiveReservation(null);
+                }}
                 className="rounded-lg border border-slate-300 px-3 py-1 text-sm font-bold text-slate-700 hover:bg-slate-50"
               >
                 Cerrar
@@ -418,9 +422,14 @@ export default function AdminOrdersPage() {
                 <p className="text-xs font-bold uppercase tracking-wide text-slate-500">Comprobante SINPE</p>
                 {activeReservation.paymentMethod?.toLowerCase() === "sinpe movil" && activeReservation.sinpeReceiptUrl ? (
                   <div className="mt-2 flex flex-col gap-2">
-                    <div className="overflow-hidden rounded-lg border border-emerald-300 bg-white">
+                    <button
+                      type="button"
+                      onClick={() => setZoomedSinpeReceiptUrl(activeReservation.sinpeReceiptUrl)}
+                      className="overflow-hidden rounded-lg border border-emerald-300 bg-white"
+                    >
                       <img src={activeReservation.sinpeReceiptUrl} alt={`Comprobante SINPE reserva ${activeReservation.id}`} className="max-h-[70vh] w-full object-contain" />
-                    </div>
+                    </button>
+                    <p className="text-xs font-semibold text-slate-500">Haz clic en la imagen para ampliar.</p>
                   </div>
                 ) : (
                   <p className="mt-1 text-sm text-slate-600">No aplica</p>
@@ -449,6 +458,24 @@ export default function AdminOrdersPage() {
               </div>
             ) : null}
           </div>
+
+          {zoomedSinpeReceiptUrl ? (
+            <div
+              className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/80 p-4"
+              onClick={() => setZoomedSinpeReceiptUrl(null)}
+            >
+              <div className="relative w-full max-w-6xl" onClick={(e) => e.stopPropagation()}>
+                <button
+                  type="button"
+                  onClick={() => setZoomedSinpeReceiptUrl(null)}
+                  className="absolute right-2 top-2 rounded-lg bg-white/90 px-3 py-1 text-sm font-bold text-slate-800 hover:bg-white"
+                >
+                  Cerrar
+                </button>
+                <img src={zoomedSinpeReceiptUrl} alt="Comprobante SINPE ampliado" className="max-h-[90vh] w-full rounded-xl bg-white object-contain" />
+              </div>
+            </div>
+          ) : null}
         </div>
       ) : null}
     </section>
