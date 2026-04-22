@@ -148,7 +148,12 @@ function buildFeaturedLocation(zone?: string | null, country?: string | null): s
 function buildFeaturedPriceLabel(price?: number | null): string {
   const numeric = typeof price === "number" && Number.isFinite(price) ? price : 0;
   if (numeric === 0) return "Gratis";
-  return `$${numeric.toFixed(2)}`;
+  const roundedPrice = Math.round(numeric * 100) / 100;
+  const hasDecimals = !Number.isInteger(roundedPrice);
+  return `$${roundedPrice.toLocaleString("en-US", {
+    minimumFractionDigits: hasDecimals ? 2 : 0,
+    maximumFractionDigits: 2,
+  })}`;
 }
 
 function hasTourPricing(tour: {
@@ -461,7 +466,7 @@ export default async function Home() {
 
       {providerLogos.length > 0 ? <ProvidersCarousel logos={providerLogos} /> : null}
 
-      <section className="section-band py-12">
+      {/*<section className="section-band py-12">
         <div className="mx-auto max-w-6xl px-4">
           <div className="rounded-2xl border border-emerald-100 bg-white p-6 shadow-sm">
             <div>
@@ -511,7 +516,7 @@ export default async function Home() {
             </div>
           </div>
         </div>
-      </section>
+      </section> */}
 
       <section className="jungle-band py-12 text-white">
         <div className="mx-auto max-w-6xl px-4">

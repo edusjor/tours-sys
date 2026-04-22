@@ -235,7 +235,12 @@ function getTourPriceLabel(tour: Tour): string | null {
   if (!hasReservablePricing(tour)) return null;
   const effectivePrice = getEffectiveTourPrice(tour);
   if (effectivePrice === 0) return "Gratis";
-  return `$${effectivePrice.toFixed(2)}`;
+  const roundedPrice = Math.round(effectivePrice * 100) / 100;
+  const hasDecimals = !Number.isInteger(roundedPrice);
+  return `$${roundedPrice.toLocaleString("en-US", {
+    minimumFractionDigits: hasDecimals ? 2 : 0,
+    maximumFractionDigits: 2,
+  })}`;
 }
 
 function getTourLocationLabel(tour: Tour): string {
