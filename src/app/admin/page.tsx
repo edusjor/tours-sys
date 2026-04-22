@@ -405,6 +405,14 @@ function slugifyTourValue(value: string): string {
   return normalized;
 }
 
+function normalizeSearchText(value: string): string {
+  return value
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+}
+
 function createDefaultPriceOptions(): PriceOptionEditor[] {
   return defaultPriceOptionNames.map((name) => ({
     id: `default-${slugifyPriceLabel(name)}`,
@@ -2775,11 +2783,9 @@ function AdminPageContent() {
   };
 
   const searchedTours = useMemo(() => {
-    const query = searchTour.trim().toLowerCase();
+    const query = normalizeSearchText(searchTour);
     if (!query) return allTours;
-    return allTours.filter((tour) =>
-      `${tour.title} ${tour.country ?? ""} ${tour.zone ?? ""} ${tour.activityType ?? ""}`.toLowerCase().includes(query),
-    );
+    return allTours.filter((tour) => normalizeSearchText(tour.title).includes(query));
   }, [allTours, searchTour]);
 
   const tabCounts = useMemo(
@@ -2921,7 +2927,7 @@ function AdminPageContent() {
               <input
                 value={searchTour}
                 onChange={(e) => setSearchTour(e.target.value)}
-                placeholder="Buscar por nombre, país o actividad"
+                placeholder="Buscar por título"
                 className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm sm:max-w-xl"
               />
               <div className="flex items-center gap-2">

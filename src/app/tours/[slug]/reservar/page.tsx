@@ -30,10 +30,16 @@ declare global {
 const ONVO_SDK_URL = "https://sdk.onvopay.com/sdk.js";
 const DEFAULT_USD_TO_CRC_EXCHANGE_RATE = 520;
 const SINPE_PHONE_NUMBER = "6015 9782";
+const CARD_PAYMENT_METHOD = "Tarjeta de Credito o Debito (ONVO)";
+const SINPE_PAYMENT_METHOD = "SINPE Movil";
+const paymentMethodOptions = [
+  { value: CARD_PAYMENT_METHOD, label: "Tarjeta de Crédito o Débito (ONVO)" },
+  { value: SINPE_PAYMENT_METHOD, label: "SINPE Móvil" },
+];
 let onvoScriptPromise: Promise<void> | null = null;
 
 function loadOnvoScript(): Promise<void> {
-  if (typeof window === "undefined") return Promise.reject(new Error("ONVO SDK solo esta disponible en el navegador."));
+  if (typeof window === "undefined") return Promise.reject(new Error("ONVO SDK solo está disponible en el navegador."));
   if (window.onvo?.pay) return Promise.resolve();
   if (onvoScriptPromise) return onvoScriptPromise;
 
@@ -289,10 +295,9 @@ function formatCurrencyUSD(value: number) {
 }
 
 function formatCurrencyCRC(value: number) {
-  return new Intl.NumberFormat("es-CR", {
-    style: "currency",
-    currency: "CRC",
-    maximumFractionDigits: 0,
+  return new Intl.NumberFormat("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
   }).format(value);
 }
 
@@ -514,7 +519,7 @@ function ReservarPageContent({
   const [phoneCountryDialCode, setPhoneCountryDialCode] = useState("");
   const [phone, setPhone] = useState("");
   const [hotel, setHotel] = useState("");
-  const [payMethod, setPayMethod] = useState("Tarjeta de Credito o Debito (ONVO)");
+  const [payMethod, setPayMethod] = useState(CARD_PAYMENT_METHOD);
   const [sinpeReceiptFile, setSinpeReceiptFile] = useState<File | null>(null);
   const [sinpeReceiptUrl, setSinpeReceiptUrl] = useState("");
   const [isUploadingSinpeReceipt, setIsUploadingSinpeReceipt] = useState(false);
@@ -844,7 +849,7 @@ function ReservarPageContent({
     email.trim() &&
     phoneCountryDialCode.trim() &&
     phone.trim();
-  const isSinpeMobileMethod = payMethod === "SINPE Movil";
+  const isSinpeMobileMethod = payMethod === SINPE_PAYMENT_METHOD;
 
   useEffect(() => {
     if (step === "pago" && !canContinueToPay) {
@@ -974,7 +979,7 @@ function ReservarPageContent({
     e.preventDefault();
 
     if (isInfoOnlyTour) {
-      setStatus("Este tour es solo informativo y no permite reservas en linea.");
+      setStatus("Este tour es solo informativo y no permite reservas en línea.");
       return;
     }
 
@@ -1010,7 +1015,7 @@ function ReservarPageContent({
 
     if (isSinpeMobileMethod) {
       if (!sinpeReceiptFile && !uploadedSinpeReceiptUrl) {
-        setStatus("Para SINPE Movil debes subir el comprobante antes de completar la reserva.");
+        setStatus("Para SINPE Móvil debes subir el comprobante antes de completar la reserva.");
         return;
       }
 
@@ -1089,7 +1094,7 @@ function ReservarPageContent({
       if (!payload?.requiresPayment) {
         const reservationId = Number(payload?.reservationId);
         if (!Number.isFinite(reservationId) || reservationId <= 0) {
-          setStatus("La reserva se creo, pero no se recibio un numero de reserva valido.");
+          setStatus("La reserva se creó, pero no se recibió un número de reserva válido.");
           return;
         }
         const nextMessage =
@@ -1165,7 +1170,7 @@ function ReservarPageContent({
             navigateToConfirmation({
               reservationId,
               status: "confirmed",
-              paymentMethod: "Tarjeta de Credito o Debito (ONVO)",
+              paymentMethod: CARD_PAYMENT_METHOD,
               message: confirmation.message,
             });
           } catch {
@@ -1217,7 +1222,7 @@ function ReservarPageContent({
       <section className="mx-auto max-w-6xl px-4 py-8">
         <h1 className="text-4xl font-extrabold tracking-tight text-slate-900">Reserva tu tour</h1>
         <p className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm font-semibold text-amber-800">
-          Este tour no tiene precios configurados y no permite reservas en linea.
+          Este tour no tiene precios configurados y no permite reservas en línea.
         </p>
       </section>
     );
@@ -1549,10 +1554,10 @@ function ReservarPageContent({
                   </div>
                 </div>
                 <div className="md:col-span-2">
-                  <label className="mb-1 block text-sm font-semibold text-slate-700">Hotel o lugar de hospedaje</label>
+                  <label className="mb-1 block text-sm font-semibold text-slate-700">Hotel o lugar donde se hospeda (opcional)</label>
                   <input
                     className="h-12 w-full rounded-lg border border-slate-300 px-3"
-                    placeholder="Hotel o lugar de hospedaje"
+                    placeholder="Hotel o lugar donde se hospeda (opcional)"
                     value={hotel}
                     onChange={(e) => setHotel(e.target.value)}
                     disabled={!meetsMinimumPeople || isRedirectingToConfirmation}
@@ -1590,33 +1595,30 @@ function ReservarPageContent({
 
             {step === "pago" && !isConfirmingReservation && (
               <form onSubmit={handleReserve} className="mt-4 space-y-3">
-                {["Tarjeta de Credito o Debito (ONVO)", "SINPE Movil"].map((method) => (
+                {paymentMethodOptions.map((method) => (
                   <button
                     type="button"
-                    key={method}
-                    onClick={() => setPayMethod(method)}
+                    key={method.value}
+                    onClick={() => setPayMethod(method.value)}
                     disabled={isRedirectingToConfirmation || isConfirmingReservation}
                     className={`w-full rounded-lg border px-4 py-3 text-left font-semibold transition ${
-                      payMethod === method
+                      payMethod === method.value
                         ? "border-emerald-700 bg-emerald-50 text-emerald-900"
                         : "border-slate-300 bg-white text-slate-700 hover:border-emerald-300"
                     }`}
                   >
-                    {method}
+                    {method.label}
                   </button>
                 ))}
 
                 {isSinpeMobileMethod ? (
                   <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
-                    <p className="text-sm font-extrabold text-amber-900">Pago por SINPE Movil</p>
+                    <p className="text-sm font-extrabold text-amber-900">Pago por SINPE Móvil</p>
                     <p className="mt-1 text-sm text-amber-900">
-                      Envia el total de la orden a <span className="font-extrabold">{SINPE_PHONE_NUMBER}</span> y sube el comprobante para completar la reserva.
+                      Envía el total de la orden a <span className="font-extrabold">{SINPE_PHONE_NUMBER}</span> y sube el comprobante para completar la reserva.
                     </p>
                     <p className="mt-1 text-sm font-semibold text-slate-800">
-                      Total a transferir: <span className="font-extrabold text-emerald-800">{formatCurrencyCRC(sinpeTotalCrc)}</span>
-                    </p>
-                    <p className="mt-1 text-xs text-slate-600">
-                      Cálculo: {formatCurrencyUSD(total)} x {usdToCrcExchangeRate.toFixed(2)} = {formatCurrencyCRC(sinpeTotalCrc)}
+                      Total a transferir (CRC): <span className="font-extrabold text-emerald-800">₡ {formatCurrencyCRC(sinpeTotalCrc)}</span> Colones
                     </p>
                     <div className="mt-3">
                       <label className="mb-1 block text-xs font-bold uppercase tracking-wide text-slate-600">Subir comprobante</label>

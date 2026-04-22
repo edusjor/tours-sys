@@ -80,6 +80,13 @@ function formatUsd(value: number) {
   }).format(value);
 }
 
+function normalizeSearchText(value: string) {
+  return value
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+}
+
 type RangeSliderProps = {
   minLimit: number;
   maxLimit: number;
@@ -399,7 +406,7 @@ export default function ToursPage() {
   const tourTypeOptions = ["Todos", "Privados", "Grupales"];
 
   const filteredTours = useMemo(() => {
-    const search = searchText.trim().toLowerCase();
+    const search = normalizeSearchText(searchText.trim());
 
     return tours.filter((tour) => {
       const normalizedStatus = tour.status ?? "BORRADOR";
@@ -408,7 +415,7 @@ export default function ToursPage() {
       if (normalizedStatus !== "ACTIVO") return false;
 
       if (search) {
-        const haystack = `${tour.title} ${tour.description} ${tour.country ?? ""} ${tour.zone ?? ""} ${tour.activityType ?? ""}`.toLowerCase();
+        const haystack = normalizeSearchText(tour.title);
         if (!haystack.includes(search)) return false;
       }
 
@@ -665,7 +672,7 @@ export default function ToursPage() {
             <input
               value={searchText}
               onChange={(e) => setSearchText(e.target.value)}
-              placeholder="Buscar tour por nombre, descripción, país o actividad"
+              placeholder="Buscar tour por título"
               className="w-full rounded-lg border border-slate-300 px-3 py-2"
             />
           </div>
