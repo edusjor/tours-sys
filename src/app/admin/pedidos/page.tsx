@@ -418,12 +418,9 @@ export default function AdminOrdersPage() {
                 <p className="text-xs font-bold uppercase tracking-wide text-slate-500">Comprobante SINPE</p>
                 {activeReservation.paymentMethod?.toLowerCase() === "sinpe movil" && activeReservation.sinpeReceiptUrl ? (
                   <div className="mt-2 flex flex-col gap-2">
-                    <a href={activeReservation.sinpeReceiptUrl} target="_blank" rel="noreferrer" className="block w-40 overflow-hidden rounded-lg border border-emerald-300 bg-white">
-                      <img src={activeReservation.sinpeReceiptUrl} alt={`Comprobante SINPE reserva ${activeReservation.id}`} className="h-28 w-full object-cover" />
-                    </a>
-                    <a href={activeReservation.sinpeReceiptUrl} target="_blank" rel="noreferrer" className="inline-flex w-fit rounded-lg border border-emerald-300 bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-800 hover:bg-emerald-100">
-                      Abrir imagen completa
-                    </a>
+                    <div className="overflow-hidden rounded-lg border border-emerald-300 bg-white">
+                      <img src={activeReservation.sinpeReceiptUrl} alt={`Comprobante SINPE reserva ${activeReservation.id}`} className="max-h-[70vh] w-full object-contain" />
+                    </div>
                   </div>
                 ) : (
                   <p className="mt-1 text-sm text-slate-600">No aplica</p>
