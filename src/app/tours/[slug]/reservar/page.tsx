@@ -66,6 +66,61 @@ function loadOnvoScript(): Promise<void> {
   return onvoScriptPromise;
 }
 
+function extractOnvoErrorMessage(input: unknown): string {
+  if (!input) return "";
+  if (typeof input === "string") return input.trim();
+  if (input instanceof Error) return input.message.trim();
+  if (typeof input !== "object") return "";
+
+  const source = input as Record<string, unknown>;
+  const lastPaymentError =
+    source.lastPaymentError && typeof source.lastPaymentError === "object"
+      ? (source.lastPaymentError as Record<string, unknown>)
+      : null;
+  const candidates: unknown[] = [
+    source.failureMessage,
+    source.message,
+    source.detail,
+    lastPaymentError?.message,
+    lastPaymentError?.failureMessage,
+    lastPaymentError?.code,
+    source.failureCode,
+    source.code,
+    source.message,
+    source.detail,
+    source.error,
+    (source.error as Record<string, unknown> | undefined)?.message,
+    (source.error as Record<string, unknown> | undefined)?.detail,
+  ];
+
+  for (const candidate of candidates) {
+    if (typeof candidate === "string" && candidate.trim()) {
+      return candidate.trim();
+    }
+  }
+
+  return "";
+}
+
+async function fetchOnvoPaymentIntentStatusMessage(input: {
+  reservationId: number;
+  paymentIntentId: string;
+}): Promise<string> {
+  const response = await fetch("/api/onvo/payment-intent-status", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+
+  const payload = await response.json().catch(() => null);
+  if (!response.ok) {
+    const detail = String(payload?.error ?? "").trim();
+    return detail || "El pago no pudo procesarse. Revisa los datos e intenta nuevamente.";
+  }
+
+  return String(payload?.message ?? "").trim() || "El pago no pudo procesarse. Revisa los datos e intenta nuevamente.";
+}
+
 interface Availability {
   id: number;
   date: string;
@@ -1150,11 +1205,25 @@ function ReservarPageContent({
         paymentType: "one_time",
         locale: "es",
         onError: (onvoError) => {
-          const errorMessage =
-            typeof onvoError === "object" && onvoError && "message" in onvoError
-              ? String((onvoError as { message?: string }).message || "")
-              : "";
-          setStatus(errorMessage ? `Error en el pago: ${errorMessage}` : "El pago no pudo procesarse. Revisa los datos e intenta nuevamente.");
+          const errorMessage = extractOnvoErrorMessage(onvoError);
+          console.warn("ONVO checkout warning", onvoError);
+          if (errorMessage) {
+            setStatus(`Error en el pago: ${errorMessage}`);
+            return;
+          }
+
+          setStatus("No se pudo obtener el detalle del error. Verificando estado del pago...");
+          void (async () => {
+            try {
+              const providerMessage = await fetchOnvoPaymentIntentStatusMessage({
+                reservationId,
+                paymentIntentId,
+              });
+              setStatus(providerMessage);
+            } catch {
+              setStatus("El pago no pudo procesarse. Revisa los datos e intenta nuevamente.");
+            }
+          })();
         },
         onSuccess: async () => {
           try {
@@ -1683,7 +1752,9 @@ function ReservarPageContent({
             ) : null}
 
             {status && !isConfirmingReservation && (
-              <p className="mt-4 whitespace-pre-line rounded-lg bg-emerald-50 p-3 text-sm font-semibold text-emerald-700">{status}</p>
+              <p className="mt-4 whitespace-pre-line break-words rounded-lg bg-emerald-50 p-3 text-sm font-semibold text-emerald-700">
+                {status}
+              </p>
             )}
           </article>
         </div>

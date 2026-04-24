@@ -1,5 +1,7 @@
 const ONVO_API_BASE = "https://api.onvopay.com/v1";
 
+type OnvoKeyMode = "test" | "live" | "unknown";
+
 type OnvoRequestOptions = {
   method?: "GET" | "POST";
   body?: unknown;
@@ -11,8 +13,56 @@ export type OnvoPaymentIntent = {
   metadata?: Record<string, string> | null;
 };
 
+function detectOnvoKeyMode(key: string): OnvoKeyMode {
+  if (key.startsWith("onvo_test_")) return "test";
+  if (key.startsWith("onvo_live_")) return "live";
+  return "unknown";
+}
+
+function ensureOnvoKeysCompatibility(secretKey: string, publicKey: string): void {
+  const secretMode = detectOnvoKeyMode(secretKey);
+  const publicMode = detectOnvoKeyMode(publicKey);
+
+  if (secretMode === "unknown") {
+    throw new Error("ONVO secret key format is invalid");
+  }
+
+  if (publicMode === "unknown") {
+    throw new Error("ONVO public key format is invalid");
+  }
+
+  if (secretMode !== publicMode) {
+    throw new Error(
+      `ONVO key mode mismatch: secret key is ${secretMode}, public key is ${publicMode}`,
+    );
+  }
+}
+
+function formatOnvoErrorPayload(payload: unknown, fallback: string): string {
+  if (!payload || typeof payload !== "object") return fallback;
+
+  const record = payload as Record<string, unknown>;
+  const message =
+    (typeof record.message === "string" && record.message.trim()) ||
+    (typeof (record.error as Record<string, unknown> | undefined)?.message === "string" &&
+      String((record.error as Record<string, unknown>).message).trim()) ||
+    "";
+
+  const code =
+    (typeof record.code === "string" && record.code.trim()) ||
+    (typeof (record.error as Record<string, unknown> | undefined)?.code === "string" &&
+      String((record.error as Record<string, unknown>).code).trim()) ||
+    "";
+
+  if (message && code) return `${message} (code: ${code})`;
+  if (message) return message;
+  if (code) return `ONVO error code: ${code}`;
+
+  return JSON.stringify(payload);
+}
+
 function getOnvoSecretKey(): string {
-  const key = process.env.ONVO_SECRET_KEY;
+  const key = String(process.env.ONVO_SECRET_KEY ?? "").trim();
   if (!key) {
     throw new Error("ONVO secret key is not configured");
   }
@@ -32,7 +82,7 @@ async function onvoRequest<T>(path: string, options: OnvoRequestOptions = {}): P
 
   if (!response.ok) {
     const payload = await response.json().catch(() => null);
-    const detail = payload && typeof payload === "object" ? JSON.stringify(payload) : response.statusText;
+    const detail = formatOnvoErrorPayload(payload, response.statusText);
     throw new Error(`ONVO request failed (${response.status}): ${detail}`);
   }
 
@@ -61,9 +111,12 @@ export async function getOnvoPaymentIntent(id: string): Promise<OnvoPaymentInten
 }
 
 export function getOnvoPublishableKey(): string {
-  const key = process.env.ONVO_PUBLIC_KEY;
+  const key = String(process.env.ONVO_PUBLIC_KEY ?? "").trim();
   if (!key) {
     throw new Error("ONVO public key is not configured");
   }
+
+  ensureOnvoKeysCompatibility(getOnvoSecretKey(), key);
+
   return key;
 }
