@@ -2,15 +2,12 @@ import nodemailer from 'nodemailer';
 import { prisma } from './prisma';
 import { getOnvoPaymentIntent } from './onvo';
 import { getReservationCheckoutDetailsById } from './reservationDetails';
-import { DEFAULT_USD_TO_CRC_EXCHANGE_RATE, getUsdToCrcExchangeRate } from './exchangeRate';
-import { phoneCountryOptions } from './phoneCountryOptions';
 
 const APPROVED_PAYMENT_STATUSES = new Set(['succeeded', 'paid', 'approved']);
 const DEFAULT_RESERVATION_ADMIN_EMAIL = 'reservaciones@guapileslineatours.com';
 const SUPPORT_EMAIL = 'atencionalcliente@guapileslineatours.com';
 const SUPPORT_WHATSAPP = '+506 6015-9782';
 const SUPPORT_LOCATION = 'Costa Rica, Limón, Pococí, La Colonia';
-const SINPE_PHONE_NUMBER = '6015 9782';
 
 type FinalizeReservationResult =
   | { ok: true; alreadyPaid: boolean; message: string }
@@ -33,31 +30,10 @@ function formatUsd(value: number | null | undefined): string {
   }).format(amount);
 }
 
-function formatCrc(value: number | null | undefined): string {
-  const amount = Number(value);
-  if (!Number.isFinite(amount) || amount <= 0) return 'N/D';
-  return `₡ ${amount.toLocaleString('en-US', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })}`;
-}
-
-function resolveCountryFromPhone(phone: string | null | undefined): string {
-  const normalizedPhone = String(phone ?? '').trim().replace(/\s+/g, '');
-  if (!normalizedPhone.startsWith('+')) return 'No indicado';
-
-  const match = [...phoneCountryOptions]
-    .sort((left, right) => right.dialCode.length - left.dialCode.length)
-    .find((option) => normalizedPhone.startsWith(String(option.dialCode).replace(/\s+/g, '')));
-
-  return match?.name || 'No indicado';
-}
-
 async function sendReservationConfirmationEmail(input: {
   reservationId: number;
   customerEmail: string;
   customerName: string;
-  customerPhone: string | null;
   tourTitle: string;
   people: number;
   date: Date;
@@ -98,22 +74,17 @@ async function sendReservationConfirmationEmail(input: {
   const timeText = input.scheduleTime?.trim() || 'Por coordinar';
   const paymentMethodText = String(input.paymentMethod ?? '').trim() || 'No indicado';
   const hotelText = String(input.hotel ?? '').trim() || 'No indicado';
-  const customerPhoneText = String(input.customerPhone ?? '').trim() || 'No indicado';
-  const customerCountryText = resolveCountryFromPhone(input.customerPhone);
   const packageTitleText = String(input.packageTitle ?? '').trim() || 'No indicado';
   const hasBreakdown = input.priceBreakdown.length > 0;
   const totalAmountText = formatUsd(input.totalAmount);
-  const usdToCrcRate = await getUsdToCrcExchangeRate().catch(() => DEFAULT_USD_TO_CRC_EXCHANGE_RATE);
-  const totalAmountCrc = Number.isFinite(Number(input.totalAmount)) ? Number(input.totalAmount) * usdToCrcRate : NaN;
-  const totalAmountCrcText = formatCrc(totalAmountCrc);
   const priceBreakdownText = hasBreakdown
     ? input.priceBreakdown.map((item) => `- ${item.name}: ${item.quantity}`).join('\n')
     : '- No detallado';
   const priceBreakdownHtml = hasBreakdown
     ? input.priceBreakdown.map((item) => `<li><strong>${item.name}:</strong> ${item.quantity}</li>`).join('')
     : '<li>No detallado</li>';
-  const customerSubject = `Reserva confirmada #${input.reservationId} - ${input.tourTitle}`;
-  const customerText = [
+  const subject = `Reserva confirmada #${input.reservationId} - ${input.tourTitle}`;
+  const text = [
     `Hola ${input.customerName},`,
     '',
     'Tu pago fue aprobado y tu reserva quedó confirmada.',
@@ -124,10 +95,6 @@ async function sendReservationConfirmationEmail(input: {
     `Fecha: ${dateText}`,
     `Horario: ${timeText}`,
     `Personas: ${input.people}`,
-    `Cliente: ${input.customerName}`,
-    `Correo: ${input.customerEmail}`,
-    `Teléfono: ${customerPhoneText}`,
-    `País: ${customerCountryText}`,
     `Total pagado: ${totalAmountText}`,
     `Paquete: ${packageTitleText}`,
     `Detalle de selección:\n${priceBreakdownText}`,
@@ -142,7 +109,7 @@ async function sendReservationConfirmationEmail(input: {
     'Gracias por reservar con nosotros.',
   ].join('\n');
 
-  const customerHtml = `
+  const html = `
     <div style="font-family:Arial,Helvetica,sans-serif;background:#f8fafc;padding:24px;color:#0f172a;">
       <div style="max-width:680px;margin:0 auto;background:#ffffff;border:1px solid #e2e8f0;border-radius:14px;overflow:hidden;">
         <div style="background:linear-gradient(135deg,#065f46,#0f766e);padding:22px 24px;color:#ffffff;">
@@ -161,10 +128,6 @@ async function sendReservationConfirmationEmail(input: {
               <tr><td style="padding:10px 12px;background:#f8fafc;border-bottom:1px solid #e2e8f0;font-weight:700;">Fecha</td><td style="padding:10px 12px;border-bottom:1px solid #e2e8f0;">${dateText}</td></tr>
               <tr><td style="padding:10px 12px;background:#f8fafc;border-bottom:1px solid #e2e8f0;font-weight:700;">Horario</td><td style="padding:10px 12px;border-bottom:1px solid #e2e8f0;">${timeText}</td></tr>
               <tr><td style="padding:10px 12px;background:#f8fafc;border-bottom:1px solid #e2e8f0;font-weight:700;">Personas</td><td style="padding:10px 12px;border-bottom:1px solid #e2e8f0;">${input.people}</td></tr>
-              <tr><td style="padding:10px 12px;background:#f8fafc;border-bottom:1px solid #e2e8f0;font-weight:700;">Cliente</td><td style="padding:10px 12px;border-bottom:1px solid #e2e8f0;">${input.customerName}</td></tr>
-              <tr><td style="padding:10px 12px;background:#f8fafc;border-bottom:1px solid #e2e8f0;font-weight:700;">Correo</td><td style="padding:10px 12px;border-bottom:1px solid #e2e8f0;">${input.customerEmail}</td></tr>
-              <tr><td style="padding:10px 12px;background:#f8fafc;border-bottom:1px solid #e2e8f0;font-weight:700;">Teléfono</td><td style="padding:10px 12px;border-bottom:1px solid #e2e8f0;">${customerPhoneText}</td></tr>
-              <tr><td style="padding:10px 12px;background:#f8fafc;border-bottom:1px solid #e2e8f0;font-weight:700;">País</td><td style="padding:10px 12px;border-bottom:1px solid #e2e8f0;">${customerCountryText}</td></tr>
               <tr><td style="padding:10px 12px;background:#f8fafc;border-bottom:1px solid #e2e8f0;font-weight:700;">Total pagado</td><td style="padding:10px 12px;border-bottom:1px solid #e2e8f0;">${totalAmountText}</td></tr>
               <tr><td style="padding:10px 12px;background:#f8fafc;border-bottom:1px solid #e2e8f0;font-weight:700;">Paquete</td><td style="padding:10px 12px;border-bottom:1px solid #e2e8f0;">${packageTitleText}</td></tr>
               <tr><td style="padding:10px 12px;background:#f8fafc;border-bottom:1px solid #e2e8f0;font-weight:700;">Hospedaje</td><td style="padding:10px 12px;border-bottom:1px solid #e2e8f0;">${hotelText}</td></tr>
@@ -192,95 +155,20 @@ async function sendReservationConfirmationEmail(input: {
     </div>
   `;
 
-  const adminSubject = `Nueva reserva confirmada #${input.reservationId} - ${input.tourTitle}`;
-  const adminText = [
-    'Nueva reserva creada y confirmada.',
-    '',
-    'Detalle de la reserva:',
-    `Reserva: #${input.reservationId}`,
-    `Tour: ${input.tourTitle}`,
-    `Fecha: ${dateText}`,
-    `Horario: ${timeText}`,
-    `Personas: ${input.people}`,
-    `Cliente: ${input.customerName}`,
-    `Correo: ${input.customerEmail}`,
-    `Teléfono: ${customerPhoneText}`,
-    `País: ${customerCountryText}`,
-    `Total pagado: ${totalAmountText}`,
-    `Paquete: ${packageTitleText}`,
-    `Detalle de selección:\n${priceBreakdownText}`,
-    `Hospedaje: ${hotelText}`,
-    `Método de pago: ${paymentMethodText}`,
-  ].join('\n');
-
-  const adminHtml = `
-    <div style="font-family:Arial,Helvetica,sans-serif;background:#f8fafc;padding:24px;color:#0f172a;">
-      <div style="max-width:680px;margin:0 auto;background:#ffffff;border:1px solid #e2e8f0;border-radius:14px;overflow:hidden;">
-        <div style="background:linear-gradient(135deg,#0f172a,#334155);padding:22px 24px;color:#ffffff;">
-          <p style="margin:0;font-size:12px;letter-spacing:.08em;text-transform:uppercase;opacity:.9;">Guapiles Linea Tours</p>
-          <h2 style="margin:8px 0 0;font-size:28px;line-height:1.2;">Nueva reserva confirmada</h2>
-        </div>
-
-        <div style="padding:22px 24px;">
-          <p style="margin:0 0 12px;font-size:15px;"><strong>Se creó una nueva reserva confirmada.</strong></p>
-
-          <table role="presentation" style="width:100%;border-collapse:separate;border-spacing:0;border:1px solid #e2e8f0;border-radius:10px;overflow:hidden;">
-            <tbody>
-              <tr><td style="padding:10px 12px;background:#f8fafc;border-bottom:1px solid #e2e8f0;font-weight:700;width:42%;">Reserva</td><td style="padding:10px 12px;border-bottom:1px solid #e2e8f0;">#${input.reservationId}</td></tr>
-              <tr><td style="padding:10px 12px;background:#f8fafc;border-bottom:1px solid #e2e8f0;font-weight:700;">Tour</td><td style="padding:10px 12px;border-bottom:1px solid #e2e8f0;">${input.tourTitle}</td></tr>
-              <tr><td style="padding:10px 12px;background:#f8fafc;border-bottom:1px solid #e2e8f0;font-weight:700;">Fecha</td><td style="padding:10px 12px;border-bottom:1px solid #e2e8f0;">${dateText}</td></tr>
-              <tr><td style="padding:10px 12px;background:#f8fafc;border-bottom:1px solid #e2e8f0;font-weight:700;">Horario</td><td style="padding:10px 12px;border-bottom:1px solid #e2e8f0;">${timeText}</td></tr>
-              <tr><td style="padding:10px 12px;background:#f8fafc;border-bottom:1px solid #e2e8f0;font-weight:700;">Personas</td><td style="padding:10px 12px;border-bottom:1px solid #e2e8f0;">${input.people}</td></tr>
-              <tr><td style="padding:10px 12px;background:#f8fafc;border-bottom:1px solid #e2e8f0;font-weight:700;">Cliente</td><td style="padding:10px 12px;border-bottom:1px solid #e2e8f0;">${input.customerName}</td></tr>
-              <tr><td style="padding:10px 12px;background:#f8fafc;border-bottom:1px solid #e2e8f0;font-weight:700;">Correo</td><td style="padding:10px 12px;border-bottom:1px solid #e2e8f0;">${input.customerEmail}</td></tr>
-              <tr><td style="padding:10px 12px;background:#f8fafc;border-bottom:1px solid #e2e8f0;font-weight:700;">Teléfono</td><td style="padding:10px 12px;border-bottom:1px solid #e2e8f0;">${customerPhoneText}</td></tr>
-              <tr><td style="padding:10px 12px;background:#f8fafc;border-bottom:1px solid #e2e8f0;font-weight:700;">País</td><td style="padding:10px 12px;border-bottom:1px solid #e2e8f0;">${customerCountryText}</td></tr>
-              <tr><td style="padding:10px 12px;background:#f8fafc;border-bottom:1px solid #e2e8f0;font-weight:700;">Total pagado</td><td style="padding:10px 12px;border-bottom:1px solid #e2e8f0;">${totalAmountText}</td></tr>
-              <tr><td style="padding:10px 12px;background:#f8fafc;border-bottom:1px solid #e2e8f0;font-weight:700;">Paquete</td><td style="padding:10px 12px;border-bottom:1px solid #e2e8f0;">${packageTitleText}</td></tr>
-              <tr><td style="padding:10px 12px;background:#f8fafc;border-bottom:1px solid #e2e8f0;font-weight:700;">Hospedaje</td><td style="padding:10px 12px;border-bottom:1px solid #e2e8f0;">${hotelText}</td></tr>
-              <tr><td style="padding:10px 12px;background:#f8fafc;font-weight:700;">Método de pago</td><td style="padding:10px 12px;">${paymentMethodText}</td></tr>
-            </tbody>
-          </table>
-
-          <div style="margin-top:12px;padding:12px;border:1px solid #e2e8f0;border-radius:10px;background:#f8fafc;">
-            <p style="margin:0 0 8px;font-size:14px;font-weight:700;color:#0f172a;">Selección de personas / tarifas</p>
-            <ul style="margin:0;padding-left:18px;color:#334155;font-size:14px;">
-              ${priceBreakdownHtml}
-            </ul>
-          </div>
-        </div>
-      </div>
-    </div>
-  `;
-
-  const customerRecipient = String(input.customerEmail ?? '').trim();
-  const adminRecipient = String(notifyTo ?? '').trim();
-  if (customerRecipient) {
-    await transporter.sendMail({
-      from: smtpFrom,
-      to: customerRecipient,
-      subject: customerSubject,
-      text: customerText,
-      html: customerHtml,
-    });
-  }
-
-  if (adminRecipient) {
-    await transporter.sendMail({
-      from: smtpFrom,
-      to: adminRecipient,
-      subject: adminSubject,
-      text: adminText,
-      html: adminHtml,
-    });
-  }
+  const recipients = Array.from(new Set([input.customerEmail, notifyTo].map((item) => String(item ?? '').trim()).filter(Boolean)));
+  await transporter.sendMail({
+    from: smtpFrom,
+    to: recipients,
+    subject,
+    text,
+    html,
+  });
 }
 
 async function sendReservationPendingValidationEmail(input: {
   reservationId: number;
   customerEmail: string;
   customerName: string;
-  customerPhone: string | null;
   tourTitle: string;
   people: number;
   date: Date;
@@ -321,32 +209,22 @@ async function sendReservationPendingValidationEmail(input: {
   const timeText = input.scheduleTime?.trim() || 'Por coordinar';
   const paymentMethodText = String(input.paymentMethod ?? '').trim() || 'No indicado';
   const hotelText = String(input.hotel ?? '').trim() || 'No indicado';
-  const customerPhoneText = String(input.customerPhone ?? '').trim() || 'No indicado';
-  const customerCountryText = resolveCountryFromPhone(input.customerPhone);
   const packageTitleText = String(input.packageTitle ?? '').trim() || 'No indicado';
   const hasBreakdown = input.priceBreakdown.length > 0;
   const totalAmountText = formatUsd(input.totalAmount);
-  const usdToCrcRate = await getUsdToCrcExchangeRate().catch(() => DEFAULT_USD_TO_CRC_EXCHANGE_RATE);
-  const totalAmountCrc = Number.isFinite(Number(input.totalAmount)) ? Number(input.totalAmount) * usdToCrcRate : NaN;
-  const totalAmountCrcText = formatCrc(totalAmountCrc);
   const priceBreakdownText = hasBreakdown
     ? input.priceBreakdown.map((item) => `- ${item.name}: ${item.quantity}`).join('\n')
     : '- No detallado';
   const priceBreakdownHtml = hasBreakdown
     ? input.priceBreakdown.map((item) => `<li><strong>${item.name}:</strong> ${item.quantity}</li>`).join('')
     : '<li>No detallado</li>';
-  const customerSubject = `Reserva por confirmar #${input.reservationId} - ${input.tourTitle}`;
-  const customerText = [
+  const subject = `Reserva por confirmar #${input.reservationId} - ${input.tourTitle}`;
+  const text = [
     `Hola ${input.customerName},`,
     '',
     'Recibimos tu solicitud de reserva y el comprobante SINPE.',
     'Estado actual: Pendiente por validar pago.',
     'Nuestro equipo revisará manualmente la transferencia y, una vez validada, te enviaremos un nuevo correo con tu reserva confirmada.',
-    '',
-    'Recordatorio de pago SINPE Móvil:',
-    `Número SINPE: ${SINPE_PHONE_NUMBER}`,
-    `Total en colones por transferir: ${totalAmountCrcText}`,
-    `Detalle: Reserva #${input.reservationId}`,
     '',
     'Resumen de la solicitud:',
     `Reserva: #${input.reservationId}`,
@@ -354,13 +232,9 @@ async function sendReservationPendingValidationEmail(input: {
     `Fecha: ${dateText}`,
     `Horario: ${timeText}`,
     `Personas: ${input.people}`,
-    `Cliente: ${input.customerName}`,
-    `Correo: ${input.customerEmail}`,
-    `Teléfono: ${customerPhoneText}`,
-    `País: ${customerCountryText}`,
     `Total de la reserva: ${totalAmountText}`,
     `Paquete: ${packageTitleText}`,
-    `Detalle de selección (Reserva #${input.reservationId}):\n${priceBreakdownText}`,
+    `Detalle de selección:\n${priceBreakdownText}`,
     `Hospedaje: ${hotelText}`,
     `Método de pago: ${paymentMethodText}`,
     `Estado: Pendiente por validar`,
@@ -371,7 +245,7 @@ async function sendReservationPendingValidationEmail(input: {
     `Ubicación: ${SUPPORT_LOCATION}`,
   ].join('\n');
 
-  const customerHtml = `
+  const html = `
     <div style="font-family:Arial,Helvetica,sans-serif;background:#f8fafc;padding:24px;color:#0f172a;">
       <div style="max-width:680px;margin:0 auto;background:#ffffff;border:1px solid #e2e8f0;border-radius:14px;overflow:hidden;">
         <div style="background:linear-gradient(135deg,#9a3412,#ea580c);padding:22px 24px;color:#ffffff;">
@@ -385,13 +259,6 @@ async function sendReservationPendingValidationEmail(input: {
           <p style="margin:0 0 16px;font-size:15px;color:#7c2d12;"><strong>Estado actual:</strong> Pendiente por validar pago.</p>
           <p style="margin:0 0 16px;font-size:14px;color:#334155;">Apenas validemos manualmente la transferencia, te enviaremos un nuevo correo con la confirmación exitosa de tu reserva.</p>
 
-          <div style="margin:0 0 16px;padding:12px;border:1px solid #fed7aa;border-radius:10px;background:#fff7ed;">
-            <p style="margin:0 0 6px;font-size:14px;font-weight:700;color:#7c2d12;">Recordatorio de pago SINPE Móvil</p>
-            <p style="margin:0;font-size:14px;color:#9a3412;"><strong>Número SINPE:</strong> ${SINPE_PHONE_NUMBER}</p>
-            <p style="margin:4px 0 0;font-size:14px;color:#9a3412;"><strong>Total en colones por transferir:</strong> ${totalAmountCrcText}</p>
-            <p style="margin:4px 0 0;font-size:14px;color:#9a3412;"><strong>Detalle:</strong> Reserva #${input.reservationId}</p>
-          </div>
-
           <table role="presentation" style="width:100%;border-collapse:separate;border-spacing:0;border:1px solid #e2e8f0;border-radius:10px;overflow:hidden;">
             <tbody>
               <tr><td style="padding:10px 12px;background:#fff7ed;border-bottom:1px solid #e2e8f0;font-weight:700;width:42%;">Reserva</td><td style="padding:10px 12px;border-bottom:1px solid #e2e8f0;">#${input.reservationId}</td></tr>
@@ -399,10 +266,6 @@ async function sendReservationPendingValidationEmail(input: {
               <tr><td style="padding:10px 12px;background:#fff7ed;border-bottom:1px solid #e2e8f0;font-weight:700;">Fecha</td><td style="padding:10px 12px;border-bottom:1px solid #e2e8f0;">${dateText}</td></tr>
               <tr><td style="padding:10px 12px;background:#fff7ed;border-bottom:1px solid #e2e8f0;font-weight:700;">Horario</td><td style="padding:10px 12px;border-bottom:1px solid #e2e8f0;">${timeText}</td></tr>
               <tr><td style="padding:10px 12px;background:#fff7ed;border-bottom:1px solid #e2e8f0;font-weight:700;">Personas</td><td style="padding:10px 12px;border-bottom:1px solid #e2e8f0;">${input.people}</td></tr>
-              <tr><td style="padding:10px 12px;background:#fff7ed;border-bottom:1px solid #e2e8f0;font-weight:700;">Cliente</td><td style="padding:10px 12px;border-bottom:1px solid #e2e8f0;">${input.customerName}</td></tr>
-              <tr><td style="padding:10px 12px;background:#fff7ed;border-bottom:1px solid #e2e8f0;font-weight:700;">Correo</td><td style="padding:10px 12px;border-bottom:1px solid #e2e8f0;">${input.customerEmail}</td></tr>
-              <tr><td style="padding:10px 12px;background:#fff7ed;border-bottom:1px solid #e2e8f0;font-weight:700;">Teléfono</td><td style="padding:10px 12px;border-bottom:1px solid #e2e8f0;">${customerPhoneText}</td></tr>
-              <tr><td style="padding:10px 12px;background:#fff7ed;border-bottom:1px solid #e2e8f0;font-weight:700;">País</td><td style="padding:10px 12px;border-bottom:1px solid #e2e8f0;">${customerCountryText}</td></tr>
               <tr><td style="padding:10px 12px;background:#fff7ed;border-bottom:1px solid #e2e8f0;font-weight:700;">Total de la reserva</td><td style="padding:10px 12px;border-bottom:1px solid #e2e8f0;">${totalAmountText}</td></tr>
               <tr><td style="padding:10px 12px;background:#fff7ed;border-bottom:1px solid #e2e8f0;font-weight:700;">Paquete</td><td style="padding:10px 12px;border-bottom:1px solid #e2e8f0;">${packageTitleText}</td></tr>
               <tr><td style="padding:10px 12px;background:#fff7ed;border-bottom:1px solid #e2e8f0;font-weight:700;">Hospedaje</td><td style="padding:10px 12px;border-bottom:1px solid #e2e8f0;">${hotelText}</td></tr>
@@ -412,7 +275,7 @@ async function sendReservationPendingValidationEmail(input: {
           </table>
 
           <div style="margin-top:12px;padding:12px;border:1px solid #fed7aa;border-radius:10px;background:#fff7ed;">
-            <p style="margin:0 0 8px;font-size:14px;font-weight:700;color:#7c2d12;">Selección de personas / tarifas (Reserva #${input.reservationId})</p>
+            <p style="margin:0 0 8px;font-size:14px;font-weight:700;color:#7c2d12;">Seleccion de personas / tarifas</p>
             <ul style="margin:0;padding-left:18px;color:#9a3412;font-size:14px;">
               ${priceBreakdownHtml}
             </ul>
@@ -429,90 +292,14 @@ async function sendReservationPendingValidationEmail(input: {
     </div>
   `;
 
-  const adminSubject = `Nueva reserva por validar #${input.reservationId} - ${input.tourTitle}`;
-  const adminText = [
-    'Nueva reserva creada y pendiente por validar pago.',
-    '',
-    'Detalle de la reserva:',
-    `Reserva: #${input.reservationId}`,
-    `Tour: ${input.tourTitle}`,
-    `Fecha: ${dateText}`,
-    `Horario: ${timeText}`,
-    `Personas: ${input.people}`,
-    `Cliente: ${input.customerName}`,
-    `Correo: ${input.customerEmail}`,
-    `Teléfono: ${customerPhoneText}`,
-    `País: ${customerCountryText}`,
-    `Total de la reserva: ${totalAmountText}`,
-    `Paquete: ${packageTitleText}`,
-    `Detalle de selección:\n${priceBreakdownText}`,
-    `Hospedaje: ${hotelText}`,
-    `Método de pago: ${paymentMethodText}`,
-    'Estado: Pendiente por validar',
-  ].join('\n');
-
-  const adminHtml = `
-    <div style="font-family:Arial,Helvetica,sans-serif;background:#f8fafc;padding:24px;color:#0f172a;">
-      <div style="max-width:680px;margin:0 auto;background:#ffffff;border:1px solid #e2e8f0;border-radius:14px;overflow:hidden;">
-        <div style="background:linear-gradient(135deg,#9a3412,#ea580c);padding:22px 24px;color:#ffffff;">
-          <p style="margin:0;font-size:12px;letter-spacing:.08em;text-transform:uppercase;opacity:.9;">Guapiles Linea Tours</p>
-          <h2 style="margin:8px 0 0;font-size:28px;line-height:1.2;">Nueva reserva por validar</h2>
-        </div>
-
-        <div style="padding:22px 24px;">
-          <p style="margin:0 0 12px;font-size:15px;"><strong>Se creó una nueva reserva pendiente por validar pago.</strong></p>
-
-          <table role="presentation" style="width:100%;border-collapse:separate;border-spacing:0;border:1px solid #e2e8f0;border-radius:10px;overflow:hidden;">
-            <tbody>
-              <tr><td style="padding:10px 12px;background:#fff7ed;border-bottom:1px solid #e2e8f0;font-weight:700;width:42%;">Reserva</td><td style="padding:10px 12px;border-bottom:1px solid #e2e8f0;">#${input.reservationId}</td></tr>
-              <tr><td style="padding:10px 12px;background:#fff7ed;border-bottom:1px solid #e2e8f0;font-weight:700;">Tour</td><td style="padding:10px 12px;border-bottom:1px solid #e2e8f0;">${input.tourTitle}</td></tr>
-              <tr><td style="padding:10px 12px;background:#fff7ed;border-bottom:1px solid #e2e8f0;font-weight:700;">Fecha</td><td style="padding:10px 12px;border-bottom:1px solid #e2e8f0;">${dateText}</td></tr>
-              <tr><td style="padding:10px 12px;background:#fff7ed;border-bottom:1px solid #e2e8f0;font-weight:700;">Horario</td><td style="padding:10px 12px;border-bottom:1px solid #e2e8f0;">${timeText}</td></tr>
-              <tr><td style="padding:10px 12px;background:#fff7ed;border-bottom:1px solid #e2e8f0;font-weight:700;">Personas</td><td style="padding:10px 12px;border-bottom:1px solid #e2e8f0;">${input.people}</td></tr>
-              <tr><td style="padding:10px 12px;background:#fff7ed;border-bottom:1px solid #e2e8f0;font-weight:700;">Cliente</td><td style="padding:10px 12px;border-bottom:1px solid #e2e8f0;">${input.customerName}</td></tr>
-              <tr><td style="padding:10px 12px;background:#fff7ed;border-bottom:1px solid #e2e8f0;font-weight:700;">Correo</td><td style="padding:10px 12px;border-bottom:1px solid #e2e8f0;">${input.customerEmail}</td></tr>
-              <tr><td style="padding:10px 12px;background:#fff7ed;border-bottom:1px solid #e2e8f0;font-weight:700;">Teléfono</td><td style="padding:10px 12px;border-bottom:1px solid #e2e8f0;">${customerPhoneText}</td></tr>
-              <tr><td style="padding:10px 12px;background:#fff7ed;border-bottom:1px solid #e2e8f0;font-weight:700;">País</td><td style="padding:10px 12px;border-bottom:1px solid #e2e8f0;">${customerCountryText}</td></tr>
-              <tr><td style="padding:10px 12px;background:#fff7ed;border-bottom:1px solid #e2e8f0;font-weight:700;">Total de la reserva</td><td style="padding:10px 12px;border-bottom:1px solid #e2e8f0;">${totalAmountText}</td></tr>
-              <tr><td style="padding:10px 12px;background:#fff7ed;border-bottom:1px solid #e2e8f0;font-weight:700;">Paquete</td><td style="padding:10px 12px;border-bottom:1px solid #e2e8f0;">${packageTitleText}</td></tr>
-              <tr><td style="padding:10px 12px;background:#fff7ed;border-bottom:1px solid #e2e8f0;font-weight:700;">Hospedaje</td><td style="padding:10px 12px;border-bottom:1px solid #e2e8f0;">${hotelText}</td></tr>
-              <tr><td style="padding:10px 12px;background:#fff7ed;border-bottom:1px solid #e2e8f0;font-weight:700;">Método de pago</td><td style="padding:10px 12px;border-bottom:1px solid #e2e8f0;">${paymentMethodText}</td></tr>
-              <tr><td style="padding:10px 12px;background:#fff7ed;font-weight:700;">Estado</td><td style="padding:10px 12px;color:#9a3412;font-weight:700;">Pendiente por validar</td></tr>
-            </tbody>
-          </table>
-
-          <div style="margin-top:12px;padding:12px;border:1px solid #fed7aa;border-radius:10px;background:#fff7ed;">
-            <p style="margin:0 0 8px;font-size:14px;font-weight:700;color:#7c2d12;">Selección de personas / tarifas</p>
-            <ul style="margin:0;padding-left:18px;color:#9a3412;font-size:14px;">
-              ${priceBreakdownHtml}
-            </ul>
-          </div>
-        </div>
-      </div>
-    </div>
-  `;
-
-  const customerRecipient = String(input.customerEmail ?? '').trim();
-  const adminRecipient = String(notifyTo ?? '').trim();
-  if (customerRecipient) {
-    await transporter.sendMail({
-      from: smtpFrom,
-      to: customerRecipient,
-      subject: customerSubject,
-      text: customerText,
-      html: customerHtml,
-    });
-  }
-
-  if (adminRecipient) {
-    await transporter.sendMail({
-      from: smtpFrom,
-      to: adminRecipient,
-      subject: adminSubject,
-      text: adminText,
-      html: adminHtml,
-    });
-  }
+  const recipients = Array.from(new Set([input.customerEmail, notifyTo].map((item) => String(item ?? '').trim()).filter(Boolean)));
+  await transporter.sendMail({
+    from: smtpFrom,
+    to: recipients,
+    subject,
+    text,
+    html,
+  });
 }
 
 export async function sendReservationConfirmationEmailByReservationId(reservationId: number): Promise<void> {
@@ -536,7 +323,6 @@ export async function sendReservationConfirmationEmailByReservationId(reservatio
     reservationId: reservation.id,
     customerEmail: reservation.email,
     customerName: [reservation.name, reservation.lastName].filter(Boolean).join(' ').trim() || reservation.name,
-    customerPhone: reservation.phone,
     tourTitle: reservation.tour?.title || 'Tour',
     people: reservation.people,
     date: reservation.date,
@@ -570,7 +356,6 @@ export async function sendReservationPendingValidationEmailByReservationId(reser
     reservationId: reservation.id,
     customerEmail: reservation.email,
     customerName: [reservation.name, reservation.lastName].filter(Boolean).join(' ').trim() || reservation.name,
-    customerPhone: reservation.phone,
     tourTitle: reservation.tour?.title || 'Tour',
     people: reservation.people,
     date: reservation.date,

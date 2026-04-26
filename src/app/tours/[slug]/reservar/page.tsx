@@ -21,25 +21,28 @@ type OnvoClient = {
   pay: (config: OnvoPayConfig) => OnvoInstance;
 };
 
+type OnvoSignalClient = {
+  startSignalSession: (input: { paymentIntentId: string }) => Promise<void>;
+};
+
+type OnvoSignalFactory = (publicKey: string) => OnvoSignalClient;
+
 declare global {
   interface Window {
     onvo?: OnvoClient;
+    ONVO?: OnvoSignalFactory;
   }
 }
 
 const ONVO_SDK_URL = "https://sdk.onvopay.com/sdk.js";
+const ONVO_SIGNAL_SDK_URL = "https://js.onvopay.com/v1/";
 const DEFAULT_USD_TO_CRC_EXCHANGE_RATE = 520;
 const SINPE_PHONE_NUMBER = "6015 9782";
-const CARD_PAYMENT_METHOD = "Tarjeta de Credito o Debito (ONVO)";
-const SINPE_PAYMENT_METHOD = "SINPE Movil";
-const paymentMethodOptions = [
-  { value: CARD_PAYMENT_METHOD, label: "Tarjeta de Crédito o Débito (ONVO)" },
-  { value: SINPE_PAYMENT_METHOD, label: "SINPE Móvil" },
-];
 let onvoScriptPromise: Promise<void> | null = null;
+let onvoSignalScriptPromise: Promise<void> | null = null;
 
 function loadOnvoScript(): Promise<void> {
-  if (typeof window === "undefined") return Promise.reject(new Error("ONVO SDK solo está disponible en el navegador."));
+  if (typeof window === "undefined") return Promise.reject(new Error("ONVO SDK solo esta disponible en el navegador."));
   if (window.onvo?.pay) return Promise.resolve();
   if (onvoScriptPromise) return onvoScriptPromise;
 
@@ -66,59 +69,32 @@ function loadOnvoScript(): Promise<void> {
   return onvoScriptPromise;
 }
 
-function extractOnvoErrorMessage(input: unknown): string {
-  if (!input) return "";
-  if (typeof input === "string") return input.trim();
-  if (input instanceof Error) return input.message.trim();
-  if (typeof input !== "object") return "";
+function loadOnvoSignalScript(): Promise<void> {
+  if (typeof window === "undefined") return Promise.reject(new Error("ONVO Signal SDK solo esta disponible en el navegador."));
+  if (window.ONVO) return Promise.resolve();
+  if (onvoSignalScriptPromise) return onvoSignalScriptPromise;
 
-  const source = input as Record<string, unknown>;
-  const lastPaymentError =
-    source.lastPaymentError && typeof source.lastPaymentError === "object"
-      ? (source.lastPaymentError as Record<string, unknown>)
-      : null;
-  const candidates: unknown[] = [
-    source.failureMessage,
-    source.message,
-    source.detail,
-    lastPaymentError?.message,
-    lastPaymentError?.failureMessage,
-    lastPaymentError?.code,
-    source.failureCode,
-    source.code,
-    source.message,
-    source.detail,
-    source.error,
-    (source.error as Record<string, unknown> | undefined)?.message,
-    (source.error as Record<string, unknown> | undefined)?.detail,
-  ];
-
-  for (const candidate of candidates) {
-    if (typeof candidate === "string" && candidate.trim()) {
-      return candidate.trim();
+  onvoSignalScriptPromise = new Promise<void>((resolve, reject) => {
+    const existingScript = document.querySelector(`script[src="${ONVO_SIGNAL_SDK_URL}"]`) as HTMLScriptElement | null;
+    if (existingScript) {
+      if (window.ONVO) {
+        resolve();
+        return;
+      }
+      existingScript.addEventListener("load", () => resolve(), { once: true });
+      existingScript.addEventListener("error", () => reject(new Error("No se pudo cargar el SDK de señales de ONVO.")), { once: true });
+      return;
     }
-  }
 
-  return "";
-}
-
-async function fetchOnvoPaymentIntentStatusMessage(input: {
-  reservationId: number;
-  paymentIntentId: string;
-}): Promise<string> {
-  const response = await fetch("/api/onvo/payment-intent-status", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(input),
+    const script = document.createElement("script");
+    script.src = ONVO_SIGNAL_SDK_URL;
+    script.async = true;
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error("No se pudo cargar el SDK de señales de ONVO."));
+    document.head.appendChild(script);
   });
 
-  const payload = await response.json().catch(() => null);
-  if (!response.ok) {
-    const detail = String(payload?.error ?? "").trim();
-    return detail || "El pago no pudo procesarse. Revisa los datos e intenta nuevamente.";
-  }
-
-  return String(payload?.message ?? "").trim() || "El pago no pudo procesarse. Revisa los datos e intenta nuevamente.";
+  return onvoSignalScriptPromise;
 }
 
 interface Availability {
@@ -350,9 +326,10 @@ function formatCurrencyUSD(value: number) {
 }
 
 function formatCurrencyCRC(value: number) {
-  return new Intl.NumberFormat("en-US", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
+  return new Intl.NumberFormat("es-CR", {
+    style: "currency",
+    currency: "CRC",
+    maximumFractionDigits: 0,
   }).format(value);
 }
 
@@ -574,7 +551,7 @@ function ReservarPageContent({
   const [phoneCountryDialCode, setPhoneCountryDialCode] = useState("");
   const [phone, setPhone] = useState("");
   const [hotel, setHotel] = useState("");
-  const [payMethod, setPayMethod] = useState(CARD_PAYMENT_METHOD);
+  const [payMethod, setPayMethod] = useState("Tarjeta de Credito o Debito (ONVO)");
   const [sinpeReceiptFile, setSinpeReceiptFile] = useState<File | null>(null);
   const [sinpeReceiptUrl, setSinpeReceiptUrl] = useState("");
   const [isUploadingSinpeReceipt, setIsUploadingSinpeReceipt] = useState(false);
@@ -904,7 +881,7 @@ function ReservarPageContent({
     email.trim() &&
     phoneCountryDialCode.trim() &&
     phone.trim();
-  const isSinpeMobileMethod = payMethod === SINPE_PAYMENT_METHOD;
+  const isSinpeMobileMethod = payMethod === "SINPE Movil";
 
   useEffect(() => {
     if (step === "pago" && !canContinueToPay) {
@@ -1034,7 +1011,7 @@ function ReservarPageContent({
     e.preventDefault();
 
     if (isInfoOnlyTour) {
-      setStatus("Este tour es solo informativo y no permite reservas en línea.");
+      setStatus("Este tour es solo informativo y no permite reservas en linea.");
       return;
     }
 
@@ -1070,7 +1047,7 @@ function ReservarPageContent({
 
     if (isSinpeMobileMethod) {
       if (!sinpeReceiptFile && !uploadedSinpeReceiptUrl) {
-        setStatus("Para SINPE Móvil debes subir el comprobante antes de completar la reserva.");
+        setStatus("Para SINPE Movil debes subir el comprobante antes de completar la reserva.");
         return;
       }
 
@@ -1149,7 +1126,7 @@ function ReservarPageContent({
       if (!payload?.requiresPayment) {
         const reservationId = Number(payload?.reservationId);
         if (!Number.isFinite(reservationId) || reservationId <= 0) {
-          setStatus("La reserva se creó, pero no se recibió un número de reserva válido.");
+          setStatus("La reserva se creo, pero no se recibio un numero de reserva valido.");
           return;
         }
         const nextMessage =
@@ -1192,6 +1169,15 @@ function ReservarPageContent({
         return;
       }
 
+      try {
+        await loadOnvoSignalScript();
+        if (window.ONVO) {
+          await window.ONVO(publicKey).startSignalSession({ paymentIntentId });
+        }
+      } catch {
+        // No bloquea el checkout si la señal antifraude falla por red o bloqueadores.
+      }
+
       const mountNode = document.getElementById("onvo-checkout-container");
       if (!mountNode) {
         setStatus("No se encontro el contenedor de pago. Intenta nuevamente.");
@@ -1205,25 +1191,11 @@ function ReservarPageContent({
         paymentType: "one_time",
         locale: "es",
         onError: (onvoError) => {
-          const errorMessage = extractOnvoErrorMessage(onvoError);
-          console.warn("ONVO checkout warning", onvoError);
-          if (errorMessage) {
-            setStatus(`Error en el pago: ${errorMessage}`);
-            return;
-          }
-
-          setStatus("No se pudo obtener el detalle del error. Verificando estado del pago...");
-          void (async () => {
-            try {
-              const providerMessage = await fetchOnvoPaymentIntentStatusMessage({
-                reservationId,
-                paymentIntentId,
-              });
-              setStatus(providerMessage);
-            } catch {
-              setStatus("El pago no pudo procesarse. Revisa los datos e intenta nuevamente.");
-            }
-          })();
+          const errorMessage =
+            typeof onvoError === "object" && onvoError && "message" in onvoError
+              ? String((onvoError as { message?: string }).message || "")
+              : "";
+          setStatus(errorMessage ? `Error en el pago: ${errorMessage}` : "El pago no pudo procesarse. Revisa los datos e intenta nuevamente.");
         },
         onSuccess: async () => {
           try {
@@ -1239,7 +1211,7 @@ function ReservarPageContent({
             navigateToConfirmation({
               reservationId,
               status: "confirmed",
-              paymentMethod: CARD_PAYMENT_METHOD,
+              paymentMethod: "Tarjeta de Credito o Debito (ONVO)",
               message: confirmation.message,
             });
           } catch {
@@ -1291,7 +1263,7 @@ function ReservarPageContent({
       <section className="mx-auto max-w-6xl px-4 py-8">
         <h1 className="text-4xl font-extrabold tracking-tight text-slate-900">Reserva tu tour</h1>
         <p className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm font-semibold text-amber-800">
-          Este tour no tiene precios configurados y no permite reservas en línea.
+          Este tour no tiene precios configurados y no permite reservas en linea.
         </p>
       </section>
     );
@@ -1623,10 +1595,10 @@ function ReservarPageContent({
                   </div>
                 </div>
                 <div className="md:col-span-2">
-                  <label className="mb-1 block text-sm font-semibold text-slate-700">Hotel o lugar donde se hospeda (opcional)</label>
+                  <label className="mb-1 block text-sm font-semibold text-slate-700">Hotel o lugar de hospedaje</label>
                   <input
                     className="h-12 w-full rounded-lg border border-slate-300 px-3"
-                    placeholder="Hotel o lugar donde se hospeda (opcional)"
+                    placeholder="Hotel o lugar de hospedaje"
                     value={hotel}
                     onChange={(e) => setHotel(e.target.value)}
                     disabled={!meetsMinimumPeople || isRedirectingToConfirmation}
@@ -1664,30 +1636,33 @@ function ReservarPageContent({
 
             {step === "pago" && !isConfirmingReservation && (
               <form onSubmit={handleReserve} className="mt-4 space-y-3">
-                {paymentMethodOptions.map((method) => (
+                {["Tarjeta de Credito o Debito (ONVO)", "SINPE Movil"].map((method) => (
                   <button
                     type="button"
-                    key={method.value}
-                    onClick={() => setPayMethod(method.value)}
+                    key={method}
+                    onClick={() => setPayMethod(method)}
                     disabled={isRedirectingToConfirmation || isConfirmingReservation}
                     className={`w-full rounded-lg border px-4 py-3 text-left font-semibold transition ${
-                      payMethod === method.value
+                      payMethod === method
                         ? "border-emerald-700 bg-emerald-50 text-emerald-900"
                         : "border-slate-300 bg-white text-slate-700 hover:border-emerald-300"
                     }`}
                   >
-                    {method.label}
+                    {method}
                   </button>
                 ))}
 
                 {isSinpeMobileMethod ? (
                   <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
-                    <p className="text-sm font-extrabold text-amber-900">Pago por SINPE Móvil</p>
+                    <p className="text-sm font-extrabold text-amber-900">Pago por SINPE Movil</p>
                     <p className="mt-1 text-sm text-amber-900">
-                      Envía el total de la orden a <span className="font-extrabold">{SINPE_PHONE_NUMBER}</span> y sube el comprobante para completar la reserva.
+                      Envia el total de la orden a <span className="font-extrabold">{SINPE_PHONE_NUMBER}</span> y sube el comprobante para completar la reserva.
                     </p>
                     <p className="mt-1 text-sm font-semibold text-slate-800">
-                      Total a transferir (CRC): <span className="font-extrabold text-emerald-800">₡ {formatCurrencyCRC(sinpeTotalCrc)}</span> Colones
+                      Total a transferir: <span className="font-extrabold text-emerald-800">{formatCurrencyCRC(sinpeTotalCrc)}</span>
+                    </p>
+                    <p className="mt-1 text-xs text-slate-600">
+                      Cálculo: {formatCurrencyUSD(total)} x {usdToCrcExchangeRate.toFixed(2)} = {formatCurrencyCRC(sinpeTotalCrc)}
                     </p>
                     <div className="mt-3">
                       <label className="mb-1 block text-xs font-bold uppercase tracking-wide text-slate-600">Subir comprobante</label>
@@ -1752,9 +1727,7 @@ function ReservarPageContent({
             ) : null}
 
             {status && !isConfirmingReservation && (
-              <p className="mt-4 whitespace-pre-line break-words rounded-lg bg-emerald-50 p-3 text-sm font-semibold text-emerald-700">
-                {status}
-              </p>
+              <p className="mt-4 whitespace-pre-line rounded-lg bg-emerald-50 p-3 text-sm font-semibold text-emerald-700">{status}</p>
             )}
           </article>
         </div>
