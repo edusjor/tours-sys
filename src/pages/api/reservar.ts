@@ -1,6 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { prisma } from '../../lib/prisma';
-import { createOnvoPaymentIntent, getOnvoPublishableKey } from '../../lib/onvo';
+import { createOnvoCustomer, createOnvoPaymentIntent, getOnvoPublishableKey } from '../../lib/onvo';
 import { sendReservationPendingValidationEmailByReservationId } from '../../lib/reservationPayment';
 import { saveReservationCheckoutDetails } from '../../lib/reservationDetails';
 
@@ -572,6 +572,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     try {
+      const customerName = `${String(name ?? '').trim()} ${String(lastName ?? '').trim()}`.trim() || String(name ?? '').trim();
+      const customerEmail = String(email ?? '').trim();
+      const customerPhone = String(phone ?? '').trim() || undefined;
+
+      let onvoCustomerId = '';
+      if (customerName && customerEmail) {
+        const onvoCustomer = await createOnvoCustomer({
+          name: customerName,
+          email: customerEmail,
+          phone: customerPhone,
+        }).catch(() => null);
+
+        onvoCustomerId = String(onvoCustomer?.id ?? '').trim();
+      }
+
       const paymentIntent = await createOnvoPaymentIntent({
         amount: amountInCents,
         currency: 'USD',
@@ -581,6 +596,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           tourId: String(parsedTourId),
           email: String(email),
         },
+        customerId: onvoCustomerId || undefined,
       });
 
       const publicKey = getOnvoPublishableKey();
@@ -589,6 +605,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         requiresPayment: true,
         reservationId: result.reservationId,
         paymentIntentId: paymentIntent.id,
+        customerId: String(paymentIntent.customerId ?? onvoCustomerId || '').trim() || undefined,
         publicKey,
       });
     } catch (error) {

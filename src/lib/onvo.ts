@@ -10,6 +10,7 @@ type OnvoRequestOptions = {
 export type OnvoPaymentIntent = {
   id: string;
   status: string;
+  customerId?: string | null;
   metadata?: Record<string, string> | null;
   failureCode?: string | null;
   failureMessage?: string | null;
@@ -18,6 +19,13 @@ export type OnvoPaymentIntent = {
     message?: string | null;
     failureMessage?: string | null;
   } | null;
+};
+
+export type OnvoCustomer = {
+  id: string;
+  name?: string | null;
+  email?: string | null;
+  phone?: string | null;
 };
 
 function detectOnvoKeyMode(key: string): OnvoKeyMode {
@@ -101,6 +109,7 @@ export async function createOnvoPaymentIntent(input: {
   currency: "USD" | "CRC";
   description: string;
   metadata: Record<string, string>;
+  customerId?: string;
 }): Promise<OnvoPaymentIntent> {
   return onvoRequest<OnvoPaymentIntent>("/payment-intents", {
     method: "POST",
@@ -109,6 +118,22 @@ export async function createOnvoPaymentIntent(input: {
       currency: input.currency,
       description: input.description,
       metadata: input.metadata,
+      customerId: input.customerId,
+    },
+  });
+}
+
+export async function createOnvoCustomer(input: {
+  name: string;
+  email: string;
+  phone?: string;
+}): Promise<OnvoCustomer> {
+  return onvoRequest<OnvoCustomer>("/customers", {
+    method: "POST",
+    body: {
+      name: input.name,
+      email: input.email,
+      phone: input.phone,
     },
   });
 }

@@ -9,6 +9,7 @@ type OnvoPayConfig = {
   onSuccess?: (data: unknown) => void;
   publicKey: string;
   paymentIntentId: string;
+  customerId?: string;
   paymentType: "one_time";
   locale?: "es" | "en";
 };
@@ -1220,6 +1221,7 @@ function ReservarPageContent({
       }
 
       const paymentIntentId = String(payload?.paymentIntentId ?? "").trim();
+      const customerId = String(payload?.customerId ?? "").trim();
       const publicKey = String(payload?.publicKey ?? "").trim();
       const reservationId = Number(payload?.reservationId);
 
@@ -1258,6 +1260,7 @@ function ReservarPageContent({
       const onvoCheckout = window.onvo.pay({
         publicKey,
         paymentIntentId,
+        customerId: customerId || undefined,
         paymentType: "one_time",
         locale: "es",
         onError: (onvoError) => {
