@@ -133,6 +133,7 @@ docker compose -f docker-compose.vps.yml logs --tail=150 app
 git add .
 git commit -m 'fix pago'
 git push -u origin main
+
 ssh root@72.60.227.134
 cd /home/guapileslineatours/htdocs/guapileslineatours.com/tours-sys-guapiles-lineatours
 git pull

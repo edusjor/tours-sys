@@ -454,6 +454,27 @@ export async function finalizeReservationPayment(input: {
         : 'Pago validado y reserva confirmada.',
     };
   } catch {
-    return { ok: false, status: 500, error: 'No se pudo confirmar el estado del pago' };
+    if (Number.isFinite(expectedReservationId) && expectedReservationId > 0) {
+      const existingReservation = await prisma.reservation.findUnique({
+        where: { id: expectedReservationId },
+        select: { paid: true },
+      }).catch(() => null);
+
+      if (existingReservation?.paid) {
+        return {
+          ok: true,
+          alreadyPaid: true,
+          message: 'La reserva ya estaba confirmada previamente.',
+        };
+      }
+    }
+
+    return {
+      ok: false,
+      status: 202,
+      pending: true,
+      error: 'Pago pendiente de confirmación',
+      message: 'Pago recibido, en espera de confirmación final.',
+    };
   }
 }

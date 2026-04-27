@@ -1030,7 +1030,10 @@ function ReservarPageContent({
     router.push(`/reserva-confirmada?${query.toString()}`);
   };
 
-  const confirmPaymentWithRetry = async (reservationId: number, paymentIntentId: string): Promise<{ ok: boolean; message: string }> => {
+  const confirmPaymentWithRetry = async (
+    reservationId: number,
+    paymentIntentId: string,
+  ): Promise<{ ok: boolean; status: "confirmed" | "pending_validation"; message: string }> => {
     const maxAttempts = 8;
     const delayMs = 2500;
 
@@ -1049,6 +1052,7 @@ function ReservarPageContent({
       if (confirmRes.ok) {
         return {
           ok: true,
+          status: "confirmed",
           message: String(confirmPayload?.message || "Pago aprobado y reserva confirmada."),
         };
       }
@@ -1060,16 +1064,18 @@ function ReservarPageContent({
       }
 
       return {
-        ok: false,
+        ok: true,
+        status: "pending_validation",
         message: confirmPayload?.error
-          ? `Pago recibido, pero no se pudo confirmar la reserva: ${confirmPayload.error}`
-          : "Pago recibido, pero no se pudo confirmar la reserva.",
+          ? `Pago recibido. Estamos validando tu reserva: ${confirmPayload.error}`
+          : "Pago recibido. Estamos validando tu reserva y te avisaremos por correo cuando termine.",
       };
     }
 
     return {
-      ok: false,
-      message: "Pago recibido, pero la confirmación está tardando más de lo esperado. Te avisaremos por correo al confirmarse.",
+      ok: true,
+      status: "pending_validation",
+      message: "Pago recibido. La confirmación está tardando más de lo esperado; te avisaremos por correo cuando finalice.",
     };
   };
 
@@ -1299,15 +1305,10 @@ function ReservarPageContent({
             setStatus("Pago recibido. Confirmando reserva...");
             setIsConfirmingReservation(true);
             const confirmation = await confirmPaymentWithRetry(reservationId, paymentIntentId);
-            if (!confirmation.ok) {
-              setStatus(confirmation.message);
-              setIsConfirmingReservation(false);
-              return;
-            }
 
             navigateToConfirmation({
               reservationId,
-              status: "confirmed",
+              status: confirmation.status,
               paymentMethod: "Tarjeta de Credito o Debito (ONVO)",
               message: confirmation.message,
             });
