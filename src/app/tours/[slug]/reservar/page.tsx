@@ -97,6 +97,18 @@ function loadOnvoSignalScript(): Promise<void> {
   return onvoSignalScriptPromise;
 }
 
+function shouldStartOnvoSignalSession(): boolean {
+  if (typeof window === "undefined") return false;
+  const host = String(window.location.hostname || "").toLowerCase();
+  const protocol = String(window.location.protocol || "").toLowerCase();
+  const isLocalHost = host === "localhost" || host === "127.0.0.1" || host === "::1";
+
+  if (isLocalHost) return false;
+  if (protocol !== "https:") return false;
+
+  return true;
+}
+
 function extractOnvoErrorMessage(input: unknown): string {
   if (!input) return "";
   if (typeof input === "string") return input.trim();
@@ -1223,15 +1235,17 @@ function ReservarPageContent({
       }
 
       let signalSessionStarted = false;
-      try {
-        await loadOnvoSignalScript();
-        if (window.ONVO) {
-          await window.ONVO(publicKey).startSignalSession({ paymentIntentId });
-          signalSessionStarted = true;
+      if (shouldStartOnvoSignalSession()) {
+        try {
+          await loadOnvoSignalScript();
+          if (window.ONVO) {
+            await window.ONVO(publicKey).startSignalSession({ paymentIntentId });
+            signalSessionStarted = true;
+          }
+        } catch (signalError) {
+          // No bloquea el checkout si la señal antifraude falla por red o bloqueadores.
+          console.warn("No se pudo iniciar la sesión de señales ONVO", signalError);
         }
-      } catch (signalError) {
-        // No bloquea el checkout si la señal antifraude falla por red o bloqueadores.
-        console.warn("No se pudo iniciar la sesión de señales ONVO", signalError);
       }
 
       const mountNode = document.getElementById("onvo-checkout-container");
