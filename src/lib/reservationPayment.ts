@@ -30,6 +30,15 @@ function formatUsd(value: number | null | undefined): string {
   }).format(amount);
 }
 
+function normalizePaymentMethodLabel(value: string | null | undefined): string {
+  const normalized = String(value ?? '')
+    .replace(/\s*\(\s*ONVO\s*\)\s*/gi, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  return normalized || 'No indicado';
+}
+
 async function sendReservationConfirmationEmail(input: {
   reservationId: number;
   customerEmail: string;
@@ -72,7 +81,7 @@ async function sendReservationConfirmationEmail(input: {
 
   const dateText = formatDateEs(input.date);
   const timeText = input.scheduleTime?.trim() || 'Por coordinar';
-  const paymentMethodText = String(input.paymentMethod ?? '').trim() || 'No indicado';
+  const paymentMethodText = normalizePaymentMethodLabel(input.paymentMethod);
   const hotelText = String(input.hotel ?? '').trim() || 'No indicado';
   const packageTitleText = String(input.packageTitle ?? '').trim() || 'No indicado';
   const hasBreakdown = input.priceBreakdown.length > 0;
@@ -207,7 +216,7 @@ async function sendReservationPendingValidationEmail(input: {
 
   const dateText = formatDateEs(input.date);
   const timeText = input.scheduleTime?.trim() || 'Por coordinar';
-  const paymentMethodText = String(input.paymentMethod ?? '').trim() || 'No indicado';
+  const paymentMethodText = normalizePaymentMethodLabel(input.paymentMethod);
   const hotelText = String(input.hotel ?? '').trim() || 'No indicado';
   const packageTitleText = String(input.packageTitle ?? '').trim() || 'No indicado';
   const hasBreakdown = input.priceBreakdown.length > 0;

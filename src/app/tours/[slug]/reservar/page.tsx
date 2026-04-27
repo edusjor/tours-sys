@@ -1019,6 +1019,7 @@ function ReservarPageContent({
     status: "confirmed" | "pending_validation";
     paymentMethod: string;
     message: string;
+    customerEmail?: string;
   }) => {
     setIsRedirectingToConfirmation(true);
     const query = new URLSearchParams({
@@ -1027,6 +1028,10 @@ function ReservarPageContent({
       metodo: input.paymentMethod,
       mensaje: input.message,
     });
+    const normalizedEmail = String(input.customerEmail ?? "").trim();
+    if (normalizedEmail) {
+      query.set("correo", normalizedEmail);
+    }
     router.push(`/reserva-confirmada?${query.toString()}`);
   };
 
@@ -1213,6 +1218,7 @@ function ReservarPageContent({
             status: "pending_validation",
             paymentMethod: payMethod,
             message: nextMessage,
+            customerEmail: email,
           });
           return;
         }
@@ -1222,6 +1228,7 @@ function ReservarPageContent({
           status: "confirmed",
           paymentMethod: payMethod,
           message: nextMessage,
+          customerEmail: email,
         });
         return;
       }
@@ -1309,8 +1316,9 @@ function ReservarPageContent({
             navigateToConfirmation({
               reservationId,
               status: confirmation.status,
-              paymentMethod: "Tarjeta de Credito o Debito (ONVO)",
+              paymentMethod: "Tarjeta de Credito o Debito",
               message: confirmation.message,
+              customerEmail: email,
             });
           } catch {
             setStatus("Pago recibido, pero no se pudo validar la reserva por un error de conexión.");

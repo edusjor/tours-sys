@@ -3,6 +3,7 @@ type SearchParams = {
   estado?: string;
   metodo?: string;
   mensaje?: string;
+  correo?: string;
 };
 
 function firstValue(value: string | string[] | undefined): string {
@@ -19,6 +20,11 @@ function normalizeComparableText(value: string): string {
     .trim();
 }
 
+function normalizePaymentMethodLabel(value: string): string {
+  const cleaned = value.replace(/\s*\(\s*ONVO\s*\)\s*/gi, " ").replace(/\s+/g, " ").trim();
+  return cleaned || "No indicado";
+}
+
 export default async function ReservaConfirmadaPage({
   searchParams,
 }: {
@@ -27,19 +33,24 @@ export default async function ReservaConfirmadaPage({
   const params = await searchParams;
   const reservationId = firstValue(params.reserva).trim();
   const status = firstValue(params.estado).trim().toLowerCase();
-  const paymentMethod = firstValue(params.metodo).trim();
+  const paymentMethod = normalizePaymentMethodLabel(firstValue(params.metodo).trim());
   const message = firstValue(params.mensaje).trim();
+  const customerEmail = firstValue(params.correo).trim();
 
   const isPendingValidation = status === "pending_validation";
   const title = isPendingValidation ? "Reserva Recibida" : "Reserva Confirmada";
   const subtitle = isPendingValidation
     ? "Tu reserva quedó registrada con estado pendiente de validación."
     : "Tu pago fue validado y tu reserva quedó confirmada.";
+  const defaultSummary = isPendingValidation
+    ? "Nuestro equipo validará el comprobante SINPE y te notificaremos por correo."
+    : "Revisa los detalles de tu reserva en el correo que te llegó.";
   const summary =
     message ||
-    (isPendingValidation
-      ? "Nuestro equipo validará el comprobante SINPE y te notificaremos por correo."
-      : "Revisa los detalles de tu reserva en el correo que te llegó.");
+    defaultSummary;
+  const emailNotice = customerEmail
+    ? `Enviamos los datos de tu reserva al correo ${customerEmail}.`
+    : "Enviamos los datos de tu reserva al correo registrado.";
   const normalizedSubtitle = normalizeComparableText(subtitle);
   const normalizedSummary = normalizeComparableText(summary);
   const shouldShowSummary = isPendingValidation && normalizedSummary.length > 0 && normalizedSummary !== normalizedSubtitle;
@@ -61,6 +72,7 @@ export default async function ReservaConfirmadaPage({
 
         <h1 className="mt-4 text-3xl font-black text-slate-900">{title}</h1>
         <p className="mt-2 text-sm font-semibold text-slate-700">{subtitle}</p>
+        <p className="mt-2 text-sm text-slate-700">{emailNotice}</p>
         {shouldShowSummary ? <p className="mt-3 text-sm text-slate-700">{summary}</p> : null}
 
         <div className="mt-5 grid gap-3 rounded-xl border border-slate-200 bg-white p-4 text-sm text-slate-700 sm:grid-cols-2">
@@ -70,7 +82,7 @@ export default async function ReservaConfirmadaPage({
           </p>
           <p>
             <span className="font-bold text-slate-900">Método de pago:</span>{" "}
-            {paymentMethod || "No indicado"}
+            {paymentMethod}
           </p>
         </div>
 
