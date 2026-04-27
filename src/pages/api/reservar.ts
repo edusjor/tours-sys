@@ -605,7 +605,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         requiresPayment: true,
         reservationId: result.reservationId,
         paymentIntentId: paymentIntent.id,
-        customerId: String(paymentIntent.customerId ?? onvoCustomerId || '').trim() || undefined,
+        customerId: String(paymentIntent.customerId ?? onvoCustomerId ?? '').trim() || undefined,
         publicKey,
       });
     } catch (error) {
