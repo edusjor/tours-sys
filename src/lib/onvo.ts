@@ -11,6 +11,13 @@ export type OnvoPaymentIntent = {
   id: string;
   status: string;
   metadata?: Record<string, string> | null;
+  failureCode?: string | null;
+  failureMessage?: string | null;
+  lastPaymentError?: {
+    code?: string | null;
+    message?: string | null;
+    failureMessage?: string | null;
+  } | null;
 };
 
 function detectOnvoKeyMode(key: string): OnvoKeyMode {

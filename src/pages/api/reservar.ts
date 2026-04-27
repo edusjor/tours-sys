@@ -41,6 +41,23 @@ const CARD_PAYMENT_METHOD = 'Tarjeta de Credito o Debito (ONVO)';
 const SINPE_PAYMENT_METHOD = 'SINPE Movil';
 const CARD_HOLD_WINDOW_MINUTES = 30;
 
+function isLocalhostRequest(req: NextApiRequest): boolean {
+  const forwardedHost = String(req.headers['x-forwarded-host'] ?? '').trim();
+  const host = forwardedHost || String(req.headers.host ?? '').trim();
+  const normalizedHost = host.toLowerCase();
+
+  return (
+    normalizedHost.startsWith('localhost') ||
+    normalizedHost.startsWith('127.0.0.1') ||
+    normalizedHost.startsWith('[::1]')
+  );
+}
+
+function isOnvoLivePublicKeyConfigured(): boolean {
+  const publicKey = String(process.env.ONVO_PUBLIC_KEY ?? '').trim();
+  return publicKey.startsWith('onvo_live_');
+}
+
 function normalizePaymentMethod(input: unknown): string | null {
   const raw = String(input ?? '').trim();
   if (!raw) return CARD_PAYMENT_METHOD;
@@ -301,6 +318,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const normalizedPaymentMethod = normalizePaymentMethod(paymentMethod);
   if (!normalizedPaymentMethod) {
     return res.status(400).json({ error: 'Método de pago inválido. Usa tarjeta (ONVO) o SINPE Móvil.' });
+  }
+
+  const isCardPayment = normalizedPaymentMethod === CARD_PAYMENT_METHOD;
+  if (isCardPayment && isOnvoLivePublicKeyConfigured() && isLocalhostRequest(req)) {
+    return res.status(400).json({
+      error:
+        'ONVO bloquea pagos live desde localhost por reglas antifraude. Para pruebas locales usa llaves test (onvo_test_...) o intenta el pago desde tu dominio real con HTTPS.',
+    });
   }
 
   const normalizedSinpeReceiptUrl = String(sinpeReceiptUrl ?? '').trim();

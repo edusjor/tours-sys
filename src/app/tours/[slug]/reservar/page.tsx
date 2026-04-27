@@ -97,6 +97,59 @@ function loadOnvoSignalScript(): Promise<void> {
   return onvoSignalScriptPromise;
 }
 
+function extractOnvoErrorMessage(input: unknown): string {
+  if (!input) return "";
+  if (typeof input === "string") return input.trim();
+  if (input instanceof Error) return input.message.trim();
+  if (typeof input !== "object") return "";
+
+  const source = input as Record<string, unknown>;
+  const lastPaymentError =
+    source.lastPaymentError && typeof source.lastPaymentError === "object"
+      ? (source.lastPaymentError as Record<string, unknown>)
+      : null;
+
+  const candidates: unknown[] = [
+    source.failureMessage,
+    source.message,
+    source.detail,
+    lastPaymentError?.message,
+    lastPaymentError?.failureMessage,
+    source.failureCode,
+    lastPaymentError?.code,
+    source.code,
+    (source.error as Record<string, unknown> | undefined)?.message,
+    (source.error as Record<string, unknown> | undefined)?.detail,
+  ];
+
+  for (const candidate of candidates) {
+    if (typeof candidate === "string" && candidate.trim()) {
+      return candidate.trim();
+    }
+  }
+
+  return "";
+}
+
+async function fetchOnvoPaymentIntentStatusMessage(input: {
+  reservationId: number;
+  paymentIntentId: string;
+}): Promise<string> {
+  const response = await fetch("/api/onvo/payment-intent-status", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+
+  const payload = await response.json().catch(() => null);
+  if (!response.ok) {
+    const detail = String(payload?.error ?? "").trim();
+    return detail || "El pago no pudo procesarse. Revisa los datos e intenta nuevamente.";
+  }
+
+  return String(payload?.message ?? "").trim() || "El pago no pudo procesarse. Revisa los datos e intenta nuevamente.";
+}
+
 interface Availability {
   id: number;
   date: string;
@@ -1169,13 +1222,16 @@ function ReservarPageContent({
         return;
       }
 
+      let signalSessionStarted = false;
       try {
         await loadOnvoSignalScript();
         if (window.ONVO) {
           await window.ONVO(publicKey).startSignalSession({ paymentIntentId });
+          signalSessionStarted = true;
         }
-      } catch {
+      } catch (signalError) {
         // No bloquea el checkout si la señal antifraude falla por red o bloqueadores.
+        console.warn("No se pudo iniciar la sesión de señales ONVO", signalError);
       }
 
       const mountNode = document.getElementById("onvo-checkout-container");
@@ -1191,11 +1247,31 @@ function ReservarPageContent({
         paymentType: "one_time",
         locale: "es",
         onError: (onvoError) => {
-          const errorMessage =
-            typeof onvoError === "object" && onvoError && "message" in onvoError
-              ? String((onvoError as { message?: string }).message || "")
+          const errorMessage = extractOnvoErrorMessage(onvoError);
+          console.warn("ONVO checkout warning", onvoError);
+          if (errorMessage) {
+            const guidance = !signalSessionStarted
+              ? " Si desactivaste bloqueadores o anti-tracking, intenta nuevamente."
               : "";
-          setStatus(errorMessage ? `Error en el pago: ${errorMessage}` : "El pago no pudo procesarse. Revisa los datos e intenta nuevamente.");
+            setStatus(`Error en el pago: ${errorMessage}.${guidance}`.trim());
+            return;
+          }
+
+          setStatus("No se pudo obtener el detalle del error. Verificando estado del pago...");
+          void (async () => {
+            try {
+              const providerMessage = await fetchOnvoPaymentIntentStatusMessage({
+                reservationId,
+                paymentIntentId,
+              });
+              const guidance = !signalSessionStarted
+                ? " Si desactivaste bloqueadores o anti-tracking, intenta nuevamente."
+                : "";
+              setStatus(`${providerMessage}${guidance}`.trim());
+            } catch {
+              setStatus("El pago no pudo procesarse. Revisa los datos e intenta nuevamente.");
+            }
+          })();
         },
         onSuccess: async () => {
           try {
@@ -1727,7 +1803,7 @@ function ReservarPageContent({
             ) : null}
 
             {status && !isConfirmingReservation && (
-              <p className="mt-4 whitespace-pre-line rounded-lg bg-emerald-50 p-3 text-sm font-semibold text-emerald-700">{status}</p>
+              <p className="mt-4 whitespace-pre-line break-words rounded-lg bg-emerald-50 p-3 text-sm font-semibold text-emerald-700">{status}</p>
             )}
           </article>
         </div>

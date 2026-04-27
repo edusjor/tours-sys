@@ -7,7 +7,23 @@ type StatusResponse = {
   message: string;
 };
 
-function mapPaymentIntentStatusMessage(status: string): string {
+function mapPaymentIntentStatusMessage(input: {
+  status: string;
+  failureCode?: string;
+  failureMessage?: string;
+}): string {
+  const status = String(input.status || '').trim();
+  const failureCode = String(input.failureCode || '').trim().toLowerCase();
+  const failureMessage = String(input.failureMessage || '').trim();
+
+  if (failureCode === 'flagged_by_risk_assessment_tool') {
+    return 'ONVO declinó este intento por evaluación de riesgo. Prueba desde un dominio HTTPS real, sin bloqueadores, o usa otra tarjeta/dispositivo.';
+  }
+
+  if (failureMessage) {
+    return failureMessage;
+  }
+
   switch (status) {
     case 'requires_payment_method':
       return 'El pago fue rechazado por el banco o los datos de tarjeta no fueron aceptados. Intenta nuevamente o usa otra tarjeta.';
@@ -17,6 +33,8 @@ function mapPaymentIntentStatusMessage(status: string): string {
       return 'Tu pago esta en proceso. Espera unos segundos e intenta confirmar nuevamente.';
     case 'canceled':
       return 'El intento de pago fue cancelado. Vuelve a intentarlo para generar un nuevo intento.';
+    case 'failed':
+      return 'El pago fue declinado por ONVO o el emisor. Intenta nuevamente con otra tarjeta o desde otro dispositivo.';
     case 'succeeded':
     case 'paid':
     case 'approved':
@@ -42,6 +60,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
     const paymentIntent = await getOnvoPaymentIntent(paymentIntentId);
     const status = String(paymentIntent.status ?? '').trim().toLowerCase();
     const metadataReservationId = Number(paymentIntent.metadata?.reservationId ?? '');
+    const failureCode = String(
+      paymentIntent.failureCode ??
+      paymentIntent.lastPaymentError?.code ??
+      '',
+    ).trim();
+    const failureMessage = String(
+      paymentIntent.failureMessage ??
+      paymentIntent.lastPaymentError?.failureMessage ??
+      paymentIntent.lastPaymentError?.message ??
+      '',
+    ).trim();
 
     if (!Number.isFinite(metadataReservationId) || metadataReservationId <= 0) {
       return res.status(400).json({ error: 'El pago no tiene una reserva asociada válida' });
@@ -54,7 +83,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
     return res.status(200).json({
       ok: true,
       status,
-      message: mapPaymentIntentStatusMessage(status),
+      message: mapPaymentIntentStatusMessage({ status, failureCode, failureMessage }),
     });
   } catch {
     return res.status(502).json({ error: 'No se pudo consultar el estado del pago en ONVO' });
