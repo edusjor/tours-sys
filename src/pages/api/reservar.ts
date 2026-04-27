@@ -72,6 +72,18 @@ function normalizePaymentMethod(input: unknown): string | null {
   return null;
 }
 
+function normalizeOnvoPhone(input: unknown): string | undefined {
+  const raw = String(input ?? '').trim();
+  if (!raw) return undefined;
+
+  const normalized = raw
+    .replace(/[^\d+]/g, '')
+    .replace(/(?!^)\+/g, '');
+
+  if (!/^\+\d{8,15}$/.test(normalized)) return undefined;
+  return normalized;
+}
+
 function normalizeTime24(value: unknown): string | null {
   const trimmed = String(value ?? '').trim();
   const match = /^(\d{1,2}):(\d{2})$/.exec(trimmed);
@@ -574,15 +586,25 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     try {
       const customerName = `${String(name ?? '').trim()} ${String(lastName ?? '').trim()}`.trim() || String(name ?? '').trim();
       const customerEmail = String(email ?? '').trim();
-      const customerPhone = String(phone ?? '').trim() || undefined;
+      const customerPhone = normalizeOnvoPhone(phone);
 
       let onvoCustomerId = '';
       if (customerName && customerEmail) {
-        const onvoCustomer = await createOnvoCustomer({
-          name: customerName,
-          email: customerEmail,
-          phone: customerPhone,
-        }).catch(() => null);
+        let onvoCustomer = null;
+        try {
+          onvoCustomer = await createOnvoCustomer({
+            name: customerName,
+            email: customerEmail,
+            phone: customerPhone,
+          });
+        } catch (error) {
+          const detail = error instanceof Error ? error.message : '';
+          return res.status(400).json({
+            error: detail
+              ? `No se pudo validar la información del cliente para el pago: ${detail}`
+              : 'No se pudo validar la información del cliente para el pago. Revisa nombre, correo y teléfono.',
+          });
+        }
 
         onvoCustomerId = String(onvoCustomer?.id ?? '').trim();
       }

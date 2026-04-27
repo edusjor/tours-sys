@@ -1246,7 +1246,9 @@ function ReservarPageContent({
           }
         } catch (signalError) {
           // No bloquea el checkout si la señal antifraude falla por red o bloqueadores.
-          console.warn("No se pudo iniciar la sesión de señales ONVO", signalError);
+          if (process.env.NODE_ENV !== "production") {
+            console.warn("No se pudo iniciar la sesión de señales ONVO", signalError);
+          }
         }
       }
 
@@ -1265,7 +1267,9 @@ function ReservarPageContent({
         locale: "es",
         onError: (onvoError) => {
           const errorMessage = extractOnvoErrorMessage(onvoError);
-          console.warn("ONVO checkout warning", onvoError);
+          if (process.env.NODE_ENV !== "production") {
+            console.warn("ONVO checkout warning", onvoError);
+          }
           if (errorMessage) {
             const guidance = !signalSessionStarted
               ? " Si desactivaste bloqueadores o anti-tracking, intenta nuevamente."
