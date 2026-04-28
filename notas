@@ -131,7 +131,7 @@ docker compose -f docker-compose.vps.yml logs --tail=150 app
 
 
 git add .
-git commit -m 'fix pago'
+git commit -m 'correccion validacion correo checkout'
 git push -u origin main
 
 ssh root@72.60.227.134

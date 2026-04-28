@@ -144,6 +144,12 @@ function extractOnvoErrorMessage(input: unknown): string {
   return "";
 }
 
+function isValidEmailFormat(value: string): boolean {
+  const normalized = value.trim();
+  if (!normalized) return false;
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalized);
+}
+
 async function fetchOnvoPaymentIntentStatusMessage(input: {
   reservationId: number;
   paymentIntentId: string;
@@ -944,7 +950,7 @@ function ReservarPageContent({
     hasSelectionStepCompleted &&
     name.trim() &&
     lastName.trim() &&
-    email.trim() &&
+    isValidEmailFormat(email) &&
     phoneCountryDialCode.trim() &&
     phone.trim();
   const isSinpeMobileMethod = payMethod === "SINPE Movil";
@@ -1000,6 +1006,10 @@ function ReservarPageContent({
       return;
     }
     if (!canContinueToPay) {
+      if (email.trim() && !isValidEmailFormat(email)) {
+        setStepError({ step: "pago", message: "Ingresa un correo electrónico válido para continuar al pago." });
+        return;
+      }
       setStepError({ step: "pago", message: "Completa tus datos de contacto para poder abrir el paso de pago." });
       return;
     }
